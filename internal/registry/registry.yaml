@@ -1,0 +1,67 @@
+# The ilk layer index.
+#
+# This is the whole registry: a list of names and where to fetch them. There is no
+# server, no account and no publishing step beyond pushing a git repository and
+# opening a pull request against this file.
+#
+# `ilk search` reads a copy of this index embedded in the binary, so discovery works
+# offline. That copy is a snapshot taken at release time — a layer added here after
+# your ilk was built is still adoptable by its source, it just will not be listed.
+#
+# To add a layer:
+#   1. `ilk layer test ./your-layer` must pass. A layer that cannot be cleanly
+#      removed is one nobody can safely try.
+#   2. Add an entry below with a real source and an honest summary.
+#   3. Open a pull request against internal/registry/registry.yaml — this file is
+#      the whole index, and it is embedded into the binary at build time.
+#
+# Nothing here is endorsed or audited. Read a layer before adopting it — `ilk info`
+# shows what it writes, what it costs in always-on context, and whether it runs code.
+
+version: 1
+
+layers:
+  # ---------------------------------------------------------------- built in
+  # Shipped inside the binary. Adoptable with no network access at all.
+
+  - id: ilk/toolkit
+    source: builtin
+    summary: How to operate and extend ilk in this repository — adopting, configuring, applying, resolving conflicts, and writing your own layer.
+    arc: operations
+    kind: process
+
+  - id: ilk/record
+    source: builtin
+    summary: The project record — what is true, what is intended, what happened — plus the checks that keep it honest.
+    arc: context
+    kind: record
+
+  - id: ilk/quality-gates
+    source: builtin
+    summary: Verification an agent cannot talk its way past — tests, lint and build wired into `ilk check`, git hooks and CI.
+    arc: quality
+    kind: gate
+
+  # --------------------------------------------------------------- community
+  # Fetched from git. Each is versioned by tag.
+
+  - id: ilk/blueprint
+    source: gh:coflounder/ilk/layers/blueprint
+    summary: One connected plan rather than a pile of tickets — epics, specs and milestones that must resolve, and acceptance criteria that must exist.
+    arc: planning
+    kind: process
+    requires: [record.plans]
+
+  - id: ilk/compound-lessons
+    source: gh:coflounder/ilk/layers/compound-lessons
+    summary: Turn a recurring problem into a durable change — a check, a skill or a convention — instead of advice that depends on everyone remembering it.
+    arc: operations
+    kind: process
+    requires: [record.docs]
+
+  - id: ilk/archive
+    source: gh:coflounder/ilk/layers/archive
+    summary: Supersede rather than delete — an archive the record can point back to, that live documents may not point into.
+    arc: context
+    kind: record
+    requires: [record.docs]

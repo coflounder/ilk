@@ -1,0 +1,44 @@
+id: ilk/compound-lessons
+version: 0.1.0
+summary: Turn a recurring problem into a durable change — a check, a skill or a convention — instead of advice that depends on everyone remembering it.
+facets:
+  arc: operations
+  kind: process
+ilk: ">=0.1.0"
+
+requires:
+  - record.docs
+
+provides:
+  - lessons.record
+
+variables:
+  docs_dir:
+    default: docs
+    description: Where lessons live, alongside the rest of current truth.
+
+files:
+  - src: templates/LESSON.md.tmpl
+    dest: "{{ .Vars.docs_dir }}/LESSON-example.md"
+    mode: create-only
+
+instructions:
+  - id: lessons
+    src: instructions/lessons.md.tmpl
+    budget: 110
+
+skills:
+  - name: compound-a-lesson
+    description: Turn something that went wrong, or went well, into a change that alters default behaviour for every future session. Use after an incident, a repeated review comment, a near-miss, or when the same mistake has now been made twice.
+    src: skills/compound-a-lesson.md
+
+checks:
+  - id: lessons.encoded
+    kind: builtin.frontmatter
+    title: Every lesson names the durable change it produced
+    fix: "Add `encoded_as:` to the lesson's frontmatter naming what actually changed — a check id, a skill name, a document, or a layer version. If nothing changed yet, say `encoded_as: pending` and the reason; if nothing should, `encoded_as: none` with why. A lesson that changed nothing is a story, and stories do not survive staff turnover."
+    args:
+      dirs: ["{{ .Vars.docs_dir }}"]
+      require: [encoded_as]
+      exempt: [README.md]
+      match: "^LESSON-"

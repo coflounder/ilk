@@ -1,0 +1,32 @@
+id: ilk/toolkit
+version: 0.1.0
+summary: How to operate and extend ilk in this repository — adopting, configuring, applying, resolving conflicts, and writing your own layer.
+facets:
+  arc: operations
+  kind: process
+ilk: ">=0.1.0"
+
+provides:
+  - ilk.toolkit
+
+# No `instructions:`. Everything here is a skill, loaded only when its situation
+# applies, so the layer costs a handful of index lines in AGENTS.md and nothing
+# else. A tool that explains itself in every context window is a tool that has
+# misunderstood its own budget advice.
+
+skills:
+  - name: adopt-a-layer
+    description: Evaluate a layer and add it to this repository. Use when asked to adopt, install or try an ilk layer, when someone links to one, or when deciding whether a published layer is worth taking on.
+    src: skills/adopt-a-layer.md
+  - name: apply-ilk-changes
+    description: Reconcile the repository with its declared layers. Use when `ilk status` reports drift, after editing .ilk/config.yaml by hand, when `ilk check` reports ilk.drift, or when upgrading a layer to a new version.
+    src: skills/apply-ilk-changes.md
+  - name: resolve-an-ilk-conflict
+    description: Decide what to do when ilk refuses to write a file because it was edited after ilk wrote it. Use when a plan shows CONFLICT, when a merge reports conflicting hunks, or when `ilk check` reports ilk.conflicts.
+    src: skills/resolve-an-ilk-conflict.md
+  - name: configure-ilk
+    description: Change what ilk does in this repository — capabilities, agent targets, layer variables, budgets and check exemptions. Use when a check is skipped for want of a capability, when adding support for another coding agent, or when a layer's defaults do not fit.
+    src: skills/configure-ilk.md
+  - name: write-a-layer
+    description: Author a new ilk layer, or change an existing one. Use when a practice worth repeating should become installable — a directory contract, a check, a skill, a hook or a subcommand — or when asked to extend what ilk does.
+    src: skills/write-a-layer.md

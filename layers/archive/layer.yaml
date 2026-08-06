@@ -1,0 +1,65 @@
+id: ilk/archive
+version: 0.1.0
+summary: Supersede rather than delete — an archive the record can point back to, that live documents may not point into.
+facets:
+  arc: context
+  kind: record
+ilk: ">=0.1.0"
+
+requires:
+  - record.docs
+
+provides:
+  - archive.store
+
+variables:
+  archive_dir:
+    default: .archived
+    description: >-
+      Where superseded documents go. Nothing here is checked for naming, freshness
+      or frontmatter — it is history, and history does not get corrected.
+  docs_dir:
+    default: docs
+    description: The live record directory whose documents may be archived.
+
+dirs:
+  - path: "{{ .Vars.archive_dir }}"
+    purpose: Superseded documents, kept for the reasoning they contain. Never edited, never checked.
+    keep: true
+
+files:
+  - src: bin/ilk-archive.sh
+    dest: .ilk/bin/ilk-archive.sh
+    mode: managed
+    exec: true
+
+instructions:
+  - id: archive
+    inline: |
+      Superseded documents move to `{{ .Vars.archive_dir }}/` with `ilk archive <file>`;
+      they are not deleted. The reasoning behind a decision that was later reversed is
+      what makes the reversal legible, and deleting it costs more than keeping it.
+
+      Nothing in `{{ .Vars.archive_dir }}/` is checked, and nothing live may link into it.
+      A current document citing an archived one is describing the past as though it were
+      the present, which is the failure archiving exists to prevent.
+    budget: 90
+
+skills:
+  - name: archive-a-document
+    description: Retire a document that is no longer true without losing the reasoning in it. Use when a document is superseded, when an approach is abandoned, or when tempted to delete something from the record.
+    src: skills/archive-a-document.md
+
+checks:
+  - id: archive.no-live-links
+    kind: builtin.links
+    title: Live documents do not cite archived ones
+    fix: "Point the link at the document that replaced the archived one, or restate the point inline. A current document citing an archived one presents the past as the present, which is exactly what archiving exists to prevent."
+    args:
+      dirs: ["{{ .Vars.docs_dir }}"]
+      forbid_prefix: "{{ .Vars.archive_dir }}"
+
+commands:
+  - name: it
+    summary: "Move a superseded document into the archive, recording what replaced it: ilk archive it <file> [replacement-id]"
+    run: .ilk/bin/ilk-archive.sh

@@ -48,11 +48,39 @@ jobs:
       - name: Layer contract
         run: |
           set -e
-          for layer in internal/builtin/layers/*/; do
+          for layer in internal/builtin/layers/*/ layers/*/; do
+            [ -f "$layer/layer.yaml" ] || continue
             echo "→ $layer"
             ./ilk layer validate "$layer"
             ./ilk layer test "$layer"
           done
+
+      # Every layer in the index must actually resolve, or `ilk search` is
+      # advertising things nobody can adopt.
+      - name: Registry index
+        shell: bash
+        run: |
+          set -e
+          ./ilk search --all --json > /tmp/index.json
+          python3 - <<'PY'
+          import json, os, sys
+          entries = json.load(open("/tmp/index.json"))
+          if not entries:
+              sys.exit("the index is empty")
+          missing = []
+          for e in entries:
+              src = e["source"]
+              if src == "builtin":
+                  if not os.path.isdir("internal/builtin/layers/" + e["id"].split("/")[-1]):
+                      missing.append(e["id"] + " (no built-in directory)")
+              elif src.startswith("gh:coflounder/ilk/"):
+                  path = src[len("gh:coflounder/ilk/"):]
+                  if not os.path.isfile(path + "/layer.yaml"):
+                      missing.append(e["id"] + " (" + path + " has no layer.yaml)")
+          if missing:
+              sys.exit("index entries that do not resolve:\n  " + "\n  ".join(missing))
+          print(f"{len(entries)} indexed layers all resolve")
+          PY
 
       # Prove the thing the README claims: one command produces a repository that
       # validates, and the whole cycle is reversible.

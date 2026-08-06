@@ -989,3 +989,40 @@ func TestASecondUpgradeMergesAgainstTheLayersPreviousVersion(t *testing.T) {
 		}
 	}
 }
+
+// A create-only file is seeded once and then belongs to the repository — including
+// the decision to delete it. Resurrecting it would override that decision, and would
+// do so on every apply for ever.
+func TestASeededFileDeletedByTheUserIsNotRecreated(t *testing.T) {
+	root := fixture(t)
+	configWith(t, root, "ilk/record")
+	apply(t, root)
+
+	seeded := "docs/README.md"
+	if !exists(root, seeded) {
+		t.Fatalf("setup: %s was not seeded", seeded)
+	}
+	if err := os.Remove(filepath.Join(root, seeded)); err != nil {
+		t.Fatal(err)
+	}
+
+	pl := apply(t, root)
+	if exists(root, seeded) {
+		t.Fatal("a seeded file the user deleted was recreated")
+	}
+	var noted bool
+	for _, a := range pl.Actions {
+		if a.Path == seeded && a.Op == OpSkip && strings.Contains(a.Note, "not recreated") {
+			noted = true
+		}
+	}
+	if !noted {
+		t.Error("the plan should say why the file was left absent")
+	}
+
+	// And it stays absent on every subsequent apply.
+	apply(t, root)
+	if exists(root, seeded) {
+		t.Fatal("a later apply resurrected it")
+	}
+}

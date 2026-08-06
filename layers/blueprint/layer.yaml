@@ -1,0 +1,113 @@
+id: ilk/blueprint
+version: 0.1.0
+summary: One connected plan rather than a pile of tickets — epics, specs and milestones that must resolve, and acceptance criteria that must exist.
+facets:
+  arc: planning
+  kind: process
+ilk: ">=0.1.0"
+
+# The plan documents live in the record's plans directory. Requiring the
+# capability rather than the layer means anything that provides a plans directory
+# satisfies this — including a record layer somebody wrote themselves.
+requires:
+  - record.plans
+
+provides:
+  - blueprint.specs
+  - blueprint.milestones
+
+variables:
+  plans_dir:
+    default: plans
+    description: Where the blueprint's documents live. Must match the record layer's plans directory.
+  require_milestone:
+    default: "true"
+    enum: ["true", "false"]
+    description: >-
+      Whether every spec must belong to a milestone. Turn it off for a project
+      that plans in epics but does not date its checkpoints.
+
+files:
+  - src: templates/EPIC.md.tmpl
+    dest: "{{ .Vars.plans_dir }}/EPIC-example.md"
+    mode: create-only
+  - src: templates/SPEC.md.tmpl
+    dest: "{{ .Vars.plans_dir }}/SPEC-example.md"
+    mode: create-only
+  - src: bin/ilk-blueprint-next.sh
+    dest: .ilk/bin/ilk-blueprint-next.sh
+    mode: managed
+    exec: true
+
+instructions:
+  - id: blueprint
+    src: instructions/blueprint.md.tmpl
+    budget: 150
+
+skills:
+  - name: write-a-spec
+    description: Write an engineering spec that an agent can execute and a reviewer can accept or reject. Use when starting a new piece of work, breaking an epic into deliverable slices, or when a spec fails the blueprint checks.
+    src: skills/write-a-spec.md
+  - name: choose-what-to-work-on
+    description: Pick the next piece of work from the plan rather than from memory or preference. Use at the start of a session with no assigned task, or when asked what to do next.
+    src: skills/choose-what-to-work-on.md
+
+checks:
+  - id: blueprint.epic
+    kind: builtin.references
+    title: Every spec belongs to an epic
+    fix: "Add `epic: <id>` to the spec's frontmatter naming an EPIC document in this directory, or `epic: none` if the work genuinely stands alone. A spec belonging to nothing is work nobody agreed to."
+    args:
+      dirs: ["{{ .Vars.plans_dir }}"]
+      targets: ["{{ .Vars.plans_dir }}"]
+      field: epic
+      required: "true"
+      allow: [none]
+      match: "^SPEC-"
+      exempt: [README.md]
+
+  - id: blueprint.milestone
+    kind: builtin.references
+    title: Every spec belongs to a milestone
+    fix: "Add `milestone: <id>` naming a MILESTONE document, or `milestone: backlog` for work that is scoped but not yet scheduled. A spec with no checkpoint cannot be reported on."
+    args:
+      dirs: ["{{ .Vars.plans_dir }}"]
+      targets: ["{{ .Vars.plans_dir }}"]
+      field: milestone
+      required: "{{ .Vars.require_milestone }}"
+      allow: [backlog, none]
+      match: "^SPEC-"
+      exempt: [README.md]
+
+  - id: blueprint.acceptance
+    kind: builtin.section
+    title: Every spec says what "done" means
+    fix: "Add an `## Acceptance criteria` section with at least one checkable statement. A criterion nobody can evaluate is not a criterion — write what somebody would run or look at to decide."
+    args:
+      dirs: ["{{ .Vars.plans_dir }}"]
+      heading: Acceptance criteria
+      min_items: 1
+      match: "^SPEC-"
+      exempt: [README.md]
+
+  - id: blueprint.outcome
+    kind: builtin.section
+    title: Every epic states its outcome
+    fix: "Add an `## Outcome` section saying what is different when this epic is done, in terms a stakeholder would use. An epic with no outcome is a category, not a commitment."
+    args:
+      dirs: ["{{ .Vars.plans_dir }}"]
+      heading: Outcome
+      min_items: 1
+      match: "^EPIC-"
+      exempt: [README.md]
+
+hooks:
+  - event: pre-commit
+    name: blueprint
+    blocking: true
+    run: ilk check --only blueprint.epic,blueprint.milestone,blueprint.acceptance,blueprint.outcome
+
+commands:
+  - name: next
+    summary: "Show the specs that are ready to work on, grouped by milestone: ilk blueprint next"
+    run: .ilk/bin/ilk-blueprint-next.sh

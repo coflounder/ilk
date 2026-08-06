@@ -32,6 +32,8 @@ var builtins = map[string]builtinFunc{
 	"builtin.drift":       checkDrift,
 	"builtin.budget":      checkBudget,
 	"builtin.conflicts":   checkConflicts,
+	"builtin.references":  checkReferences,
+	"builtin.section":     checkSection,
 }
 
 func builtinNames() []string {
@@ -75,6 +77,13 @@ func checkFrontmatter(p *engine.Project, args map[string]any) ([]Finding, error)
 	required := stringSlice(args["require"])
 	exempt := stringSet(args["exempt"])
 
+	// A layer may require keys of one kind of document without imposing them on
+	// every document in the directory.
+	match, err := compileMatch(args["match"])
+	if err != nil {
+		return nil, err
+	}
+
 	baseline := p.Baseline()
 
 	var findings []Finding
@@ -85,7 +94,7 @@ func checkFrontmatter(p *engine.Project, args map[string]any) ([]Finding, error)
 		}
 		for _, path := range files {
 			rel := repoRel(p.Repo.Root, path)
-			if exempt[filepath.Base(path)] || baseline[rel] {
+			if exempt[filepath.Base(path)] || baseline[rel] || !match(filepath.Base(path)) {
 				continue
 			}
 			data, err := os.ReadFile(path)
@@ -165,6 +174,10 @@ var markdownLink = regexp.MustCompile(`\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)`)
 func checkLinks(p *engine.Project, args map[string]any) ([]Finding, error) {
 	dirs := stringSlice(args["dirs"])
 	baseline := p.Baseline()
+	// A prefix live documents may not link into. Used to keep current truth from
+	// citing an archive: a document that exists is not the same as one that is
+	// still true, and a link makes no distinction.
+	forbidden := strings.TrimSuffix(strings.TrimSpace(asString(args["forbid_prefix"])), "/")
 
 	var findings []Finding
 	for _, dir := range dirs {
@@ -198,6 +211,17 @@ func checkLinks(p *engine.Project, args map[string]any) ([]Finding, error) {
 							Line:    i + 1,
 							Message: fmt.Sprintf("link target %q does not exist", m[1]),
 						})
+						continue
+					}
+					if forbidden != "" {
+						targetRel := repoRel(p.Repo.Root, resolved)
+						if targetRel == forbidden || strings.HasPrefix(targetRel, forbidden+"/") {
+							findings = append(findings, Finding{
+								Path:    rel,
+								Line:    i + 1,
+								Message: fmt.Sprintf("links into %s/, which holds superseded documents", forbidden),
+							})
+						}
 					}
 				}
 			}
@@ -603,6 +627,24 @@ func estimateTokens(s string) int {
 }
 
 // -------------------------------------------------------------------- helpers
+
+// readFile reads a document, returning its content.
+func readFile(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+// readFrontmatter reads just the YAML block at the top of a document.
+func readFrontmatter(path string) (map[string]any, error) {
+	content, err := readFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return parseFrontmatterStrict(content)
+}
 
 // repoRel renders an absolute path the way the lockfile and the baseline store
 // it: relative to the repository root, with forward slashes.

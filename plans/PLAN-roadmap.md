@@ -60,15 +60,22 @@ Remaining:
 *Accepted when:* somebody outside this repository publishes a layer, and adopting it
 needs no changes to ilk.
 
-### M3 — Ecosystem
+### M3 — Ecosystem · partly done
 
-- A registry index: a git repo mapping names to sources, `ilk search`, `ilk publish`.
+A layer index with `ilk search`, embedded so discovery works offline. Three community
+layers in `layers/`, each reducing a MetaHarness principle to plain markdown and git,
+and each held to `ilk layer test` in CI. An `ilk/toolkit` layer so an adopter's agent
+can operate and extend ilk from a base `init`. ✓
+
+Remaining:
+
+- `ilk publish`, and moving the index out of this repository once there is enough in
+  it to warrant its own.
 - More adapters, with conformance fixtures so "works with any agent" stops being a
   claim that decays silently as agents change their formats.
-- A second wave of first-party layers. Candidates, in rough order of demand:
-  `ralph` (a bounded agent loop whose completion condition is a check, not the model's
-  opinion), `llm-wiki` (a maintained knowledge layer over the codebase), `adr`,
-  `pr-prep`, `incident`.
+- More layers. Candidates, in rough order of demand: `ralph` (a bounded agent loop
+  whose completion condition is a check rather than the model's opinion), `llm-wiki`
+  (a maintained knowledge layer over the codebase), `pr-prep`, `incident`.
 
 *Accepted when:* the registry has enough layers that `ilk search` returns something
 useful for a common need, and none of them required a core change.

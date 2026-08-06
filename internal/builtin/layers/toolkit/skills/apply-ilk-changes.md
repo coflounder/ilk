@@ -1,0 +1,83 @@
+# Apply ilk changes
+
+Bring the repository back in line with the layers it declares.
+
+## When
+
+`ilk status` reports drift; you edited `.ilk/config.yaml` by hand; `ilk check` reports
+`ilk.drift`; or a layer has a new version to take.
+
+## The model
+
+`.ilk/config.yaml` is the desired state. `ilk apply` reconciles the repository to it.
+Everything else is sugar: `adopt` and `drop` edit that file and reconcile, `upgrade`
+re-resolves layer sources and reconciles.
+
+Two commands, always in this order:
+
+```
+ilk plan      # what would change, and why anything is refused
+ilk apply     # do it
+```
+
+`plan` writes nothing, ever. There is no reason not to run it first.
+
+## Reading a plan
+
+```
+  + create     docs/README.md                      ilk/record
+  ~ block ~    AGENTS.md [instructions]            ilk/record
+  ⇄ merge      AGENTS.md [instructions]            acme/style
+  · skip       docs/README.md                      ilk/record
+  ! CONFLICT   .claude/settings.json               target:claude-code
+```
+
+| Marker | Means |
+|---|---|
+| `+` | something new is being written |
+| `~` | ilk is replacing content it owns |
+| `⇄` | your edits and the layer's are being merged — both survive |
+| `-` | something ilk wrote is being removed |
+| `·` | deliberately left alone; the note says why |
+| `!` | refused. Nothing is written. See the `resolve-an-ilk-conflict` skill |
+
+The owner column matters. `ilk/record` is a layer; `target:claude-code` is an agent
+projection; `ilk/core` is ilk's own. Dropping a layer removes only its own rows.
+
+## Upgrading
+
+```
+ilk upgrade              # every layer
+ilk upgrade record       # one
+```
+
+A file you edited since ilk wrote it is **merged**, not overwritten: where your
+changes and the layer's touch different parts, both survive. Where they genuinely
+collide, ilk refuses and names the lines rather than guessing.
+
+## Applying is idempotent
+
+Running `ilk apply` when nothing has changed does nothing and is always safe. If you
+are unsure of the state, run it — that is cheaper than reasoning about it.
+
+## Verifying
+
+```
+ilk check      # exits non-zero on failure; every failure prints its own fix
+ilk status     # adopted layers, configured agents, and anything out of sync
+ilk doctor     # whether the environment can actually deliver what the layers declared
+```
+
+`ilk doctor` is the one people forget. It reports the gaps between what a layer
+declared and what this machine can do — a hook event no configured agent can fire, a
+`core.hooksPath` that has taken over git hooks, ilk missing from `PATH` so generated
+hooks silently skip. A gate you believe is running and is not is worse than no gate.
+
+## What not to do
+
+- Do not edit generated files to make a plan empty. `ilk apply` is how you change
+  them; editing them is how you create drift.
+- Do not reach for `--force` because a plan refused something. Read the refusal — it
+  names the fix, and `--force` discards work.
+- Do not commit with a plan outstanding. A repository whose generated files disagree
+  with its config sends every later session a mixed message.

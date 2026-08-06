@@ -218,6 +218,15 @@ func (p *Project) planOne(d Desired, files *fileCache, opts PlanOptions) (Action
 			a.Note = "already present; ilk seeds this file once and never touches it again"
 			return a, nil
 		}
+		if isLocked {
+			// ilk seeded this once and somebody deleted it. Seeding it again
+			// would override a decision already made, and would do so on every
+			// apply for ever.
+			a.Op = OpSkip
+			a.Note = "seeded once and since removed; not recreated"
+			a.createdFile = locked.CreatedFile
+			return a, nil
+		}
 		a.Op = OpCreate
 		a.createdFile = true
 		a.setWrite(d.Content)

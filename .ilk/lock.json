@@ -2,6 +2,31 @@
   "version": 1,
   "layers": [
     {
+      "id": "ilk/compound-lessons",
+      "version": "0.1.0",
+      "source": "/home/user/ilk/layers/compound-lessons",
+      "digest": "sha256:68e1b012945b6e9f48da45366558d8e3ce162e6a12e0b26669b12df5b95eb531",
+      "vars": {
+        "docs_dir": "docs"
+      },
+      "files": [
+        {
+          "path": "AGENTS.md",
+          "mode": "region",
+          "region": "instructions",
+          "hash": "sha256:7d30a4456e215b653dbf8a25d622909546a3be6954be2c757ea7c3048ed158c1",
+          "delivered": "sha256:7d30a4456e215b653dbf8a25d622909546a3be6954be2c757ea7c3048ed158c1",
+          "owner": "ilk/compound-lessons"
+        },
+        {
+          "path": "docs/LESSON-example.md",
+          "mode": "create-only",
+          "created_file": true,
+          "owner": "ilk/compound-lessons"
+        }
+      ]
+    },
+    {
       "id": "ilk/core",
       "version": "",
       "source": "",
@@ -169,10 +194,50 @@
       "source": "",
       "files": [
         {
+          "path": ".agent/skills/adopt-a-layer/SKILL.md",
+          "mode": "managed",
+          "hash": "sha256:aa1c1b7498d63ccd3a30fbae4376624b0aa74f774eae1b497c38b8d3a2ccab74",
+          "delivered": "sha256:aa1c1b7498d63ccd3a30fbae4376624b0aa74f774eae1b497c38b8d3a2ccab74",
+          "created_file": true,
+          "owner": "target:agents-md"
+        },
+        {
+          "path": ".agent/skills/apply-ilk-changes/SKILL.md",
+          "mode": "managed",
+          "hash": "sha256:7385d8b1c50f2fea4464de37a92770de534936d329dc205876e3d271e9c424d5",
+          "delivered": "sha256:7385d8b1c50f2fea4464de37a92770de534936d329dc205876e3d271e9c424d5",
+          "created_file": true,
+          "owner": "target:agents-md"
+        },
+        {
+          "path": ".agent/skills/compound-a-lesson/SKILL.md",
+          "mode": "managed",
+          "hash": "sha256:69922dd1868c03955f7737492aa062851ac9ebd8ebf28a54b70ba575b1ce731a",
+          "delivered": "sha256:69922dd1868c03955f7737492aa062851ac9ebd8ebf28a54b70ba575b1ce731a",
+          "created_file": true,
+          "owner": "target:agents-md"
+        },
+        {
+          "path": ".agent/skills/configure-ilk/SKILL.md",
+          "mode": "managed",
+          "hash": "sha256:6cb53db2681480bf50a2679571f18c2198bff807f43ab69acb6e5a0a1dc5150a",
+          "delivered": "sha256:6cb53db2681480bf50a2679571f18c2198bff807f43ab69acb6e5a0a1dc5150a",
+          "created_file": true,
+          "owner": "target:agents-md"
+        },
+        {
           "path": ".agent/skills/prove-it/SKILL.md",
           "mode": "managed",
           "hash": "sha256:8b22ac164726f9503b28780548ba554ecd05aa9094fca5076e80555eccd66aab",
           "delivered": "sha256:8b22ac164726f9503b28780548ba554ecd05aa9094fca5076e80555eccd66aab",
+          "created_file": true,
+          "owner": "target:agents-md"
+        },
+        {
+          "path": ".agent/skills/resolve-an-ilk-conflict/SKILL.md",
+          "mode": "managed",
+          "hash": "sha256:c0e382f7b9510febc456de119843cbdc2a67f059a639cb6e9a1aa4d58ae43230",
+          "delivered": "sha256:c0e382f7b9510febc456de119843cbdc2a67f059a639cb6e9a1aa4d58ae43230",
           "created_file": true,
           "owner": "target:agents-md"
         },
@@ -189,6 +254,14 @@
           "mode": "managed",
           "hash": "sha256:2675e8d773db6703414cb9565a185ec242697645d51b85bdcf4161a46c75d8c3",
           "delivered": "sha256:2675e8d773db6703414cb9565a185ec242697645d51b85bdcf4161a46c75d8c3",
+          "created_file": true,
+          "owner": "target:agents-md"
+        },
+        {
+          "path": ".agent/skills/write-a-layer/SKILL.md",
+          "mode": "managed",
+          "hash": "sha256:35ad6cfd30b654805ad17d0b8f77a6d99a50fc16c4a88f8db4eea8084097f384",
+          "delivered": "sha256:35ad6cfd30b654805ad17d0b8f77a6d99a50fc16c4a88f8db4eea8084097f384",
           "created_file": true,
           "owner": "target:agents-md"
         },
@@ -210,8 +283,8 @@
           "path": "AGENTS.md",
           "mode": "region",
           "region": "skills",
-          "hash": "sha256:2d7bcfafd53fc1d6053b8a97ec833fc9e487b28c6bfef6802c0d7891f4c34485",
-          "delivered": "sha256:2d7bcfafd53fc1d6053b8a97ec833fc9e487b28c6bfef6802c0d7891f4c34485",
+          "hash": "sha256:8dff1d8b32d59cf383485e76f42f614be09513d6a23b5f62b19786a441cb6c1f",
+          "delivered": "sha256:8dff1d8b32d59cf383485e76f42f614be09513d6a23b5f62b19786a441cb6c1f",
           "owner": "target:agents-md"
         }
       ]
@@ -254,10 +327,50 @@
           "owner": "target:claude-code"
         },
         {
+          "path": ".claude/skills/adopt-a-layer/SKILL.md",
+          "mode": "managed",
+          "hash": "sha256:aa1c1b7498d63ccd3a30fbae4376624b0aa74f774eae1b497c38b8d3a2ccab74",
+          "delivered": "sha256:aa1c1b7498d63ccd3a30fbae4376624b0aa74f774eae1b497c38b8d3a2ccab74",
+          "created_file": true,
+          "owner": "target:claude-code"
+        },
+        {
+          "path": ".claude/skills/apply-ilk-changes/SKILL.md",
+          "mode": "managed",
+          "hash": "sha256:7385d8b1c50f2fea4464de37a92770de534936d329dc205876e3d271e9c424d5",
+          "delivered": "sha256:7385d8b1c50f2fea4464de37a92770de534936d329dc205876e3d271e9c424d5",
+          "created_file": true,
+          "owner": "target:claude-code"
+        },
+        {
+          "path": ".claude/skills/compound-a-lesson/SKILL.md",
+          "mode": "managed",
+          "hash": "sha256:69922dd1868c03955f7737492aa062851ac9ebd8ebf28a54b70ba575b1ce731a",
+          "delivered": "sha256:69922dd1868c03955f7737492aa062851ac9ebd8ebf28a54b70ba575b1ce731a",
+          "created_file": true,
+          "owner": "target:claude-code"
+        },
+        {
+          "path": ".claude/skills/configure-ilk/SKILL.md",
+          "mode": "managed",
+          "hash": "sha256:6cb53db2681480bf50a2679571f18c2198bff807f43ab69acb6e5a0a1dc5150a",
+          "delivered": "sha256:6cb53db2681480bf50a2679571f18c2198bff807f43ab69acb6e5a0a1dc5150a",
+          "created_file": true,
+          "owner": "target:claude-code"
+        },
+        {
           "path": ".claude/skills/prove-it/SKILL.md",
           "mode": "managed",
           "hash": "sha256:8b22ac164726f9503b28780548ba554ecd05aa9094fca5076e80555eccd66aab",
           "delivered": "sha256:8b22ac164726f9503b28780548ba554ecd05aa9094fca5076e80555eccd66aab",
+          "created_file": true,
+          "owner": "target:claude-code"
+        },
+        {
+          "path": ".claude/skills/resolve-an-ilk-conflict/SKILL.md",
+          "mode": "managed",
+          "hash": "sha256:c0e382f7b9510febc456de119843cbdc2a67f059a639cb6e9a1aa4d58ae43230",
+          "delivered": "sha256:c0e382f7b9510febc456de119843cbdc2a67f059a639cb6e9a1aa4d58ae43230",
           "created_file": true,
           "owner": "target:claude-code"
         },
@@ -274,6 +387,14 @@
           "mode": "managed",
           "hash": "sha256:2675e8d773db6703414cb9565a185ec242697645d51b85bdcf4161a46c75d8c3",
           "delivered": "sha256:2675e8d773db6703414cb9565a185ec242697645d51b85bdcf4161a46c75d8c3",
+          "created_file": true,
+          "owner": "target:claude-code"
+        },
+        {
+          "path": ".claude/skills/write-a-layer/SKILL.md",
+          "mode": "managed",
+          "hash": "sha256:35ad6cfd30b654805ad17d0b8f77a6d99a50fc16c4a88f8db4eea8084097f384",
+          "delivered": "sha256:35ad6cfd30b654805ad17d0b8f77a6d99a50fc16c4a88f8db4eea8084097f384",
           "created_file": true,
           "owner": "target:claude-code"
         },

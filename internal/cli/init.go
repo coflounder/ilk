@@ -20,8 +20,8 @@ import (
 // shaped experience without putting anything inside a taxonomy: a profile is a
 // one-shot expansion, and nothing you adopt through one is trapped in it.
 var profiles = map[string][]string{
-	"minimal":  {"ilk/record"},
-	"standard": {"ilk/record", "ilk/quality-gates"},
+	"minimal":  {"ilk/toolkit", "ilk/record"},
+	"standard": {"ilk/toolkit", "ilk/record", "ilk/quality-gates"},
 }
 
 func profileNames() []string {

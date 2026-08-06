@@ -1,0 +1,11 @@
+Work in this repository comes from the plan in `{{ .Vars.plans_dir }}/`, not from
+memory or preference. An epic states an outcome; a spec is one deliverable slice of it
+with acceptance criteria; a milestone is a checkpoint specs belong to.
+
+Before starting work, run `ilk blueprint next` — it shows what is ready, from the
+record rather than from anyone's recollection. If what you are about to do is not in
+the plan, either it belongs in a spec first or somebody should say why it does not.
+
+Every spec declares `epic:` and `milestone:` and carries an `## Acceptance criteria`
+section. Those are what make "done" a claim somebody else can check rather than an
+assertion, and `ilk check` enforces all three.

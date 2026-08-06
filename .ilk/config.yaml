@@ -19,9 +19,14 @@ capabilities:
   lint.command: gofmt -l ./cmd ./internal
   test.command: go test ./...
 layers:
+  - id: ilk/compound-lessons
+    version: 0.1.0
+    source: ./layers/compound-lessons
   - id: ilk/quality-gates
     version: 0.1.0
   - id: ilk/record
+    version: 0.1.0
+  - id: ilk/toolkit
     version: 0.1.0
 budget:
   instructions: 1500

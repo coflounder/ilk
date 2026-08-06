@@ -11,8 +11,9 @@ point in a project's life.
 ilk init
 ```
 
-That gives you a project record, agent instructions, one validator, a session brief
-and a pre-commit hook. No registry, no network, nothing to choose.
+That gives you a project record, agent instructions, one validator, a session brief,
+a pre-commit hook, and the skills an agent needs to operate ilk itself. No registry,
+no network, nothing to choose.
 
 ---
 
@@ -57,6 +58,7 @@ ilk brief                        # the packet a session should start with
 ilk check                        # validate; every failure prints its fix
 ilk status                       # what is adopted, and what has drifted
 
+ilk search                       # layers you could adopt
 ilk list --available             # layers you can add
 ilk info quality-gates           # what a layer contains, before adopting it
 ilk adopt quality-gates --set test.command="go test ./..."
@@ -183,6 +185,35 @@ ilk baseline list                          # what is exempt, and from which laye
 ilk baseline clear docs/api_reference.md   # conform it, then hold it to the rules
 ilk init --no-baseline                     # or be held to them from the start
 ```
+
+## Layers
+
+`ilk init` gives you three, embedded in the binary so they need no network:
+
+| Layer | What it does |
+|---|---|
+| `toolkit` | The skills an agent needs to operate ilk here — adopt, configure, apply, resolve a conflict, write a layer |
+| `record` | The project record: what is true, what is intended, what happened, plus the checks that keep it honest |
+| `quality-gates` | Tests, lint and build wired into `ilk check`, git hooks and CI |
+
+Three more ship alongside in [`layers/`](layers/), each taking one idea from the
+MetaHarness essay and reducing it to something that works on plain markdown and git:
+
+| Layer | Enforces |
+|---|---|
+| `blueprint` | Every spec belongs to an epic and a milestone that exist, and says what "done" means |
+| `compound-lessons` | Every lesson names the durable change it produced, so "we will be more careful" cannot pass as an outcome |
+| `archive` | Superseded documents are archived rather than deleted, and nothing live may cite them |
+
+```sh
+ilk search planning
+ilk info gh:coflounder/ilk/layers/blueprint
+ilk adopt gh:coflounder/ilk/layers/blueprint --allow-exec
+```
+
+The index is embedded, so `ilk search` works offline. It lists what somebody
+registered; it endorses nothing. `ilk info` shows what a layer writes, what it costs
+in always-on context, and whether it runs code — read it before adopting.
 
 ## Staleness is measured by coupling, not by a timer
 

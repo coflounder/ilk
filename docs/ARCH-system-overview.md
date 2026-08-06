@@ -53,6 +53,7 @@ Nothing is written until the whole blast radius has been shown.
 | `internal/brief` | The session-start packet. |
 | `internal/cli` | Command surface. |
 | `internal/builtin` | Layers embedded in the binary, so `ilk init` needs no network. |
+| `internal/registry` | The layer index, embedded so `ilk search` works offline. |
 
 Dependencies run one way: `cli → engine → {targets, layer, config, lock, render} →
 {manifest, fence, repo}`. `checks` and `brief` sit beside `cli` and depend on `engine`.
