@@ -71,6 +71,12 @@ id: $(printf '%s' "$prefix-$slug" | tr '[:upper:]' '[:lower:]')
 title: $title
 status: draft
 updated: $today
+covers:
+  # Paths this document describes. Staleness is measured against these, so a
+  # document goes stale when its subject changes rather than on a timer.
+  # Replace this with real paths — a pattern matching nothing exempts the
+  # document from ever being checked.
+  - src/**
 ---
 
 # $title

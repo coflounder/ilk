@@ -25,9 +25,19 @@ variables:
   scratch_dir:
     default: scratch
     description: The ungoverned annex. Nothing here is checked.
-  stale_after_days:
-    default: "45"
-    description: How long a document may lag the code it describes before it is flagged.
+  review_after_commits:
+    default: "10"
+    description: >-
+      How many commits may touch the code a document covers before the document
+      needs re-reading. Measured against the document's own `covers:` patterns, so
+      a stable subsystem never goes stale and a churning one goes stale fast — the
+      project's pace sets the pace of review.
+  max_age_days:
+    default: "0"
+    description: >-
+      Optional absolute review interval, off by default. Set it only if documents
+      here go stale because the world moved rather than the code — an external API,
+      a vendor's behaviour — which watching this repository can never detect.
 
 dirs:
   - path: "{{ .Vars.docs_dir }}"
@@ -61,11 +71,15 @@ files:
     dest: .ilk/bin/ilk-record-new.sh
     mode: managed
     exec: true
+  - src: bin/ilk-record-review.sh
+    dest: .ilk/bin/ilk-record-review.sh
+    mode: managed
+    exec: true
 
 instructions:
   - id: contract
     src: instructions/contract.md.tmpl
-    budget: 260
+    budget: 380
 
 skills:
   - name: write-decision
@@ -123,11 +137,20 @@ checks:
   - id: record.stale
     kind: builtin.stale
     title: Documents have not fallen behind the code they describe
-    fix: "Read the document against the current code. If it is still accurate, bump `updated:` to today. If it is not, fix it — that is the drift this check exists to surface."
+    fix: "Run `ilk record review <file>` — it shows exactly what changed under the document's `covers:` paths since it was last read, then records that you have looked. If the document is wrong, fix it; if it is still right, the review alone is the answer."
     args:
       dirs:
         - "{{ .Vars.docs_dir }}"
-      max_lag_days: "{{ .Vars.stale_after_days }}"
+      review_after_commits: "{{ .Vars.review_after_commits }}"
+      max_age_days: "{{ .Vars.max_age_days }}"
+      exempt: [README.md]
+  - id: record.coverage
+    kind: builtin.coverage
+    title: Documents declare what they describe, so staleness can be detected
+    fix: "Add a `covers:` list to the frontmatter naming the paths this document describes, e.g. `covers: [src/payments/**]`. A document that covers nothing is never stale, which is indistinguishable from one that is always right — and a pattern matching nothing is worse, because it looks like it is working."
+    args:
+      dirs:
+        - "{{ .Vars.docs_dir }}"
       exempt: [README.md]
 
 hooks:
@@ -146,3 +169,6 @@ commands:
   - name: log
     summary: "Append a dated entry to the log: ilk record log <title>"
     run: .ilk/bin/ilk-record-new.sh log
+  - name: review
+    summary: "Show what changed under a document's covers: paths, then record that you have read it: ilk record review <file>"
+    run: .ilk/bin/ilk-record-review.sh

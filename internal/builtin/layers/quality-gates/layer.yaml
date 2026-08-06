@@ -30,7 +30,7 @@ files:
 instructions:
   - id: gates
     src: instructions/gates.md.tmpl
-    budget: 150
+    budget: 190
 
 skills:
   - name: prove-it

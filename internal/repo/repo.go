@@ -5,9 +5,11 @@ package repo
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -130,6 +132,127 @@ func (r *Repo) ChangedFilesSince(rev string) ([]string, bool) {
 		}
 	}
 	return files, true
+}
+
+// Commit is the little git knows about a change that a staleness check needs.
+type Commit struct {
+	SHA     string
+	When    int64
+	Subject string
+}
+
+// CommitsTouching returns commits after `since` that changed any of the given
+// pathspecs, most recent first.
+//
+// This is what lets a document's staleness be measured against the code it
+// actually describes, rather than against the calendar. A subsystem nobody has
+// touched cannot make its documentation stale, however old that documentation is.
+func (r *Repo) CommitsTouching(patterns []string, since int64, limit int) ([]Commit, bool) {
+	if !r.IsGit() || len(patterns) == 0 {
+		return nil, false
+	}
+
+	args := []string{"log", "--no-merges", fmt.Sprintf("--since=@%d", since),
+		"--format=%H%x1f%at%x1f%s"}
+	if limit > 0 {
+		args = append(args, fmt.Sprintf("-%d", limit))
+	}
+	args = append(args, "--")
+	args = append(args, gitPathspecs(patterns)...)
+
+	return r.runLog(args)
+}
+
+func (r *Repo) runLog(args []string) ([]Commit, bool) {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = r.Root
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, false
+	}
+
+	var commits []Commit
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		if line == "" {
+			continue
+		}
+		parts := strings.SplitN(line, "\x1f", 3)
+		if len(parts) != 3 {
+			continue
+		}
+		when, err := strconv.ParseInt(parts[1], 10, 64)
+		if err != nil {
+			continue
+		}
+		commits = append(commits, Commit{SHA: parts[0], When: when, Subject: parts[2]})
+	}
+	return commits, true
+}
+
+// LastCommitSHA returns the most recent commit touching path.
+func (r *Repo) LastCommitSHA(path string) (string, bool) {
+	if !r.IsGit() {
+		return "", false
+	}
+	cmd := exec.Command("git", "log", "-1", "--format=%H", "--", path)
+	cmd.Dir = r.Root
+	out, err := cmd.Output()
+	if err != nil {
+		return "", false
+	}
+	sha := strings.TrimSpace(string(out))
+	return sha, sha != ""
+}
+
+// CommitsInRange returns commits reachable from HEAD but not from `since` that
+// touched the given pathspecs, most recent first.
+//
+// A commit range is exact where a timestamp is not: several commits can share a
+// second, and `--since` would then include the very commit being measured from.
+func (r *Repo) CommitsInRange(since string, patterns []string, limit int) ([]Commit, bool) {
+	if !r.IsGit() || len(patterns) == 0 || since == "" {
+		return nil, false
+	}
+	args := []string{"log", "--no-merges", since + "..HEAD", "--format=%H%x1f%at%x1f%s"}
+	if limit > 0 {
+		args = append(args, fmt.Sprintf("-%d", limit))
+	}
+	args = append(args, "--")
+	args = append(args, gitPathspecs(patterns)...)
+	return r.runLog(args)
+}
+
+// MatchesAnything reports whether a pathspec matches a tracked file. A pattern
+// that matches nothing is worse than no pattern at all: it silently exempts the
+// document from ever being checked.
+func (r *Repo) MatchesAnything(pattern string) bool {
+	if !r.IsGit() {
+		return true // Nothing to verify against; do not invent a failure.
+	}
+	cmd := exec.Command("git", append([]string{"ls-files", "--"}, gitPathspecs([]string{pattern})...)...)
+	cmd.Dir = r.Root
+	out, err := cmd.Output()
+	if err != nil {
+		return true
+	}
+	return strings.TrimSpace(string(out)) != ""
+}
+
+// gitPathspecs marks glob patterns so git treats `**` the way the rest of the
+// world does, rather than as a literal.
+func gitPathspecs(patterns []string) []string {
+	out := make([]string, 0, len(patterns))
+	for _, p := range patterns {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		if strings.ContainsAny(p, "*?[") {
+			p = ":(glob)" + p
+		}
+		out = append(out, p)
+	}
+	return out
 }
 
 // LastCommitTime returns the author time of the most recent commit touching

@@ -121,6 +121,57 @@ jobs:
             exit 1
           fi
 
+      # Staleness must track the code a document covers, not the calendar.
+      - name: Staleness by coupling
+        shell: bash
+        run: |
+          set -e
+          bin="$PWD/ilk"
+          work=$(mktemp -d)
+          cd "$work"
+          git init -q . && git config user.email ci@example.com && git config user.name CI
+          mkdir -p src/hot src/frozen
+          echo 'package hot' > src/hot/a.go
+          echo 'package frozen' > src/frozen/b.go
+          printf '# Sample\n' > README.md
+          git add -A && git commit -qm init
+          "$bin" init -y
+
+          for name in hot frozen; do
+            cat > "docs/ARCH-$name.md" <<EOF
+          ---
+          id: arch-$name
+          title: $name
+          status: current
+          updated: 2020-01-01
+          covers:
+            - src/$name/**
+          ---
+          # $name
+          EOF
+          done
+          git add -A && git commit -qm "add docs"
+
+          # Churn one subsystem; leave the other alone.
+          for i in $(seq 1 12); do
+            echo "// $i" >> src/hot/a.go
+            git commit -qam "hot $i"
+          done
+
+          out=$("$bin" check --only record.stale --json || true)
+          echo "$out" | grep -q 'ARCH-hot.md' || { echo "churning code should make its doc stale"; exit 1; }
+          if echo "$out" | grep -q 'ARCH-frozen.md'; then
+            echo "a doc about untouched code must not go stale, however old"
+            exit 1
+          fi
+
+          # A covers: pattern matching nothing is a silent exemption, not a pass.
+          sed -i 's|src/frozen/\*\*|src/frozn/**|' docs/ARCH-frozen.md
+          if "$bin" check --only record.coverage; then
+            echo "a covers: pattern matching nothing should be reported"
+            exit 1
+          fi
+
   shellcheck:
     name: Shell
     runs-on: ubuntu-latest

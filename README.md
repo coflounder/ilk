@@ -184,6 +184,54 @@ ilk baseline clear docs/api_reference.md   # conform it, then hold it to the rul
 ilk init --no-baseline                     # or be held to them from the start
 ```
 
+## Staleness is measured by coupling, not by a timer
+
+A stale document is as dangerous as no document: an agent reads it confidently and
+acts on something that stopped being true months ago. But a universal expiry cannot
+work — a week is an eternity for a prototype and nothing at all for a stable
+subsystem, and any fixed number is wrong for almost everybody. Worse, a timer teaches
+people to bump a date to silence it, which is the one habit a documentation check
+must never train.
+
+So a document declares what it describes, and goes stale when *that* changes:
+
+```yaml
+---
+id: arch-payments
+title: Payments
+updated: 2026-08-06
+covers:
+  - src/payments/**
+  - migrations/*payment*
+---
+```
+
+```
+✗ record.stale   docs/ARCH-payments.md
+    11+ commits touched src/payments/** since this was last reviewed (2026-06-01);
+    most recent: d9b7f8c "rewrite settlement flow", 4 days ago
+    fix: Run `ilk record review <file>` …
+```
+
+This calibrates itself to a project's maturity without being told. Code nobody has
+touched cannot make its documentation stale, however old that documentation is; code
+rewritten yesterday makes it stale immediately. The project's own pace sets the pace
+of review.
+
+`ilk record review <file>` prints the commits and the diffstat under those paths,
+then records that you looked — so the acknowledgement is informed rather than a date
+you typed to make a check shut up.
+
+Two failure modes are reported rather than passing quietly: a document with no
+`covers:` (never stale, which is indistinguishable from always right), and a `covers:`
+pattern matching nothing (worse — it looks like it is working). A document genuinely
+not coupled to any path says so with `covers: []`, which is a decision a reader can
+see rather than an oversight.
+
+Tune it with `review_after_commits` per project, or per document when one is more
+volatile than the rest. `max_age_days` adds an absolute backstop, off by default, for
+documents that go stale because the world moved rather than the code.
+
 ## Working with any agent
 
 Layers never emit agent-specific files. They declare what an agent should know and do;

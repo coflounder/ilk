@@ -80,11 +80,15 @@ diffs that show content rather than just operations.
 
 ## Open questions
 
-1. **Should the baseline expire?** Files exempted at adoption stay exempt until
+1. **Is a commit count the right unit for staleness?** It ignores size: ten typo
+   fixes and one rewrite score the same. Lines changed, or a diff against the covered
+   paths, might discriminate better — at the cost of a threshold nobody can reason
+   about. Worth revisiting once somebody has lived with the current one.
+2. **Should the baseline expire?** Files exempted at adoption stay exempt until
    somebody clears them. That is deliberate, but a repository could sit on a hundred
    grandfathered files for ever and believe it is conformant. A `ilk baseline list`
    nag in `ilk brief`, or a ceiling like the instruction budget, might be right.
-2. **Should layers be able to depend on a *version* of a capability?** `test.command`
+3. **Should layers be able to depend on a *version* of a capability?** `test.command`
    says nothing about what the command guarantees.
-3. **How should a layer ship a check that needs a real parser** for a language ilk knows
+4. **How should a layer ship a check that needs a real parser** for a language ilk knows
    nothing about, without every layer shipping a binary?

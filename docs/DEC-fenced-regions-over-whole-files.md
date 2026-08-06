@@ -3,6 +3,9 @@ id: dec-fenced-regions-over-whole-files
 title: ilk owns fenced regions, not whole files
 status: current
 updated: 2026-08-06
+covers:
+  - internal/fence/**
+  - internal/engine/plan.go
 ---
 
 # ilk owns fenced regions, not whole files

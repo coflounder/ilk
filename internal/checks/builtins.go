@@ -16,6 +16,7 @@ import (
 	"github.com/coflounder/ilk/internal/lock"
 	"github.com/coflounder/ilk/internal/manifest"
 	"github.com/coflounder/ilk/internal/merge"
+	"github.com/coflounder/ilk/internal/repo"
 	"gopkg.in/yaml.v3"
 )
 
@@ -27,6 +28,7 @@ var builtins = map[string]builtinFunc{
 	"builtin.naming":      checkNaming,
 	"builtin.links":       checkLinks,
 	"builtin.stale":       checkStale,
+	"builtin.coverage":    checkCoverage,
 	"builtin.drift":       checkDrift,
 	"builtin.budget":      checkBudget,
 	"builtin.conflicts":   checkConflicts,
@@ -216,23 +218,161 @@ func isExternalLink(target string) bool {
 
 // ---------------------------------------------------------------------- stale
 
+// checkStale reports documents whose subject has moved on without them.
+//
+// Staleness is measured against **what the document says it covers**, not against
+// the calendar. A fixed expiry cannot work across projects of different maturity:
+// a week is an eternity for a prototype and nothing at all for a stable subsystem,
+// and any universal number is wrong for almost everybody. Worse, a timer teaches
+// people to bump a date to silence it, which is the one thing you never want a
+// documentation check to train.
+//
+// Coupling self-calibrates. Code nobody has touched cannot make its documentation
+// stale, however old that documentation is; code rewritten yesterday makes it stale
+// immediately. The project's own pace sets the pace of review.
 func checkStale(p *engine.Project, args map[string]any) ([]Finding, error) {
 	dirs := stringSlice(args["dirs"])
 	exempt := stringSet(args["exempt"])
-	maxLag := 45
-	if v := asString(args["max_lag_days"]); v != "" {
-		if n, err := strconv.Atoi(v); err == nil {
-			maxLag = n
-		}
-	}
+	baseline := p.Baseline()
 
-	// Without git history there is nothing to compare a document against, and a
-	// guess would be worse than silence.
-	codeChanged, ok := p.Repo.LastCommitTime(".")
-	if !ok {
+	threshold := intArg(args["review_after_commits"], 10)
+	// An absolute age limit is off unless a project asks for it. It is the escape
+	// hatch for documents that go stale because the world moved rather than the
+	// code — an external API, a vendor's behaviour — which no amount of watching
+	// this repository will ever detect.
+	maxAgeDays := intArg(args["max_age_days"], 0)
+
+	if !p.Repo.IsGit() {
+		// Without history there is nothing to compare against, and a guess would
+		// be worse than silence.
 		return nil, nil
 	}
 
+	var findings []Finding
+	for _, dir := range dirs {
+		files, err := markdownFiles(p.Repo.Path(dir))
+		if err != nil {
+			continue
+		}
+		for _, path := range files {
+			rel := repoRel(p.Repo.Root, path)
+			if exempt[filepath.Base(path)] || baseline[rel] {
+				continue
+			}
+			data, err := os.ReadFile(path)
+			if err != nil {
+				return nil, err
+			}
+			meta, err := parseFrontmatterStrict(string(data))
+			if err != nil {
+				continue // the frontmatter check's problem, not this one
+			}
+
+			covers := stringSlice(meta["covers"])
+			if len(covers) == 0 {
+				continue // record.coverage reports this; saying it twice helps nobody
+			}
+
+			perDoc := intArgOr(meta["review_after_commits"], threshold)
+			if finding, stale := staleAgainstCoverage(p, rel, covers, meta, perDoc); stale {
+				findings = append(findings, finding)
+				continue
+			}
+
+			// The absolute backstop deliberately trusts only the declared
+			// `updated:`. A commit touching the document proves somebody changed
+			// it — a reformat, a typo fix — not that anybody read it, and this
+			// check is asking how long since a person last confirmed it.
+			if maxAgeDays > 0 {
+				if declared, ok := parseDate(asString(meta["updated"])); ok {
+					if age := int(time.Since(declared).Hours() / 24); age > maxAgeDays {
+						findings = append(findings, Finding{
+							Path:    rel,
+							Message: fmt.Sprintf("last reviewed %d days ago; this project reviews documents at least every %d days regardless of code changes", age, maxAgeDays),
+						})
+					}
+				}
+			}
+		}
+	}
+	return findings, nil
+}
+
+// changesSince asks git what has happened to the covered paths since the document
+// was last confirmed, and returns the commits that count.
+//
+// Which signal marks "last confirmed" matters. The document's own last commit is
+// the honest one — it cannot be moved without committing something — and a commit
+// range measured from it is exact, where a timestamp is not: several commits can
+// share a second, and `--since` would then count the very commit being measured
+// from. But a `updated:` dated later than that commit means somebody has just
+// reviewed the document and not committed yet, so a date wins when it is newer.
+func changesSince(p *engine.Project, rel string, covers []string, meta map[string]any, limit int) ([]repo.Commit, bool) {
+	docCommit, hasCommit := p.Repo.LastCommitSHA(rel)
+	docTime, _ := p.Repo.LastCommitTime(rel)
+
+	if declared, ok := parseDate(asString(meta["updated"])); ok {
+		// A date means a day, so anything committed that day is accounted for.
+		endOfDay := declared.Add(24*time.Hour - time.Second).Unix()
+		if !hasCommit || endOfDay > docTime {
+			return p.Repo.CommitsTouching(covers, endOfDay, limit)
+		}
+	}
+	if !hasCommit {
+		return nil, false
+	}
+	return p.Repo.CommitsInRange(docCommit, covers, limit)
+}
+
+// staleAgainstCoverage reports a document whose covered paths have moved on
+// further than the project tolerates.
+func staleAgainstCoverage(p *engine.Project, rel string, covers []string, meta map[string]any, threshold int) (Finding, bool) {
+	// Ask for one more than the threshold: enough to know the limit is crossed,
+	// without walking the whole history of a busy subsystem.
+	commits, ok := changesSince(p, rel, covers, meta, threshold+1)
+	if !ok || len(commits) <= threshold {
+		return Finding{}, false
+	}
+
+	newest := commits[0]
+	reviewed := "an unknown date"
+	if declared, ok := parseDate(asString(meta["updated"])); ok {
+		reviewed = declared.Format("2006-01-02")
+	}
+	return Finding{
+		Path: rel,
+		Message: fmt.Sprintf(
+			"%d+ commits touched %s since this was last reviewed (%s); most recent: %s %q, %s ago",
+			len(commits), strings.Join(covers, ", "), reviewed,
+			newest.SHA[:7], newest.Subject, humanDuration(time.Since(time.Unix(newest.When, 0)))),
+	}, true
+}
+
+// humanDuration renders an age the way somebody would say it out loud.
+func humanDuration(d time.Duration) string {
+	switch days := int(d.Hours() / 24); {
+	case days < 1:
+		return "under a day"
+	case days == 1:
+		return "1 day"
+	case days < 60:
+		return fmt.Sprintf("%d days", days)
+	default:
+		return fmt.Sprintf("%d months", days/30)
+	}
+}
+
+// ------------------------------------------------------------------- coverage
+
+// checkCoverage reports documents that cannot be checked for staleness at all.
+//
+// A document with no `covers:` is never stale, which sounds harmless and is not:
+// it is indistinguishable from a document that is always accurate. So is one whose
+// patterns match nothing — a typo in a glob silently exempts a document for ever,
+// which is the worst outcome of the three because it looks like it is working.
+func checkCoverage(p *engine.Project, args map[string]any) ([]Finding, error) {
+	dirs := stringSlice(args["dirs"])
+	exempt := stringSet(args["exempt"])
 	baseline := p.Baseline()
 
 	var findings []Finding
@@ -250,24 +390,53 @@ func checkStale(p *engine.Project, args map[string]any) ([]Finding, error) {
 			if err != nil {
 				return nil, err
 			}
-			meta, _ := parseFrontmatter(string(data))
-			updated, ok := parseDate(asString(meta["updated"]))
-			if !ok {
-				// Missing or unparseable `updated:` is the frontmatter check's
-				// problem, not this one. Reporting it twice helps nobody.
+			meta, err := parseFrontmatterStrict(string(data))
+			if err != nil {
 				continue
 			}
-			lagDays := int((time.Unix(codeChanged, 0).Sub(updated)).Hours() / 24)
-			if lagDays > maxLag {
+
+			raw, declared := meta["covers"]
+			covers := stringSlice(raw)
+			if !declared {
 				findings = append(findings, Finding{
 					Path:    rel,
-					Message: fmt.Sprintf("last reviewed %s, %d days before the most recent change to the code (limit %d)", updated.Format("2006-01-02"), lagDays, maxLag),
+					Line:    1,
+					Message: "declares no `covers:`, so nothing can ever mark it stale",
 				})
+				continue
+			}
+			if len(covers) == 0 {
+				// An explicit empty list is a decision, not an oversight: some
+				// documents genuinely are not coupled to any path — a rationale,
+				// a glossary, a convention. Turning that into a declaration is
+				// the point; leaving it implicit is what this check objects to.
+				continue
+			}
+			for _, pattern := range covers {
+				if !p.Repo.MatchesAnything(pattern) {
+					findings = append(findings, Finding{
+						Path:    rel,
+						Line:    1,
+						Message: fmt.Sprintf("`covers: %s` matches no tracked file, so this document is exempt from staleness by accident", pattern),
+					})
+				}
 			}
 		}
 	}
 	return findings, nil
 }
+
+func intArg(v any, fallback int) int {
+	if s := strings.TrimSpace(asString(v)); s != "" {
+		if n, err := strconv.Atoi(s); err == nil {
+			return n
+		}
+	}
+	return fallback
+}
+
+// intArgOr lets a single document override the project default.
+func intArgOr(v any, fallback int) int { return intArg(v, fallback) }
 
 // ---------------------------------------------------------------------- drift
 

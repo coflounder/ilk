@@ -3,6 +3,9 @@ id: ref-writing-layers
 title: Writing a layer
 status: current
 updated: 2026-08-06
+covers:
+  - internal/manifest/**
+  - internal/builtin/layers/**
 ---
 
 # Writing a layer
@@ -175,7 +178,17 @@ Write the fix as an instruction to somebody who has the failure in front of them
 no other context.
 
 Built-in kinds: `builtin.frontmatter`, `builtin.naming`, `builtin.links`,
-`builtin.stale`, `builtin.drift`, `builtin.budget`.
+`builtin.stale`, `builtin.coverage`, `builtin.drift`, `builtin.budget`,
+`builtin.conflicts`.
+
+### A note on `builtin.stale`
+
+If your layer governs documents, resist the temptation to expire them on a timer.
+`builtin.stale` measures a document against the paths it declares in `covers:`, in
+commits rather than days, because no single expiry suits projects of different
+maturity — and because a timer trains people to bump a date instead of reading the
+document. Pair it with `builtin.coverage`, which reports documents that declare
+nothing to be measured against, and patterns that match nothing.
 
 ## Hooks
 

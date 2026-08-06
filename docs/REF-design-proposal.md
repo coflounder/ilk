@@ -3,6 +3,7 @@ id: ref-design-proposal
 title: "Design proposal: a layer manager for AI-native repos"
 status: current
 updated: 2026-08-06
+covers: []  # reasoning, not description: not coupled to any path
 ---
 
 # ilk — a layer manager for AI-native repos

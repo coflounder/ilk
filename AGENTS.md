@@ -61,23 +61,22 @@ in a file, not in a chat.
 | `log/` | What happened, dated | `2026-08-06-shipped-billing.md` |
 | `scratch/` | Rough notes. Ungoverned, unchecked, gitignored | anything |
 
-Documents in `docs/` and `plans/` carry YAML frontmatter
-with `id`, `title`, `status`, `updated`. Create them with `ilk record new <dir> <title>`
-so the naming and frontmatter are right the first time.
+Create documents with `ilk record new <dir> <title>` so the naming and frontmatter
+are right the first time. Documents in `docs/` also declare `covers:` —
+the paths they describe. Staleness is measured against those paths rather than the
+calendar, so a document goes stale exactly when its subject changes.
 
 Rules that matter:
 
 - **Put rough thinking in `scratch/`.** It exists so the other three stay
-  clean. A governed system needs an ungoverned annex, or the governance leaks into
-  the canonical documents.
-- **Never edit inside an `ilk:begin` / `ilk:end` block.** Those lines are generated;
-  your edits there are overwritten on the next `ilk apply`.
-- **When you change what is true, update `docs/` in the same change.**
-  A doc that lags the code becomes a failing `ilk check`, not a quiet surprise later.
+  clean. A governed system needs an ungoverned annex, or the governance leaks.
+- **Never edit inside an `ilk:begin` / `ilk:end` block.** Those lines are generated.
+- **If your change touches a path some document `covers:`, that document is yours
+  this session.** Update it in the same change, or run `ilk record review <file>` to
+  see what moved and record that you read it.
 
-Verify your own work before claiming it is done: `ilk check` validates the record and
-prints the fix for anything it rejects. `ilk brief` prints the current state of the
-project. Both accept `--json`.
+Verify before claiming done: `ilk check` validates the record and prints the fix for
+anything it rejects. `ilk brief` prints the current state. Both accept `--json`.
 <!-- ilk:end layer=ilk/record region=instructions -->
 
 <!-- ilk:begin layer=target:agents-md region=skills — managed by ilk — edits inside this block are overwritten; run `ilk drop` to remove it -->

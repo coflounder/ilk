@@ -3,6 +3,9 @@ id: arch-system-overview
 title: System overview
 status: current
 updated: 2026-08-06
+covers:
+  - internal/**
+  - cmd/**
 ---
 
 # System overview
@@ -87,6 +90,11 @@ adding an agent never touches a layer.
 - **`.ilk/` holds everything ilk owns.** Config, lockfile, cache, and layer-shipped
   scripts. The project record lives at the repository root because it is for humans and
   agents to read, not for ilk to manage.
+- **Staleness is coupling, not decay.** A document declares `covers:` and goes stale
+  when git says those paths moved, measured in commits rather than days. No universal
+  expiry can suit projects of different maturity, and a timer trains people to bump a
+  date rather than read a document. The measurement uses a commit range rather than a
+  timestamp, because several commits can share a second.
 - **A layer governs what happens next, not what came before.** Files already present
   in a directory when its layer arrives are recorded as a baseline and exempted from
   that layer's checks. Adoption into a repository with history has to be survivable,

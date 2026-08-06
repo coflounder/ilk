@@ -4,19 +4,19 @@ in a file, not in a chat.
 
 | Directory | Holds | Filename grammar |
 |---|---|---|
-| `{{ .Vars.docs_dir }}/` | What is true now | `ARCH-system-overview.md` — uppercase type, kebab slug |
-| `{{ .Vars.plans_dir }}/` | What we intend to build, and what "accepted" means | `PLAN-billing-rewrite.md` |
-| `{{ .Vars.log_dir }}/` | What happened, dated | `2026-08-06-shipped-billing.md` |
-| `{{ .Vars.scratch_dir }}/` | Rough notes. Ungoverned, unchecked, gitignored | anything |
+| `docs/` | What is true now | `ARCH-system-overview.md` — uppercase type, kebab slug |
+| `plans/` | What we intend to build, and what "accepted" means | `PLAN-billing-rewrite.md` |
+| `log/` | What happened, dated | `2026-08-06-shipped-billing.md` |
+| `scratch/` | Rough notes. Ungoverned, unchecked, gitignored | anything |
 
 Create documents with `ilk record new <dir> <title>` so the naming and frontmatter
-are right the first time. Documents in `{{ .Vars.docs_dir }}/` also declare `covers:` —
+are right the first time. Documents in `docs/` also declare `covers:` —
 the paths they describe. Staleness is measured against those paths rather than the
 calendar, so a document goes stale exactly when its subject changes.
 
 Rules that matter:
 
-- **Put rough thinking in `{{ .Vars.scratch_dir }}/`.** It exists so the other three stay
+- **Put rough thinking in `scratch/`.** It exists so the other three stay
   clean. A governed system needs an ungoverned annex, or the governance leaks.
 - **Never edit inside an `ilk:begin` / `ilk:end` block.** Those lines are generated.
 - **If your change touches a path some document `covers:`, that document is yours

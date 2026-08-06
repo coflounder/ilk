@@ -20,7 +20,7 @@
       "id": "ilk/quality-gates",
       "version": "0.1.0",
       "source": "builtin",
-      "digest": "sha256:8fb392c7407e4754368ef91d7d06f42b4a341ba04ee55ab3befab7e3c773e0b0",
+      "digest": "sha256:b88c5eeaa936a9e147ef2e9fdee09406b45b4f589c1a8546d7052c39fc834985",
       "vars": {
         "ci": "github"
       },
@@ -45,13 +45,14 @@
       "id": "ilk/record",
       "version": "0.1.0",
       "source": "builtin",
-      "digest": "sha256:fa2034dc3450b9c06f5d771dfa70d4665e6976d5fb7eafd549e8be314b340cc6",
+      "digest": "sha256:e1b41335e40fd4b1b89db0831a1d6c94349c7dd767b5ab01883f80db1ba461f6",
       "vars": {
         "docs_dir": "docs",
         "log_dir": "log",
+        "max_age_days": "0",
         "plans_dir": "plans",
-        "scratch_dir": "scratch",
-        "stale_after_days": "45"
+        "review_after_commits": "10",
+        "scratch_dir": "scratch"
       },
       "files": [
         {
@@ -65,8 +66,17 @@
         {
           "path": ".ilk/bin/ilk-record-new.sh",
           "mode": "managed",
-          "hash": "sha256:403e9a6811c0ca523dcf79befd3a869859dbe814c8799dd80b2004248eb8440c",
-          "delivered": "sha256:403e9a6811c0ca523dcf79befd3a869859dbe814c8799dd80b2004248eb8440c",
+          "hash": "sha256:49ba0ebff4a107d84872634817a645d14d32c922a59232afb10cb3d0bc578f3a",
+          "delivered": "sha256:49ba0ebff4a107d84872634817a645d14d32c922a59232afb10cb3d0bc578f3a",
+          "created_file": true,
+          "owner": "ilk/record",
+          "exec": true
+        },
+        {
+          "path": ".ilk/bin/ilk-record-review.sh",
+          "mode": "managed",
+          "hash": "sha256:29496c1c34e000c7c0cfec97031ebc3d52b373c7ade9d6b88cf95771563bd5c5",
+          "delivered": "sha256:29496c1c34e000c7c0cfec97031ebc3d52b373c7ade9d6b88cf95771563bd5c5",
           "created_file": true,
           "owner": "ilk/record",
           "exec": true
@@ -75,8 +85,8 @@
           "path": "AGENTS.md",
           "mode": "region",
           "region": "instructions",
-          "hash": "sha256:78f6d02f18d68314dff4124a6752379b2a2509ef49fca7f37f36ea480a4187da",
-          "delivered": "sha256:78f6d02f18d68314dff4124a6752379b2a2509ef49fca7f37f36ea480a4187da",
+          "hash": "sha256:fa491f5f1e21f9cfcc52cafbae2f1535ea206c66d1a408b8b960059e9a73e413",
+          "delivered": "sha256:fa491f5f1e21f9cfcc52cafbae2f1535ea206c66d1a408b8b960059e9a73e413",
           "owner": "ilk/record"
         },
         {
@@ -177,8 +187,8 @@
         {
           "path": ".agent/skills/update-record/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:3b3bcfc2f0d3acfc3cd115af35b8e67e043fac4d3cc92ceb1d936c182ac9fbe0",
-          "delivered": "sha256:3b3bcfc2f0d3acfc3cd115af35b8e67e043fac4d3cc92ceb1d936c182ac9fbe0",
+          "hash": "sha256:2675e8d773db6703414cb9565a185ec242697645d51b85bdcf4161a46c75d8c3",
+          "delivered": "sha256:2675e8d773db6703414cb9565a185ec242697645d51b85bdcf4161a46c75d8c3",
           "created_file": true,
           "owner": "target:agents-md"
         },
@@ -228,6 +238,14 @@
           "owner": "target:claude-code"
         },
         {
+          "path": ".claude/commands/record-review.md",
+          "mode": "managed",
+          "hash": "sha256:cf50137a2b67f10134307e7bbbb9238895175c5852cef20e92aee20bdad74370",
+          "delivered": "sha256:cf50137a2b67f10134307e7bbbb9238895175c5852cef20e92aee20bdad74370",
+          "created_file": true,
+          "owner": "target:claude-code"
+        },
+        {
           "path": ".claude/settings.json",
           "mode": "merge",
           "hash": "sha256:949a1fe43240e43717cb78438fb476f83fb967d1e65eccec96769c1ed30e0d1f",
@@ -254,8 +272,8 @@
         {
           "path": ".claude/skills/update-record/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:3b3bcfc2f0d3acfc3cd115af35b8e67e043fac4d3cc92ceb1d936c182ac9fbe0",
-          "delivered": "sha256:3b3bcfc2f0d3acfc3cd115af35b8e67e043fac4d3cc92ceb1d936c182ac9fbe0",
+          "hash": "sha256:2675e8d773db6703414cb9565a185ec242697645d51b85bdcf4161a46c75d8c3",
+          "delivered": "sha256:2675e8d773db6703414cb9565a185ec242697645d51b85bdcf4161a46c75d8c3",
           "created_file": true,
           "owner": "target:claude-code"
         },
