@@ -1,0 +1,122 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: true
+
+      - name: Verify formatting
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          unformatted=$(gofmt -l ./cmd ./internal)
+          if [ -n "$unformatted" ]; then
+            echo "These files need gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -race ./...
+
+      - name: Build
+        run: go build -o ilk ./cmd/ilk
+
+      # The built-in layers must keep the same contract every published layer is
+      # held to: adopt is idempotent, and drop restores the repository.
+      - name: Layer contract
+        run: |
+          set -e
+          for layer in internal/builtin/layers/*/; do
+            echo "→ $layer"
+            ./ilk layer validate "$layer"
+            ./ilk layer test "$layer"
+          done
+
+      # Prove the thing the README claims: one command produces a repository that
+      # validates, and the whole cycle is reversible.
+      - name: End-to-end
+        shell: bash
+        run: |
+          set -e
+          bin="$PWD/ilk"
+          work=$(mktemp -d)
+          cd "$work"
+          git init -q .
+          git config user.email ci@example.com
+          git config user.name CI
+          printf '# Sample\n\nProse a human wrote.\n' > README.md
+          printf 'node_modules\n' > .gitignore
+          git add -A && git commit -qm init
+
+          "$bin" init -y --profile standard --test-command "true"
+          "$bin" check
+          "$bin" brief > /dev/null
+          "$bin" status > /dev/null
+          "$bin" doctor || true
+          "$bin" check --json > /dev/null
+          "$bin" brief --json > /dev/null
+
+          # A second apply must be a no-op.
+          "$bin" apply -y | tee out.txt
+          grep -q "Already up to date" out.txt
+
+          "$bin" drop quality-gates -y
+          "$bin" drop record -y
+          "$bin" agents remove claude-code -y
+          test "$(cat README.md)" = "$(printf '# Sample\n\nProse a human wrote.')"
+
+  shellcheck:
+    name: Shell
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check shell scripts
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          shellcheck install.sh internal/builtin/layers/*/bin/*.sh
+
+  node:
+    name: npm package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Syntax check
+        run: |
+          node --check npm/install.js
+          node --check npm/bin/ilk
+      - name: Version agreement
+        run: |
+          # The npm package resolves its binary from the release tagged with its
+          # own version, so the two must not drift.
+          node -e "
+            const pkg = require('./npm/package.json');
+            if (!/^\d+\.\d+\.\d+$/.test(pkg.version)) {
+              console.error('npm/package.json version must be a plain semver: ' + pkg.version);
+              process.exit(1);
+            }
+          "

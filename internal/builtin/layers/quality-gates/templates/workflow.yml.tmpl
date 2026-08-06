@@ -1,0 +1,26 @@
+# Seeded by ilk and yours to edit — ilk will not touch this file again.
+name: ilk
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  check:
+    name: ilk check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # `record.stale` compares documents against the history of the code they
+          # describe, so it needs more than a shallow clone.
+          fetch-depth: 0
+
+      - name: Install ilk
+        run: curl -fsSL https://raw.githubusercontent.com/coflounder/ilk/main/install.sh | sh
+
+      # Gates that matter run here, not only in an agent's hooks. An agent that
+      # ignores its instructions still cannot push past this job.
+      - name: Check
+        run: ilk check --json

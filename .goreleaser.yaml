@@ -1,0 +1,79 @@
+version: 2
+
+project_name: ilk
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - id: ilk
+    main: ./cmd/ilk
+    binary: ilk
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin]
+    goarch: [amd64, arm64]
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/coflounder/ilk/internal/version.Version={{ .Version }}
+      - -X github.com/coflounder/ilk/internal/version.Commit={{ .FullCommit }}
+
+archives:
+  # The install script and the npm postinstall both expect the binary at the root
+  # of the archive, named exactly `ilk`.
+  - id: ilk
+    formats: [tar.gz]
+    name_template: "ilk_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
+      - docs/*
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+changelog:
+  use: github
+  sort: asc
+  groups:
+    - title: Features
+      regexp: '^feat(\(.+\))?:'
+      order: 0
+    - title: Fixes
+      regexp: '^fix(\(.+\))?:'
+      order: 1
+    - title: Layers
+      regexp: '^layer(\(.+\))?:'
+      order: 2
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+brews:
+  - name: ilk
+    repository:
+      owner: coflounder
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    homepage: https://github.com/coflounder/ilk
+    description: A package manager for a repository's process, not its dependencies
+    license: MIT
+    test: |
+      system "#{bin}/ilk", "--version"
+
+release:
+  footer: |
+    ## Install
+
+    ```sh
+    curl -fsSL https://raw.githubusercontent.com/coflounder/ilk/main/install.sh | sh
+    npm install -g @ilk/cli
+    brew install coflounder/tap/ilk
+    ```

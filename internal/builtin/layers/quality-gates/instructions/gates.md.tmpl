@@ -1,0 +1,11 @@
+Work is not done because it looks done. Before claiming a task is complete, run
+`ilk check` and let it decide. It runs this repository's tests{{ if index .Caps "lint.command" }}, linter{{ end }}{{ if index .Caps "build.command" }} and build{{ end }},
+and every failure it prints comes with the fix.
+
+The same gates run on `git push` and in CI, so a claim that cannot survive them will
+not survive review either. Never disable a gate, mark a test skipped, or weaken an
+assertion to make a check pass — if a gate is genuinely wrong, say so plainly and
+leave it failing rather than quietly removing the thing that would have caught you.
+
+When you report that work is finished, state what you ran and what it said. "Tests
+pass" with no output behind it is a claim, not evidence.

@@ -1,0 +1,148 @@
+id: ilk/record
+version: 0.1.0
+summary: The project record — what is true, what is intended, what happened — plus the checks that keep it honest.
+facets:
+  arc: context
+  kind: record
+ilk: ">=0.1.0"
+
+provides:
+  - record.docs
+  - record.plans
+  - record.log
+  - record.scratch
+
+variables:
+  docs_dir:
+    default: docs
+    description: Where current truth lives.
+  plans_dir:
+    default: plans
+    description: Where intent lives.
+  log_dir:
+    default: log
+    description: Where history lives.
+  scratch_dir:
+    default: scratch
+    description: The ungoverned annex. Nothing here is checked.
+  stale_after_days:
+    default: "45"
+    description: How long a document may lag the code it describes before it is flagged.
+
+dirs:
+  - path: "{{ .Vars.docs_dir }}"
+    purpose: What is true now — architecture, interfaces, operations, decisions.
+    keep: true
+  - path: "{{ .Vars.plans_dir }}"
+    purpose: What we intend to build, and what must be true before it is accepted.
+    keep: true
+  - path: "{{ .Vars.log_dir }}"
+    purpose: What happened — dated entries, append-only in spirit.
+    keep: true
+  - path: "{{ .Vars.scratch_dir }}"
+    purpose: Rough notes. Ungoverned on purpose, so the other three stay clean.
+    keep: true
+    ignore: true
+
+files:
+  - src: templates/docs-README.md.tmpl
+    dest: "{{ .Vars.docs_dir }}/README.md"
+    mode: create-only
+  - src: templates/plans-README.md.tmpl
+    dest: "{{ .Vars.plans_dir }}/README.md"
+    mode: create-only
+  - src: templates/log-README.md.tmpl
+    dest: "{{ .Vars.log_dir }}/README.md"
+    mode: create-only
+  - src: templates/scratch-README.md.tmpl
+    dest: "{{ .Vars.scratch_dir }}/README.md"
+    mode: create-only
+  - src: bin/ilk-record-new.sh
+    dest: .ilk/bin/ilk-record-new.sh
+    mode: managed
+    exec: true
+
+instructions:
+  - id: contract
+    src: instructions/contract.md.tmpl
+    budget: 260
+
+skills:
+  - name: write-decision
+    description: Record an architectural or process decision so future sessions inherit it. Use when a choice is made that a later reader would otherwise have to reverse-engineer, or would plausibly undo by accident.
+    src: skills/write-decision.md
+  - name: update-record
+    description: Bring the project record back in line with the code after a change. Use after shipping work that alters architecture, interfaces, or operational behaviour, or when `ilk check` reports a stale document.
+    src: skills/update-record.md
+
+checks:
+  - id: record.frontmatter
+    kind: builtin.frontmatter
+    title: Record documents carry the required frontmatter
+    fix: "Add the missing keys to the file's YAML frontmatter. `{{ .Vars.docs_dir }}/README.md` shows the shape, or run `ilk record new` to create documents that already have it."
+    args:
+      dirs:
+        - "{{ .Vars.docs_dir }}"
+        - "{{ .Vars.plans_dir }}"
+      require: [id, title, status, updated]
+      exempt: [README.md]
+  - id: record.log-frontmatter
+    kind: builtin.frontmatter
+    title: Log entries carry the required frontmatter
+    fix: "Add `date` and `title` to the entry's YAML frontmatter, or create entries with `ilk record log \"...\"`."
+    args:
+      dirs:
+        - "{{ .Vars.log_dir }}"
+      require: [date, title]
+      exempt: [README.md]
+  - id: record.naming
+    kind: builtin.naming
+    title: Record filenames follow the grammar the parser knows
+    fix: "Rename the file to match the grammar. `ARCH-system-overview.md` is a record; `arch_system_overview.md` is an error."
+    args:
+      rules:
+        - dir: "{{ .Vars.docs_dir }}"
+          pattern: "^[A-Z]{2,6}-[a-z0-9]+(-[a-z0-9]+)*\\.md$"
+          example: ARCH-system-overview.md
+        - dir: "{{ .Vars.plans_dir }}"
+          pattern: "^[A-Z]{2,6}-[a-z0-9]+(-[a-z0-9]+)*\\.md$"
+          example: PLAN-billing-rewrite.md
+        - dir: "{{ .Vars.log_dir }}"
+          pattern: "^\\d{4}-\\d{2}-\\d{2}-[a-z0-9]+(-[a-z0-9]+)*\\.md$"
+          example: 2026-08-06-shipped-billing.md
+      exempt: [README.md]
+  - id: record.links
+    kind: builtin.links
+    title: Cross-references between record documents resolve
+    fix: "Point the link at a file that exists, or create the document it names. A plan referring to a document that was never written is the drift this check exists to catch."
+    args:
+      dirs:
+        - "{{ .Vars.docs_dir }}"
+        - "{{ .Vars.plans_dir }}"
+        - "{{ .Vars.log_dir }}"
+  - id: record.stale
+    kind: builtin.stale
+    title: Documents have not fallen behind the code they describe
+    fix: "Read the document against the current code. If it is still accurate, bump `updated:` to today. If it is not, fix it — that is the drift this check exists to surface."
+    args:
+      dirs:
+        - "{{ .Vars.docs_dir }}"
+      max_lag_days: "{{ .Vars.stale_after_days }}"
+      exempt: [README.md]
+
+hooks:
+  - event: session-start
+    name: ilk-brief
+    run: ilk brief
+  - event: pre-commit
+    name: ilk-record-check
+    blocking: true
+    run: ilk check --only record.frontmatter,record.log-frontmatter,record.naming,record.links
+
+commands:
+  - name: new
+    summary: "Create a record document with correct naming and frontmatter: ilk record new <docs|plans|log> <title>"
+    run: .ilk/bin/ilk-record-new.sh
+  - name: log
+    summary: "Append a dated entry to the log: ilk record log <title>"
+    run: .ilk/bin/ilk-record-new.sh log

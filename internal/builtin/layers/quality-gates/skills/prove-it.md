@@ -1,0 +1,46 @@
+# Prove it
+
+Turn "I finished the task" into evidence somebody else can check. Agents are
+convincing and sometimes wrong; this skill exists to make the difference visible
+before it reaches a reviewer.
+
+## When
+
+Before marking work complete, opening a pull request, or reporting a result.
+
+## The standard
+
+A completion claim needs three things. If you cannot supply all three, the work is
+not done — say what is missing rather than rounding up.
+
+1. **The command you ran, and its real output.** Not "tests pass" — the invocation
+   and what it printed. If you did not run it in this session, you do not know.
+2. **The link between the change and the requirement.** Which acceptance criterion,
+   plan slice, or reported behaviour does this satisfy? Name it. Work that satisfies
+   nothing anybody asked for is worth flagging, not burying.
+3. **What you did not verify.** Every change has an unverified edge: a platform you
+   cannot test on, a path behind a feature flag, a race you reasoned about but did
+   not reproduce. Naming it costs you nothing and saves the reviewer from assuming
+   coverage you never had.
+
+## Procedure
+
+1. Run `ilk check`. Fix what it reports; each failure carries its own fix. Re-run
+   until it is clean, or until a failure is genuinely not yours to fix.
+2. Re-read your own diff, in full. Not the summary of it — the diff. This is where
+   debug statements, commented-out code, and accidentally-reverted hunks turn up.
+3. For each acceptance criterion, write the one line of evidence that satisfies it.
+   If a criterion has no evidence, it is not met.
+4. Write the completion claim: what changed, what you ran, what it said, what you
+   did not check.
+
+## Failure modes this exists to catch
+
+- **Passing by weakening.** A test marked skipped, an assertion loosened, a lint rule
+  disabled. If a gate is wrong, argue with it in the open; do not route around it.
+- **Claiming what was never run.** "Should work" and "verified" are different words.
+- **Reporting the happy path only.** If you fixed one of three failing tests, the
+  result is "one of three", not "fixed".
+- **Silent scope reduction.** If part of the task turned out to be blocked, finish
+  everything else and say explicitly what you left out and why. Deciding to ship less
+  is the requester's call, not yours.

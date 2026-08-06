@@ -1,9 +1,11 @@
-# ilk — a layer manager for AI-native repos
-
-**Status:** proposal / request for comment
-**Date:** 2026-08-06
-
 ---
+id: ref-design-proposal
+title: "Design proposal: a layer manager for AI-native repos"
+status: current
+updated: 2026-08-06
+---
+
+# ilk — a layer manager for AI-native repos
 
 ## 1. What the source material actually argues
 

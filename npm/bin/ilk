@@ -1,0 +1,21 @@
+#!/usr/bin/env node
+// Shim: exec the platform binary that install.js placed alongside this file.
+const path = require("node:path");
+const fs = require("node:fs");
+const { spawnSync } = require("node:child_process");
+
+const binary = path.join(__dirname, "ilk-bin");
+
+if (!fs.existsSync(binary)) {
+  console.error("@ilk/cli: the ilk binary is missing.");
+  console.error("  fix: reinstall with `npm install -g @ilk/cli`, or install directly:");
+  console.error("       curl -fsSL https://raw.githubusercontent.com/coflounder/ilk/main/install.sh | sh");
+  process.exit(1);
+}
+
+const result = spawnSync(binary, process.argv.slice(2), { stdio: "inherit" });
+if (result.error) {
+  console.error(`@ilk/cli: ${result.error.message}`);
+  process.exit(1);
+}
+process.exit(result.status ?? 0);

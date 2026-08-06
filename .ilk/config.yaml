@@ -1,0 +1,27 @@
+# ilk — declared process layers for this repository.
+#
+# This file is the desired state. `ilk apply` reconciles the repository to it.
+# `ilk adopt <layer>` and `ilk drop <layer>` edit it for you, but editing it
+# by hand and running `ilk apply` works exactly the same way.
+#
+# Capabilities tell layers how this project verifies itself. Layers require
+# capabilities rather than each other, so a gate layer works in any language:
+#
+#   capabilities:
+#     test.command: go test ./...
+#     lint.command: golangci-lint run
+#     build.command: go build ./...
+version: 1
+targets:
+  - claude-code
+capabilities:
+  build.command: go build ./...
+  lint.command: gofmt -l ./cmd ./internal
+  test.command: go test ./...
+layers:
+  - id: ilk/quality-gates
+    version: 0.1.0
+  - id: ilk/record
+    version: 0.1.0
+budget:
+  instructions: 1500
