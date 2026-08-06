@@ -63,6 +63,10 @@ func opSymbol(op engine.Op) string {
 		return sty.green("+")
 	case engine.OpUpdate, engine.OpRegionUpdate, engine.OpChmod, engine.OpVacate:
 		return sty.cyan("~")
+	case engine.OpMerge:
+		return sty.yellow("⇄")
+	case engine.OpAccept:
+		return sty.yellow("=")
 	case engine.OpDelete, engine.OpRegionRemove, engine.OpRmdir:
 		return sty.red("-")
 	case engine.OpConflict:
@@ -81,6 +85,10 @@ func opLabel(op engine.Op) string {
 		return "create"
 	case engine.OpUpdate:
 		return "update"
+	case engine.OpMerge:
+		return "merge"
+	case engine.OpAccept:
+		return "accept"
 	case engine.OpRegionAdd:
 		return "block +"
 	case engine.OpRegionUpdate:
@@ -136,10 +144,16 @@ func printPlan(pl *engine.Plan, showUnchanged bool) {
 		printf("\n  %s %s\n", sty.yellow("warning"), w)
 	}
 
+	if merged := countOp(pl, engine.OpMerge); merged > 0 {
+		printf("\n  %s %d file(s) you had edited were merged rather than overwritten.\n",
+			sty.yellow("merged:"), merged)
+	}
+
 	if len(conflicts) > 0 {
-		printf("\n  %s %d file(s) left untouched because your edits would be lost.\n",
+		printf("\n  %s %d artifact(s) left untouched because your edits would be lost.\n",
 			sty.red("refused:"), len(conflicts))
-		printf("  %s\n", sty.dim("Re-run with --force to discard those edits, or move them outside the ilk markers."))
+		printf("  %s\n", sty.dim("Each says how to proceed. --merge-markers writes both versions into the file;"))
+		printf("  %s\n", sty.dim("--force discards your version."))
 	}
 }
 
@@ -150,7 +164,7 @@ func summariseCounts(pl *engine.Plan) string {
 		counts[a.Op]++
 	}
 	var parts []string
-	for _, op := range []engine.Op{engine.OpCreate, engine.OpUpdate, engine.OpRegionAdd, engine.OpRegionUpdate, engine.OpRegionRemove, engine.OpDelete, engine.OpMkdir, engine.OpRmdir, engine.OpVacate, engine.OpChmod} {
+	for _, op := range []engine.Op{engine.OpCreate, engine.OpUpdate, engine.OpRegionAdd, engine.OpRegionUpdate, engine.OpRegionRemove, engine.OpDelete, engine.OpMkdir, engine.OpRmdir, engine.OpVacate, engine.OpChmod, engine.OpMerge, engine.OpAccept} {
 		if n := counts[op]; n > 0 {
 			parts = append(parts, fmt.Sprintf("%d %s", n, opLabel(op)))
 		}
@@ -164,4 +178,15 @@ func summariseCounts(pl *engine.Plan) string {
 // fail prints an error the way ilk's checks do: what went wrong, then what to do.
 func fail(err error) {
 	fmt.Fprintf(errOut, "%s %s\n", sty.red("error:"), err.Error())
+}
+
+// countOp tallies actions of a given kind.
+func countOp(pl *engine.Plan, op engine.Op) int {
+	n := 0
+	for _, a := range pl.Actions {
+		if a.Op == op {
+			n++
+		}
+	}
+	return n
 }

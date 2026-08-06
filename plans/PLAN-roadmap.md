@@ -48,11 +48,12 @@ that validates, and the repository is better to work in than it was. ✓
 Layer SDK (`layer new` / `validate` / `test`), capability resolution, subcommand
 dispatch, local and git sources, lockfile digests. ✓
 
+Three-way merge on upgrade, with `--merge-markers`, `--accept` and `--force` as the
+ways out of a genuine collision. Adoption baselines, so a repository with an existing
+`docs/` is not greeted by a wall of failures. ✓
+
 Remaining:
 
-- Three-way merge on upgrade. Conflicts are currently reported and skipped; a user
-  whose edit collides with a new version has to resolve it by hand with no assistance.
-  This is the largest remaining gap in the promise that upgrades are safe.
 - `--pure` mode: adopt with a hard guarantee that nothing executes.
 - Version constraints on `requires:`, so a layer can need a capability *and* a version.
 
@@ -79,10 +80,10 @@ diffs that show content rather than just operations.
 
 ## Open questions
 
-1. **Does `docs/` as the default record directory collide too often?** Every repository
-   with existing public documentation in `docs/` hits the naming grammar immediately —
-   this one did. Options: default to a different name, exempt files that predate
-   adoption, or make the grammar opt-in per directory.
+1. **Should the baseline expire?** Files exempted at adoption stay exempt until
+   somebody clears them. That is deliberate, but a repository could sit on a hundred
+   grandfathered files for ever and believe it is conformant. A `ilk baseline list`
+   nag in `ilk brief`, or a ceiling like the instruction budget, might be right.
 2. **Should layers be able to depend on a *version* of a capability?** `test.command`
    says nothing about what the command guarantees.
 3. **How should a layer ship a check that needs a real parser** for a language ilk knows

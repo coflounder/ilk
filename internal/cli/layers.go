@@ -14,12 +14,13 @@ import (
 
 func newAdoptCmd() *cobra.Command {
 	var (
-		set       []string
-		vars      []string
-		yes       bool
-		force     bool
-		allowExec bool
-		noApply   bool
+		set        []string
+		vars       []string
+		yes        bool
+		force      bool
+		allowExec  bool
+		noApply    bool
+		noBaseline bool
 	)
 
 	cmd := &cobra.Command{
@@ -85,7 +86,7 @@ is written, and ` + "`ilk drop`" + ` removes exactly what was added.`,
 			if err != nil {
 				return err
 			}
-			pl, err := next.Plan(engine.PlanOptions{Force: force, Prune: true})
+			pl, err := next.Plan(engine.PlanOptions{Force: force, Prune: true, NoBaseline: noBaseline})
 			if err != nil {
 				return err
 			}
@@ -106,6 +107,7 @@ is written, and ` + "`ilk drop`" + ` removes exactly what was added.`,
 			printf("  %s\n", sty.dim(m.Summary))
 			printf("  %s %s\n\n", sty.dim("source:"), sty.dim(loaded.Source))
 			printPlan(pl, false)
+			printBaselines(next, pl)
 
 			if noApply {
 				printf("\n%s\n", sty.dim("Nothing written. Re-run without --no-apply to adopt."))
@@ -133,6 +135,7 @@ is written, and ` + "`ilk drop`" + ` removes exactly what was added.`,
 	cmd.Flags().BoolVar(&force, "force", false, "overwrite files edited since ilk wrote them")
 	cmd.Flags().BoolVar(&allowExec, "allow-exec", false, "consent to a layer that ships scripts or command-based checks")
 	cmd.Flags().BoolVar(&noApply, "no-apply", false, "show the plan and change nothing")
+	cmd.Flags().BoolVar(&noBaseline, "no-baseline", false, "check files that already exist in this layer's directories, instead of exempting them")
 	return cmd
 }
 
@@ -225,11 +228,16 @@ then. Anything you edited after ilk wrote it is reported and left alone.`,
 }
 
 func newUpgradeCmd() *cobra.Command {
-	var yes, force bool
+	var yes, force, noMerge, markers, accept bool
 	cmd := &cobra.Command{
 		Use:   "upgrade [layer]",
 		Short: "Re-resolve layers and apply any changes they bring",
-		Args:  cobra.MaximumNArgs(1),
+		Long: `Move adopted layers to whatever their source now resolves to.
+
+A file you have edited since ilk wrote it is merged rather than overwritten: where
+your changes and the layer's touch different parts, both survive. Where they
+genuinely collide, ilk refuses and says where.`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			p, err := project()
 			if err != nil {
@@ -251,7 +259,7 @@ func newUpgradeCmd() *cobra.Command {
 				p.Config.Adopt(ref)
 			}
 
-			pl, err := p.Plan(engine.PlanOptions{Force: force, Prune: true})
+			pl, err := p.Plan(engine.PlanOptions{Force: force, Prune: true, NoMerge: noMerge, MergeMarkers: markers, Accept: accept})
 			if err != nil {
 				return err
 			}
@@ -285,6 +293,9 @@ func newUpgradeCmd() *cobra.Command {
 	}
 	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "apply without confirming")
 	cmd.Flags().BoolVar(&force, "force", false, "overwrite files edited since ilk wrote them")
+	cmd.Flags().BoolVar(&noMerge, "no-merge", false, "refuse edited files instead of merging into them")
+	cmd.Flags().BoolVar(&markers, "merge-markers", false, "write conflict markers into files that cannot merge cleanly")
+	cmd.Flags().BoolVar(&accept, "accept", false, "keep what is on disk and record it as ilk's new baseline")
 	return cmd
 }
 

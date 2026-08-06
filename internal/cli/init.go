@@ -35,13 +35,14 @@ func profileNames() []string {
 
 func newInitCmd() *cobra.Command {
 	var (
-		profile  string
-		agents   []string
-		testCmd  string
-		lintCmd  string
-		buildCmd string
-		yes      bool
-		noApply  bool
+		profile    string
+		agents     []string
+		testCmd    string
+		lintCmd    string
+		buildCmd   string
+		yes        bool
+		noApply    bool
+		noBaseline bool
 	)
 
 	cmd := &cobra.Command{
@@ -117,7 +118,7 @@ nothing to choose.`,
 			if err != nil {
 				return err
 			}
-			pl, err := p.Plan(engine.PlanOptions{Prune: true})
+			pl, err := p.Plan(engine.PlanOptions{Prune: true, NoBaseline: noBaseline})
 			if err != nil {
 				return err
 			}
@@ -128,6 +129,7 @@ nothing to choose.`,
 
 			printf("%s in %s\n\n", sty.bold("ilk init"), r.Root)
 			printPlan(pl, false)
+			printBaselines(p, pl)
 
 			if noApply {
 				printf("\n%s\n", sty.dim("Nothing written except .ilk/config.yaml. Run `ilk apply` when ready."))
@@ -155,6 +157,7 @@ nothing to choose.`,
 	cmd.Flags().StringVar(&buildCmd, "build-command", "", "how this project builds")
 	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "apply without confirming")
 	cmd.Flags().BoolVar(&noApply, "no-apply", false, "write .ilk/config.yaml but change nothing else")
+	cmd.Flags().BoolVar(&noBaseline, "no-baseline", false, "check files that already exist in the record directories, instead of exempting them")
 	return cmd
 }
 

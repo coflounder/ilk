@@ -87,6 +87,40 @@ jobs:
           "$bin" agents remove claude-code -y
           test "$(cat README.md)" = "$(printf '# Sample\n\nProse a human wrote.')"
 
+      # Adopting into a repository that already has documentation must not open
+      # with a wall of failures about files nobody has touched.
+      - name: Brownfield adoption
+        shell: bash
+        run: |
+          set -e
+          bin="$PWD/ilk"
+          work=$(mktemp -d)
+          cd "$work"
+          git init -q . && git config user.email ci@example.com && git config user.name CI
+          mkdir -p docs
+          printf '# Guide\n' > docs/getting_started.md
+          printf '# Sample\n' > README.md
+          git add -A && git commit -qm init
+
+          "$bin" init -y
+          "$bin" check                       # clean: the existing file is exempt
+          "$bin" baseline list | grep -q docs/getting_started.md
+
+          # A file added after adoption is governed normally.
+          printf '# Nope\n' > docs/badly_named.md
+          if "$bin" check --only record.naming; then
+            echo "a new non-conforming file should have failed the naming check"
+            exit 1
+          fi
+          rm docs/badly_named.md
+
+          # Clearing the exemption holds the old file to the rules.
+          "$bin" baseline clear docs/getting_started.md
+          if "$bin" check --only record.naming; then
+            echo "a cleared file should be checked"
+            exit 1
+          fi
+
   shellcheck:
     name: Shell
     runs-on: ubuntu-latest

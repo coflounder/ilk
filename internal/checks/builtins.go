@@ -15,6 +15,7 @@ import (
 	"github.com/coflounder/ilk/internal/fence"
 	"github.com/coflounder/ilk/internal/lock"
 	"github.com/coflounder/ilk/internal/manifest"
+	"github.com/coflounder/ilk/internal/merge"
 	"gopkg.in/yaml.v3"
 )
 
@@ -28,6 +29,7 @@ var builtins = map[string]builtinFunc{
 	"builtin.stale":       checkStale,
 	"builtin.drift":       checkDrift,
 	"builtin.budget":      checkBudget,
+	"builtin.conflicts":   checkConflicts,
 }
 
 func builtinNames() []string {
@@ -47,7 +49,13 @@ func coreChecks() []manifest.Check {
 			ID:    "ilk.drift",
 			Kind:  "builtin.drift",
 			Title: "Generated files match what ilk would write",
-			Fix:   "Run `ilk apply` to regenerate them. If you meant to keep an edit, move it outside the ilk:begin/ilk:end markers — anything inside them is overwritten.",
+			Fix:   "Keep your version with `ilk apply --accept`, or restore ilk's with `ilk apply --force`. If the edit belongs to you rather than the layer, move it outside the ilk:begin/ilk:end markers first.",
+		},
+		{
+			ID:    "ilk.conflicts",
+			Kind:  "builtin.conflicts",
+			Title: "No unresolved merge conflicts are left in ilk's files",
+			Fix:   "Open the file, pick the version you want, and delete the <<<<<<< / ======= / >>>>>>> lines. Then run `ilk apply --accept` so ilk records your resolution as the new baseline.",
 		},
 		{
 			ID:    "ilk.budget",
@@ -65,6 +73,8 @@ func checkFrontmatter(p *engine.Project, args map[string]any) ([]Finding, error)
 	required := stringSlice(args["require"])
 	exempt := stringSet(args["exempt"])
 
+	baseline := p.Baseline()
+
 	var findings []Finding
 	for _, dir := range dirs {
 		files, err := markdownFiles(p.Repo.Path(dir))
@@ -72,8 +82,8 @@ func checkFrontmatter(p *engine.Project, args map[string]any) ([]Finding, error)
 			continue // A directory a layer declares but nobody created yet is not a failure.
 		}
 		for _, path := range files {
-			rel, _ := filepath.Rel(p.Repo.Root, path)
-			if exempt[filepath.Base(path)] {
+			rel := repoRel(p.Repo.Root, path)
+			if exempt[filepath.Base(path)] || baseline[rel] {
 				continue
 			}
 			data, err := os.ReadFile(path)
@@ -112,6 +122,7 @@ func checkFrontmatter(p *engine.Project, args map[string]any) ([]Finding, error)
 func checkNaming(p *engine.Project, args map[string]any) ([]Finding, error) {
 	exempt := stringSet(args["exempt"])
 	rules, _ := args["rules"].([]any)
+	baseline := p.Baseline()
 
 	var findings []Finding
 	for _, raw := range rules {
@@ -132,10 +143,10 @@ func checkNaming(p *engine.Project, args map[string]any) ([]Finding, error) {
 		}
 		for _, path := range files {
 			base := filepath.Base(path)
-			if exempt[base] || pattern.MatchString(base) {
+			rel := repoRel(p.Repo.Root, path)
+			if exempt[base] || baseline[rel] || pattern.MatchString(base) {
 				continue
 			}
-			rel, _ := filepath.Rel(p.Repo.Root, path)
 			findings = append(findings, Finding{
 				Path:    rel,
 				Message: fmt.Sprintf("filename does not match the grammar for %s/ (e.g. %s)", dir, example),
@@ -151,6 +162,7 @@ var markdownLink = regexp.MustCompile(`\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)`)
 
 func checkLinks(p *engine.Project, args map[string]any) ([]Finding, error) {
 	dirs := stringSlice(args["dirs"])
+	baseline := p.Baseline()
 
 	var findings []Finding
 	for _, dir := range dirs {
@@ -159,11 +171,14 @@ func checkLinks(p *engine.Project, args map[string]any) ([]Finding, error) {
 			continue
 		}
 		for _, path := range files {
+			rel := repoRel(p.Repo.Root, path)
+			if baseline[rel] {
+				continue
+			}
 			data, err := os.ReadFile(path)
 			if err != nil {
 				return nil, err
 			}
-			rel, _ := filepath.Rel(p.Repo.Root, path)
 			for i, line := range strings.Split(string(data), "\n") {
 				for _, m := range markdownLink.FindAllStringSubmatch(line, -1) {
 					target := m[1]
@@ -218,6 +233,8 @@ func checkStale(p *engine.Project, args map[string]any) ([]Finding, error) {
 		return nil, nil
 	}
 
+	baseline := p.Baseline()
+
 	var findings []Finding
 	for _, dir := range dirs {
 		files, err := markdownFiles(p.Repo.Path(dir))
@@ -225,10 +242,10 @@ func checkStale(p *engine.Project, args map[string]any) ([]Finding, error) {
 			continue
 		}
 		for _, path := range files {
-			if exempt[filepath.Base(path)] {
+			rel := repoRel(p.Repo.Root, path)
+			if exempt[filepath.Base(path)] || baseline[rel] {
 				continue
 			}
-			rel, _ := filepath.Rel(p.Repo.Root, path)
 			data, err := os.ReadFile(path)
 			if err != nil {
 				return nil, err
@@ -259,6 +276,16 @@ func checkStale(p *engine.Project, args map[string]any) ([]Finding, error) {
 // a generated file was deleted.
 func checkDrift(p *engine.Project, _ map[string]any) ([]Finding, error) {
 	var findings []Finding
+	// A file holding conflict markers is reported by ilk.conflicts, which says
+	// something far more useful than "edited since ilk wrote it".
+	hasMarkers := func(s string) bool {
+		for _, line := range strings.Split(s, "\n") {
+			if strings.HasPrefix(line, merge.ConflictMarker) {
+				return true
+			}
+		}
+		return false
+	}
 	for _, entry := range p.Lock.Layers {
 		for _, f := range entry.Files {
 			if f.Mode == manifest.ModeCreateOnly || f.Mode == engine.ModeDir || f.Hash == "" {
@@ -274,6 +301,9 @@ func checkDrift(p *engine.Project, _ map[string]any) ([]Finding, error) {
 			}
 			if err != nil {
 				return nil, err
+			}
+			if hasMarkers(string(data)) {
+				continue
 			}
 			switch f.Mode {
 			case manifest.ModeManaged, manifest.ModeMerge:
@@ -301,6 +331,43 @@ func checkDrift(p *engine.Project, _ map[string]any) ([]Finding, error) {
 						Path:    f.Path,
 						Message: fmt.Sprintf("the %s block from %s was edited by hand", f.Region, entry.ID),
 					})
+				}
+			}
+		}
+	}
+	sort.Slice(findings, func(i, j int) bool { return findings[i].Path < findings[j].Path })
+	return findings, nil
+}
+
+// ------------------------------------------------------------------ conflicts
+
+// checkConflicts finds files where `--merge-markers` wrote both versions and
+// nobody has chosen between them yet.
+//
+// Writing markers is a deliberate escape hatch, but a half-resolved file is worse
+// than either version on its own: agents read it as instructions and humans read
+// past it. Leaving it undetected would defeat the point of offering the option.
+func checkConflicts(p *engine.Project, _ map[string]any) ([]Finding, error) {
+	var findings []Finding
+	seen := map[string]bool{}
+	for _, entry := range p.Lock.Layers {
+		for _, f := range entry.Files {
+			if f.Mode == engine.ModeDir || seen[f.Path] {
+				continue
+			}
+			seen[f.Path] = true
+			data, err := os.ReadFile(p.Repo.Path(f.Path))
+			if err != nil {
+				continue
+			}
+			for i, line := range strings.Split(string(data), "\n") {
+				if strings.HasPrefix(line, merge.ConflictMarker) {
+					findings = append(findings, Finding{
+						Path:    f.Path,
+						Line:    i + 1,
+						Message: "unresolved merge conflict left by --merge-markers",
+					})
+					break
 				}
 			}
 		}
@@ -367,6 +434,16 @@ func estimateTokens(s string) int {
 }
 
 // -------------------------------------------------------------------- helpers
+
+// repoRel renders an absolute path the way the lockfile and the baseline store
+// it: relative to the repository root, with forward slashes.
+func repoRel(root, path string) string {
+	rel, err := filepath.Rel(root, path)
+	if err != nil {
+		return path
+	}
+	return filepath.ToSlash(rel)
+}
 
 func markdownFiles(dir string) ([]string, error) {
 	info, err := os.Stat(dir)

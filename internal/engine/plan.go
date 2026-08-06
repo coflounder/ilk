@@ -24,6 +24,8 @@ const (
 	OpRegionUpdate Op = "region-update"
 	OpRegionRemove Op = "region-remove"
 	OpDelete       Op = "delete"
+	OpMerge        Op = "merge"
+	OpAccept       Op = "accept"
 	OpVacate       Op = "vacate"
 	OpRmdir        Op = "rmdir"
 	OpChmod        Op = "chmod"
@@ -53,11 +55,14 @@ type Action struct {
 	// writeContent is the full file content apply should write. It is nil when
 	// the action writes nothing.
 	writeContent *string
-	// hashBody is what the lockfile records as ilk's output: the whole file for
-	// a managed file, the block body for a fenced region.
-	hashBody    string
-	exec        bool
-	createdFile bool
+	// hashBody is what the lockfile records as ilk's expectation: the whole file
+	// for a managed file, the block body for a fenced region.
+	hashBody string
+	// deliveredBody is the layer's own content behind this action, recorded as
+	// the ancestor for the next merge.
+	deliveredBody string
+	exec          bool
+	createdFile   bool
 	// track records the artifact in the new lockfile even when nothing changed.
 	track bool
 	// Removal marks an action that reverses something ilk previously wrote. A
@@ -73,6 +78,9 @@ func (a *Action) setWrite(s string) { a.writeContent = &s }
 type Plan struct {
 	Actions  []Action
 	Warnings []string
+	// Baselines records, per layer, the files that were already present in the
+	// directories that layer governs. See lock.Layer.Baseline.
+	Baselines map[string][]string
 }
 
 // Changes returns only the actions that would modify the repository.
@@ -109,6 +117,20 @@ type PlanOptions struct {
 	// desired. It is on for every command except a targeted adopt, where
 	// removing another layer's files would be a surprise.
 	Prune bool
+	// NoBaseline governs a directory's existing contents from the moment the
+	// layer is adopted, instead of exempting them. It is for a repository that
+	// wants to be held to the new rules immediately.
+	NoBaseline bool
+	// NoMerge refuses any file that has been edited since ilk wrote it, instead
+	// of attempting a three-way merge against what ilk last wrote.
+	NoMerge bool
+	// MergeMarkers writes conflicted regions with git-style markers rather than
+	// leaving the file alone, for somebody who would rather resolve in place.
+	MergeMarkers bool
+	// Accept records what is on disk as ilk's new common ancestor, leaving the
+	// content alone. It is how somebody says "my version is the truth now" after
+	// resolving a conflict by hand — the counterpart to Force.
+	Accept bool
 }
 
 // Plan computes what apply would do.
@@ -118,7 +140,7 @@ func (p *Project) Plan(opts PlanOptions) (*Plan, error) {
 		return nil, err
 	}
 
-	pl := &Plan{}
+	pl := &Plan{Baselines: map[string][]string{}}
 	// files caches file content across actions so that several regions written
 	// into one file see each other's results.
 	files := newFileCache(p.Repo.Root)
@@ -126,6 +148,10 @@ func (p *Project) Plan(opts PlanOptions) (*Plan, error) {
 	desiredKeys := map[string]bool{}
 	for _, d := range desired {
 		desiredKeys[d.key()] = true
+	}
+
+	if err := p.planBaselines(desired, pl, opts); err != nil {
+		return nil, err
 	}
 
 	for _, d := range desired {
@@ -175,7 +201,7 @@ func (p *Project) planOne(d Desired, files *fileCache, opts PlanOptions) (Action
 		return a, nil
 	}
 
-	_, locked, isLocked := p.Lock.Find(d.Path, d.Region)
+	_, locked, isLocked := p.Lock.Find(d.Owner, d.Path, d.Region)
 	if isLocked {
 		a.createdFile = locked.CreatedFile
 	}
@@ -196,6 +222,7 @@ func (p *Project) planOne(d Desired, files *fileCache, opts PlanOptions) (Action
 		a.createdFile = true
 		a.setWrite(d.Content)
 		a.hashBody = ""
+		a.deliveredBody = ""
 		files.write(d.Path, d.Content)
 		return a, nil
 
@@ -204,19 +231,15 @@ func (p *Project) planOne(d Desired, files *fileCache, opts PlanOptions) (Action
 			a.Op = OpCreate
 			a.createdFile = true
 			a.setWrite(d.Content)
+			a.deliveredBody = d.Content
 			files.write(d.Path, d.Content)
-			return a, nil
-		}
-		if current == d.Content {
-			if execMismatch(p.Repo.Path(d.Path), d.Exec) {
-				a.Op = OpChmod
-			}
 			return a, nil
 		}
 		if !isLocked {
 			if opts.Force {
 				a.Op = OpUpdate
 				a.setWrite(d.Content)
+				a.deliveredBody = d.Content
 				files.write(d.Path, d.Content)
 				return a, nil
 			}
@@ -224,14 +247,25 @@ func (p *Project) planOne(d Desired, files *fileCache, opts PlanOptions) (Action
 			a.Note = "exists but ilk did not write it — move it aside, or re-run with --force to let ilk take ownership"
 			return a, nil
 		}
-		if lock.Hash(current) != locked.Hash && !opts.Force {
-			a.Op = OpConflict
-			a.Note = "edited since ilk wrote it — your changes would be lost; re-run with --force to discard them"
+
+		r := p.reconcileArtifact(current, d.Content, d.Owner, locked, opts)
+		a.Op = r.Op
+		a.Note = r.Note
+		if r.Op == OpConflict {
 			return a, nil
 		}
-		a.Op = OpUpdate
-		a.setWrite(d.Content)
-		files.write(d.Path, d.Content)
+		a.hashBody = r.Baseline
+		a.deliveredBody = r.Delivered
+		if r.Op == OpUnchanged {
+			if execMismatch(p.Repo.Path(d.Path), d.Exec) {
+				a.Op = OpChmod
+			}
+			return a, nil
+		}
+		if r.Write != "" || r.Op != OpAccept {
+			a.setWrite(r.Write)
+			files.write(d.Path, r.Write)
+		}
 		return a, nil
 
 	case manifest.ModeRegion, manifest.ModeAppendOnce:
@@ -246,30 +280,55 @@ func (p *Project) planOne(d Desired, files *fileCache, opts PlanOptions) (Action
 		if !exists {
 			a.createdFile = true
 		}
-		if present {
-			if d.Mode == manifest.ModeAppendOnce {
-				a.Op = OpUnchanged
-				return a, nil
+
+		writeBody := func(op Op, note, newBody string) (Action, error) {
+			updated, upErr := fence.Upsert(current, style, marker, newBody)
+			if upErr != nil {
+				return a, upErr
 			}
+			a.Op = op
+			a.Note = note
+			a.setWrite(updated)
+			files.write(d.Path, updated)
+			return a, nil
+		}
+
+		if !present {
+			a.Op = OpRegionAdd
+			a.deliveredBody = d.Content
+			return writeBody(OpRegionAdd, "", d.Content)
+		}
+		if d.Mode == manifest.ModeAppendOnce {
+			a.Op = OpUnchanged
+			a.deliveredBody = d.Content
+			a.hashBody = body
+			return a, nil
+		}
+		if !isLocked {
+			a.deliveredBody = d.Content
 			if body == d.Content {
 				return a, nil
 			}
-			if isLocked && lock.Hash(body) != locked.Hash && !opts.Force {
-				a.Op = OpConflict
-				a.Note = "the block was edited by hand — your changes would be lost; re-run with --force to discard them"
-				return a, nil
-			}
-			a.Op = OpRegionUpdate
-		} else {
-			a.Op = OpRegionAdd
+			return writeBody(OpRegionUpdate, "", d.Content)
 		}
-		updated, err := fence.Upsert(current, style, marker, d.Content)
-		if err != nil {
-			return a, err
+
+		r := p.reconcileArtifact(body, d.Content, d.Owner, locked, opts)
+		a.Note = r.Note
+		if r.Op == OpConflict {
+			a.Op = OpConflict
+			return a, nil
 		}
-		a.setWrite(updated)
-		files.write(d.Path, updated)
-		return a, nil
+		a.hashBody = r.Baseline
+		a.deliveredBody = r.Delivered
+		switch r.Op {
+		case OpUnchanged, OpAccept:
+			a.Op = r.Op
+			return a, nil
+		case OpUpdate:
+			return writeBody(OpRegionUpdate, r.Note, r.Write)
+		default:
+			return writeBody(r.Op, r.Note, r.Write)
+		}
 
 	case manifest.ModeMerge:
 		merged, err := d.Merge(current, true)
@@ -282,6 +341,7 @@ func (p *Project) planOne(d Desired, files *fileCache, opts PlanOptions) (Action
 		// content, so that a co-owned file is not reported as drifted the moment
 		// somebody else legitimately edits a different part of it.
 		a.hashBody = merged
+		a.deliveredBody = merged
 		if merged == current {
 			return a, nil
 		}

@@ -37,6 +37,12 @@ type Layer struct {
 	Digest  string            `json:"digest,omitempty"`
 	Vars    map[string]string `json:"vars,omitempty"`
 	Files   []File            `json:"files"`
+	// Baseline lists files that were already in this layer's directories when it
+	// was adopted. A layer governs what happens next, not what came before: a
+	// repository that already had a `docs/` folder should not be greeted by a
+	// wall of failures about files nobody has touched. These paths are exempt
+	// from the layer's checks until somebody clears them with `ilk baseline`.
+	Baseline []string `json:"baseline,omitempty"`
 }
 
 // File is one artifact ilk wrote.
@@ -45,10 +51,19 @@ type File struct {
 	Mode manifest.Mode `json:"mode"`
 	// Region is set for region and append-once modes.
 	Region string `json:"region,omitempty"`
-	// Hash covers the whole file for managed mode, and the region body for
-	// region and append-once modes. It is empty for create-only, which ilk
-	// deliberately stops tracking after the initial write.
+	// Hash is what ilk expects to find: the whole file for managed mode, the
+	// region body for region and append-once modes. It is empty for create-only,
+	// which ilk deliberately stops tracking after the initial write. Anything
+	// else means somebody has edited ilk's output.
 	Hash string `json:"hash,omitempty"`
+	// Delivered is the layer's own content at the last reconciliation, which is
+	// the common ancestor a three-way merge needs.
+	//
+	// It differs from Hash whenever the file legitimately diverges from what the
+	// layer produces — after a merge, or after `--accept`. Collapsing the two
+	// would make the next apply mistake an agreed divergence for "unchanged since
+	// ilk wrote it" and overwrite it.
+	Delivered string `json:"delivered,omitempty"`
 	// CreatedFile records that the file did not exist before ilk wrote it, which
 	// is what allows drop to remove an emptied file rather than leaving a husk.
 	CreatedFile bool `json:"created_file,omitempty"`
@@ -154,9 +169,16 @@ func (l *Lock) IDs() []string {
 	return ids
 }
 
-// Find looks up a recorded file across all layers.
-func (l *Lock) Find(path, region string) (Layer, File, bool) {
+// Find looks up a recorded artifact.
+//
+// The owner is part of the key, not a detail: two layers may each own a region
+// of the same name in the same file — `instructions` in AGENTS.md is the obvious
+// case — and matching on path and region alone silently returns the wrong one.
+func (l *Lock) Find(owner, path, region string) (Layer, File, bool) {
 	for _, entry := range l.Layers {
+		if entry.ID != owner {
+			continue
+		}
 		for _, f := range entry.Files {
 			if f.Path == path && f.Region == region {
 				return entry, f, true

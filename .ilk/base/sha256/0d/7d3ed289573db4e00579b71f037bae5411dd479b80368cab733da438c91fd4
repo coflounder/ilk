@@ -1,0 +1,2 @@
+# ilk keeps fetched layer sources here; they are rebuildable.
+.ilk/cache/

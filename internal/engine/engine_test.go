@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/coflounder/ilk/internal/basestore"
 	"github.com/coflounder/ilk/internal/config"
 	"github.com/coflounder/ilk/internal/lock"
 	"github.com/coflounder/ilk/internal/repo"
@@ -448,7 +449,7 @@ func TestLockRecordsProvenanceForEveryArtifact(t *testing.T) {
 			}
 		}
 	}
-	if _, _, ok := lk.Find("AGENTS.md", "instructions"); !ok {
+	if _, _, ok := lk.Find("ilk/record", "AGENTS.md", "instructions"); !ok {
 		t.Error("the AGENTS.md instruction block is not tracked")
 	}
 }
@@ -480,4 +481,511 @@ func onlyAddedCoreBlock(before, after string) bool {
 	rest := strings.TrimSpace(strings.TrimPrefix(after, before))
 	return strings.HasPrefix(rest, "# ilk:begin layer="+CoreOwner) &&
 		strings.HasSuffix(rest, "# ilk:end layer="+CoreOwner+" region=core")
+}
+
+// A layer governs what happens next, not what came before. These tests defend the
+// first-run experience of a repository that already has documentation.
+
+func TestAdoptingALayerExemptsWhatWasAlreadyThere(t *testing.T) {
+	root := fixture(t)
+	write(t, root, "docs/getting-started.md", "# Getting started\n")
+	write(t, root, "docs/api_reference.md", "# API\n")
+	write(t, root, "docs/guides/deploy.md", "# Deploy\n")
+
+	configWith(t, root, "ilk/record")
+	apply(t, root)
+
+	p, err := Load(root, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	baseline := p.Baseline()
+	for _, path := range []string{"docs/getting-started.md", "docs/api_reference.md", "docs/guides/deploy.md"} {
+		if !baseline[path] {
+			t.Errorf("%s predates the layer and should be exempt; baseline is %v", path, baseline)
+		}
+	}
+	// Files ilk itself seeded are ilk's problem, not history's.
+	if baseline["docs/README.md"] {
+		t.Error("a file ilk seeded should not be in the baseline")
+	}
+}
+
+func TestBaselineIsDecidedOnceAndDoesNotGrow(t *testing.T) {
+	root := fixture(t)
+	write(t, root, "docs/old.md", "# Old\n")
+
+	configWith(t, root, "ilk/record")
+	apply(t, root)
+
+	// A file added after adoption is governed, so it must not be swept into the
+	// exemption by a later apply.
+	write(t, root, "docs/added_later.md", "# Later\n")
+	apply(t, root)
+
+	p, err := Load(root, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	baseline := p.Baseline()
+	if !baseline["docs/old.md"] {
+		t.Error("the original exemption was lost")
+	}
+	if baseline["docs/added_later.md"] {
+		t.Error("a file created after adoption was quietly exempted")
+	}
+}
+
+func TestNoBaselineGovernsExistingFilesImmediately(t *testing.T) {
+	root := fixture(t)
+	write(t, root, "docs/old.md", "# Old\n")
+
+	cfg := config.Default()
+	cfg.Targets = []string{"claude-code"}
+	cfg.Adopt(config.LayerRef{ID: "ilk/record"})
+	if err := cfg.Save(root); err != nil {
+		t.Fatal(err)
+	}
+
+	p, err := Load(root, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pl, err := p.Plan(PlanOptions{Prune: true, NoBaseline: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pl.Baselines) != 0 {
+		t.Fatalf("--no-baseline should exempt nothing, got %v", pl.Baselines)
+	}
+}
+
+func TestClearingTheBaselineIsSelective(t *testing.T) {
+	root := fixture(t)
+	write(t, root, "docs/one.md", "# One\n")
+	write(t, root, "docs/two.md", "# Two\n")
+
+	configWith(t, root, "ilk/record")
+	apply(t, root)
+
+	p, err := Load(root, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cleared := p.ClearBaseline([]string{"docs/one.md"})
+	if len(cleared) != 1 || cleared[0] != "docs/one.md" {
+		t.Fatalf("expected to clear docs/one.md, got %v", cleared)
+	}
+	baseline := p.Baseline()
+	if baseline["docs/one.md"] {
+		t.Error("docs/one.md is still exempt")
+	}
+	if !baseline["docs/two.md"] {
+		t.Error("clearing one path cleared another")
+	}
+
+	if again := p.ClearBaseline([]string{"docs/nonexistent.md"}); len(again) != 0 {
+		t.Errorf("clearing a path that was never exempt should report nothing, got %v", again)
+	}
+}
+
+func TestDroppingALayerForgetsItsBaseline(t *testing.T) {
+	root := fixture(t)
+	write(t, root, "docs/old.md", "# Old\n")
+
+	configWith(t, root, "ilk/record")
+	apply(t, root)
+
+	cfg, _ := config.Load(root)
+	cfg.Drop("ilk/record")
+	_ = cfg.Save(root)
+	apply(t, root)
+
+	p, err := Load(root, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(p.Baseline()) != 0 {
+		t.Errorf("dropping the layer should forget its exemptions, got %v", p.Baseline())
+	}
+}
+
+// Upgrading over a file somebody has edited is the case the merge exists for.
+// These tests use a layer on disk whose content is changed between applies, which
+// is what a real `ilk upgrade` does.
+
+// mutableLayer writes a layer directory whose instruction body the test controls.
+func mutableLayer(t *testing.T, dir, body string) string {
+	t.Helper()
+	manifestText := `id: test/mutable
+version: 0.1.0
+summary: A layer whose content the test changes between applies.
+instructions:
+  - id: guidance
+    src: instructions/guidance.md
+    budget: 40
+files:
+  - src: files/owned.md
+    dest: owned.md
+    mode: managed
+`
+	write(t, dir, "layer.yaml", manifestText)
+	write(t, dir, "instructions/guidance.md", body)
+	write(t, dir, "files/owned.md", body)
+	return dir
+}
+
+func adoptMutable(t *testing.T, root, layerDir string) {
+	t.Helper()
+	cfg := config.Default()
+	cfg.Targets = []string{}
+	cfg.Adopt(config.LayerRef{ID: "test/mutable", Source: layerDir})
+	if err := cfg.Save(root); err != nil {
+		t.Fatal(err)
+	}
+}
+
+const originalBody = `Line one.
+Line two.
+Line three.
+Line four.
+`
+
+func TestUpgradeMergesLayerChangesWithUserEdits(t *testing.T) {
+	root := fixture(t)
+	layerDir := mutableLayer(t, t.TempDir(), originalBody)
+	adoptMutable(t, root, layerDir)
+	apply(t, root)
+
+	if got := read(t, root, "owned.md"); got != originalBody {
+		t.Fatalf("unexpected initial content %q", got)
+	}
+
+	// The user edits one line of a file ilk owns.
+	edited := strings.Replace(originalBody, "Line two.", "Line two, with my note.", 1)
+	write(t, root, "owned.md", edited)
+
+	// The layer ships a new version that changes a different line.
+	upgraded := strings.Replace(originalBody, "Line four.", "Line four, revised by the layer.", 1)
+	mutableLayer(t, layerDir, upgraded)
+
+	pl := apply(t, root)
+
+	var merged bool
+	for _, a := range pl.Actions {
+		if a.Path == "owned.md" && a.Op == OpMerge {
+			merged = true
+		}
+	}
+	if !merged {
+		t.Fatalf("expected owned.md to be merged, got %+v", pl.Changes())
+	}
+
+	got := read(t, root, "owned.md")
+	if !strings.Contains(got, "Line two, with my note.") {
+		t.Errorf("the user's edit was lost:\n%s", got)
+	}
+	if !strings.Contains(got, "Line four, revised by the layer.") {
+		t.Errorf("the layer's change was lost:\n%s", got)
+	}
+}
+
+func TestUpgradeRefusesWhenTheSameLinesCollide(t *testing.T) {
+	root := fixture(t)
+	layerDir := mutableLayer(t, t.TempDir(), originalBody)
+	adoptMutable(t, root, layerDir)
+	apply(t, root)
+
+	// Both sides rewrite the same line.
+	write(t, root, "owned.md", strings.Replace(originalBody, "Line two.", "Line two, mine.", 1))
+	mutableLayer(t, layerDir, strings.Replace(originalBody, "Line two.", "Line two, theirs.", 1))
+
+	p, err := Load(root, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pl, err := p.Plan(PlanOptions{Prune: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var conflict *Action
+	for i := range pl.Actions {
+		if pl.Actions[i].Path == "owned.md" && pl.Actions[i].Op == OpConflict {
+			conflict = &pl.Actions[i]
+		}
+	}
+	if conflict == nil {
+		t.Fatalf("a genuine collision must be refused, got %+v", pl.Changes())
+	}
+	if !strings.Contains(conflict.Note, "--merge-markers") || !strings.Contains(conflict.Note, "--force") {
+		t.Errorf("the refusal should name both ways forward, got %q", conflict.Note)
+	}
+
+	if err := p.Apply(pl); err != nil {
+		t.Fatal(err)
+	}
+	if got := read(t, root, "owned.md"); !strings.Contains(got, "Line two, mine.") {
+		t.Error("a refused merge must leave the file alone")
+	}
+}
+
+func TestMergeMarkersWriteBothVersions(t *testing.T) {
+	root := fixture(t)
+	layerDir := mutableLayer(t, t.TempDir(), originalBody)
+	adoptMutable(t, root, layerDir)
+	apply(t, root)
+
+	write(t, root, "owned.md", strings.Replace(originalBody, "Line two.", "Line two, mine.", 1))
+	mutableLayer(t, layerDir, strings.Replace(originalBody, "Line two.", "Line two, theirs.", 1))
+
+	p, err := Load(root, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pl, err := p.Plan(PlanOptions{Prune: true, MergeMarkers: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := p.Apply(pl); err != nil {
+		t.Fatal(err)
+	}
+
+	got := read(t, root, "owned.md")
+	for _, want := range []string{"<<<<<<<", "Line two, mine.", "=======", "Line two, theirs.", ">>>>>>>"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("marker output missing %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestFencedRegionsMergeToo(t *testing.T) {
+	root := fixture(t)
+	layerDir := mutableLayer(t, t.TempDir(), originalBody)
+	adoptMutable(t, root, layerDir)
+
+	cfg, _ := config.Load(root)
+	cfg.Targets = []string{"claude-code"}
+	_ = cfg.Save(root)
+	apply(t, root)
+
+	// Edit one line inside the generated AGENTS.md block.
+	agents := read(t, root, "AGENTS.md")
+	edited := strings.Replace(agents, "Line two.", "Line two, with my note.", 1)
+	if edited == agents {
+		t.Fatal("fixture assumption broken: the block does not contain the expected line")
+	}
+	write(t, root, "AGENTS.md", edited)
+
+	// The layer changes a different line of the same block.
+	mutableLayer(t, layerDir, strings.Replace(originalBody, "Line four.", "Line four, revised.", 1))
+	apply(t, root)
+
+	got := read(t, root, "AGENTS.md")
+	if !strings.Contains(got, "Line two, with my note.") {
+		t.Errorf("the user's edit inside the block was lost:\n%s", got)
+	}
+	if !strings.Contains(got, "Line four, revised.") {
+		t.Errorf("the layer's change to the block was lost:\n%s", got)
+	}
+}
+
+func TestUserEditWithNoLayerChangeIsDriftNotAMerge(t *testing.T) {
+	root := fixture(t)
+	layerDir := mutableLayer(t, t.TempDir(), originalBody)
+	adoptMutable(t, root, layerDir)
+	apply(t, root)
+
+	// The layer has not moved; only the user has. Accepting this silently would
+	// hand ownership of a managed file over without anybody deciding to.
+	write(t, root, "owned.md", originalBody+"A line I added.\n")
+
+	p, err := Load(root, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pl, err := p.Plan(PlanOptions{Prune: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var found bool
+	for _, a := range pl.Conflicts() {
+		if a.Path == "owned.md" {
+			found = true
+			if !strings.Contains(a.Note, "nothing to merge") {
+				t.Errorf("the note should explain why this is not a merge, got %q", a.Note)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("expected drift to be reported, got %+v", pl.Changes())
+	}
+}
+
+func TestAncestorsAreStoredAndCollected(t *testing.T) {
+	root := fixture(t)
+	layerDir := mutableLayer(t, t.TempDir(), originalBody)
+	adoptMutable(t, root, layerDir)
+	apply(t, root)
+
+	lk, err := lock.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var checked int
+	for _, entry := range lk.Layers {
+		for _, f := range entry.Files {
+			if f.Hash == "" {
+				continue
+			}
+			if _, ok := basestore.Get(root, f.Hash); !ok {
+				t.Errorf("no ancestor stored for %s (%s)", f.Path, f.Hash)
+			}
+			checked++
+		}
+	}
+	if checked == 0 {
+		t.Fatal("nothing was tracked, so this test proved nothing")
+	}
+
+	// Superseding the content must not leave the old copy behind for ever.
+	before := countStored(t, root)
+	mutableLayer(t, layerDir, originalBody+"A new line from the layer.\n")
+	apply(t, root)
+	if after := countStored(t, root); after > before {
+		t.Errorf("the ancestor store grew from %d to %d instead of being collected", before, after)
+	}
+}
+
+func countStored(t *testing.T, root string) int {
+	t.Helper()
+	n := 0
+	_ = filepath.WalkDir(basestore.Dir(root), func(_ string, d os.DirEntry, err error) error {
+		if err == nil && !d.IsDir() {
+			n++
+		}
+		return nil
+	})
+	return n
+}
+
+func TestAcceptRecordsYourVersionAsTheNewBaseline(t *testing.T) {
+	root := fixture(t)
+	layerDir := mutableLayer(t, t.TempDir(), originalBody)
+	adoptMutable(t, root, layerDir)
+	apply(t, root)
+
+	mine := originalBody + "A line I want to keep.\n"
+	write(t, root, "owned.md", mine)
+
+	p, err := Load(root, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pl, err := p.Plan(PlanOptions{Prune: true, Accept: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := p.Apply(pl); err != nil {
+		t.Fatal(err)
+	}
+
+	if got := read(t, root, "owned.md"); got != mine {
+		t.Fatalf("--accept must not change the file:\n got %q\nwant %q", got, mine)
+	}
+
+	// The next plan sees no drift, because the user's version is now the baseline.
+	p2, err := Load(root, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pl2, err := p2.Plan(PlanOptions{Prune: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, a := range pl2.Actions {
+		if a.Path == "owned.md" && (a.Op == OpConflict || a.Op.Changes()) {
+			t.Fatalf("after --accept the file should be settled, got %s: %s", a.Op, a.Note)
+		}
+	}
+
+	// And a later layer change still merges on top of the accepted version.
+	mutableLayer(t, layerDir, strings.Replace(originalBody, "Line one.", "Line one, revised.", 1))
+	apply(t, root)
+
+	got := read(t, root, "owned.md")
+	if !strings.Contains(got, "A line I want to keep.") {
+		t.Errorf("the accepted edit was lost by a later upgrade:\n%s", got)
+	}
+	if !strings.Contains(got, "Line one, revised.") {
+		t.Errorf("the layer's later change did not land:\n%s", got)
+	}
+}
+
+// A merged file must survive every subsequent apply. Recording the merged result
+// as both "what the file is" and "what the layer delivered" made the next apply
+// mistake the merge for an untouched file and overwrite it — silently destroying
+// work, which is the exact failure this whole subsystem exists to prevent.
+func TestAMergedFileSurvivesRepeatedApplies(t *testing.T) {
+	root := fixture(t)
+	layerDir := mutableLayer(t, t.TempDir(), originalBody)
+	adoptMutable(t, root, layerDir)
+	apply(t, root)
+
+	write(t, root, "owned.md", strings.Replace(originalBody, "Line two.", "Line two, mine.", 1))
+	mutableLayer(t, layerDir, strings.Replace(originalBody, "Line four.", "Line four, theirs.", 1))
+	apply(t, root)
+
+	merged := read(t, root, "owned.md")
+	if !strings.Contains(merged, "Line two, mine.") || !strings.Contains(merged, "Line four, theirs.") {
+		t.Fatalf("the merge itself failed:\n%s", merged)
+	}
+
+	for i := 0; i < 3; i++ {
+		p, err := Load(root, "test")
+		if err != nil {
+			t.Fatal(err)
+		}
+		pl, err := p.Plan(PlanOptions{Prune: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, a := range pl.Actions {
+			if a.Path == "owned.md" && a.Op.Changes() {
+				t.Fatalf("apply %d wanted to %s a settled merge: %s", i+1, a.Op, a.Note)
+			}
+		}
+		if err := p.Apply(pl); err != nil {
+			t.Fatal(err)
+		}
+		if got := read(t, root, "owned.md"); got != merged {
+			t.Fatalf("apply %d changed the merged file:\n got %q\nwant %q", i+1, got, merged)
+		}
+	}
+}
+
+// The same trap, one level deeper: a merge, then a further layer change, must
+// use the layer's previous version as the ancestor rather than the merged text.
+func TestASecondUpgradeMergesAgainstTheLayersPreviousVersion(t *testing.T) {
+	root := fixture(t)
+	layerDir := mutableLayer(t, t.TempDir(), originalBody)
+	adoptMutable(t, root, layerDir)
+	apply(t, root)
+
+	write(t, root, "owned.md", strings.Replace(originalBody, "Line two.", "Line two, mine.", 1))
+	v2 := strings.Replace(originalBody, "Line four.", "Line four, v2.", 1)
+	mutableLayer(t, layerDir, v2)
+	apply(t, root)
+
+	// A third version changes a line neither side has touched.
+	v3 := strings.Replace(v2, "Line one.", "Line one, v3.", 1)
+	mutableLayer(t, layerDir, v3)
+	apply(t, root)
+
+	got := read(t, root, "owned.md")
+	for _, want := range []string{"Line one, v3.", "Line two, mine.", "Line four, v2."} {
+		if !strings.Contains(got, want) {
+			t.Errorf("expected %q to survive:\n%s", want, got)
+		}
+	}
 }

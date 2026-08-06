@@ -247,6 +247,22 @@ no consent, because `ilk plan` shows every byte before anything is written.
 If you are publishing a layer, staying declarative makes it dramatically easier for
 somebody to say yes to.
 
+## What upgrades do to your users
+
+When you ship a new version, ilk does not overwrite files people have edited. It
+merges: where their changes and yours touch different parts of a file, both survive;
+where they collide, ilk refuses and tells the user, naming the lines.
+
+Two consequences for you as an author:
+
+- **Small, localised changes merge; wholesale rewrites collide.** Restructuring an
+  instruction block that people commonly edit will conflict for every one of them.
+  Prefer additive changes, and save the rewrite for a major version where the
+  disruption is expected.
+- **A file people are meant to edit should be `create-only`, not `managed`.** If you
+  find yourself relying on the merge to protect user edits in a `managed` file, the
+  mode is wrong.
+
 ## Versioning
 
 Layers are semver. Treat these as breaking:

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/coflounder/ilk/internal/basestore"
 	"github.com/coflounder/ilk/internal/lock"
 	"github.com/coflounder/ilk/internal/manifest"
 	"github.com/coflounder/ilk/internal/targets"
@@ -36,6 +37,11 @@ func (p *Project) execute(a *Action) error {
 	case OpConflict, OpUnchanged, OpSkip:
 		return nil
 
+	case OpAccept:
+		// The file is already what the user wants; only the recorded ancestor
+		// moves, which writeLock and storeAncestors handle.
+		return nil
+
 	case OpMkdir:
 		return os.MkdirAll(abs, 0o755)
 
@@ -57,7 +63,7 @@ func (p *Project) execute(a *Action) error {
 	case OpChmod:
 		return os.Chmod(abs, permFor(a.exec))
 
-	case OpCreate, OpUpdate, OpRegionAdd, OpRegionUpdate, OpRegionRemove, OpVacate:
+	case OpCreate, OpUpdate, OpMerge, OpRegionAdd, OpRegionUpdate, OpRegionRemove, OpVacate:
 		if a.writeContent == nil {
 			return nil
 		}
@@ -105,7 +111,7 @@ func (p *Project) writeLock(pl *Plan) error {
 		}
 		if a.Op == OpConflict {
 			// Preserve what we knew before; the artifact is still ours in intent.
-			if _, prev, ok := p.Lock.Find(a.Path, a.Region); ok {
+			if _, prev, ok := p.Lock.Find(a.Owner, a.Path, a.Region); ok {
 				ensure(a.Owner).Files = append(ensure(a.Owner).Files, prev)
 			}
 			continue
@@ -120,15 +126,68 @@ func (p *Project) writeLock(pl *Plan) error {
 		}
 		if a.Mode != manifest.ModeCreateOnly && a.Mode != ModeDir {
 			entry.Hash = lock.Hash(a.hashBody)
+			if a.deliveredBody != "" {
+				entry.Delivered = lock.Hash(a.deliveredBody)
+			}
 		}
 		e := ensure(a.Owner)
 		e.Files = append(e.Files, entry)
 	}
 
+	// Baselines are decided once, when a layer arrives, and then carried forward
+	// until somebody clears them. A layer may have a baseline and no artifacts of
+	// its own, so this creates the entry if the actions did not.
+	for id, paths := range pl.Baselines {
+		if len(paths) == 0 {
+			continue
+		}
+		ensure(id).Baseline = paths
+	}
+
 	for _, e := range byOwner {
 		next.Put(*e)
 	}
+	if err := p.storeAncestors(pl, next); err != nil {
+		return err
+	}
 	return next.Save(p.Repo.Root)
+}
+
+// storeAncestors records the content behind every hash the new lockfile refers
+// to, and drops the copies nothing refers to any more.
+//
+// Without this the lockfile can tell that a file changed but not reconcile two
+// changes to it, and every upgrade over an edited file degrades to a refusal.
+func (p *Project) storeAncestors(pl *Plan, next *lock.Lock) error {
+	for _, a := range pl.Actions {
+		if !a.track || a.Op == OpConflict {
+			continue
+		}
+		if a.Mode == manifest.ModeCreateOnly || a.Mode == ModeDir {
+			continue
+		}
+		for _, content := range []string{a.hashBody, a.deliveredBody} {
+			if content == "" {
+				continue
+			}
+			if err := basestore.Put(p.Repo.Root, lock.Hash(content), content); err != nil {
+				return err
+			}
+		}
+	}
+
+	keep := map[string]bool{}
+	for _, entry := range next.Layers {
+		for _, f := range entry.Files {
+			for _, h := range []string{f.Hash, f.Delivered} {
+				if h != "" {
+					keep[h] = true
+				}
+			}
+		}
+	}
+	_, err := basestore.GC(p.Repo.Root, keep)
+	return err
 }
 
 // mergeFuncFor recovers the merge function for a co-owned file whose target is no

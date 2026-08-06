@@ -11,6 +11,7 @@
           "mode": "append-once",
           "region": "core",
           "hash": "sha256:0d7d3ed289573db4e00579b71f037bae5411dd479b80368cab733da438c91fd4",
+          "delivered": "sha256:0d7d3ed289573db4e00579b71f037bae5411dd479b80368cab733da438c91fd4",
           "owner": "ilk/core"
         }
       ]
@@ -35,6 +36,7 @@
           "mode": "region",
           "region": "instructions",
           "hash": "sha256:ba7de74b1868b3e19c61222eb02190cdddb5b4a9a022b4bab2c82eb52735e4d8",
+          "delivered": "sha256:ba7de74b1868b3e19c61222eb02190cdddb5b4a9a022b4bab2c82eb52735e4d8",
           "owner": "ilk/quality-gates"
         }
       ]
@@ -57,12 +59,14 @@
           "mode": "append-once",
           "region": "ignore",
           "hash": "sha256:48a5d69ced95acba3b51635040c664e84e79d6ec7f91d7c02927065fc3dc9e2a",
+          "delivered": "sha256:48a5d69ced95acba3b51635040c664e84e79d6ec7f91d7c02927065fc3dc9e2a",
           "owner": "ilk/record"
         },
         {
           "path": ".ilk/bin/ilk-record-new.sh",
           "mode": "managed",
           "hash": "sha256:403e9a6811c0ca523dcf79befd3a869859dbe814c8799dd80b2004248eb8440c",
+          "delivered": "sha256:403e9a6811c0ca523dcf79befd3a869859dbe814c8799dd80b2004248eb8440c",
           "created_file": true,
           "owner": "ilk/record",
           "exec": true
@@ -72,6 +76,7 @@
           "mode": "region",
           "region": "instructions",
           "hash": "sha256:78f6d02f18d68314dff4124a6752379b2a2509ef49fca7f37f36ea480a4187da",
+          "delivered": "sha256:78f6d02f18d68314dff4124a6752379b2a2509ef49fca7f37f36ea480a4187da",
           "owner": "ilk/record"
         },
         {
@@ -157,6 +162,7 @@
           "path": ".agent/skills/prove-it/SKILL.md",
           "mode": "managed",
           "hash": "sha256:8b22ac164726f9503b28780548ba554ecd05aa9094fca5076e80555eccd66aab",
+          "delivered": "sha256:8b22ac164726f9503b28780548ba554ecd05aa9094fca5076e80555eccd66aab",
           "created_file": true,
           "owner": "target:agents-md"
         },
@@ -164,6 +170,7 @@
           "path": ".agent/skills/review-changes/SKILL.md",
           "mode": "managed",
           "hash": "sha256:c2bd5844e609b2d77501170de01c76e578f517ea5e091e44ce3faebb8743b13d",
+          "delivered": "sha256:c2bd5844e609b2d77501170de01c76e578f517ea5e091e44ce3faebb8743b13d",
           "created_file": true,
           "owner": "target:agents-md"
         },
@@ -171,6 +178,7 @@
           "path": ".agent/skills/update-record/SKILL.md",
           "mode": "managed",
           "hash": "sha256:3b3bcfc2f0d3acfc3cd115af35b8e67e043fac4d3cc92ceb1d936c182ac9fbe0",
+          "delivered": "sha256:3b3bcfc2f0d3acfc3cd115af35b8e67e043fac4d3cc92ceb1d936c182ac9fbe0",
           "created_file": true,
           "owner": "target:agents-md"
         },
@@ -178,6 +186,7 @@
           "path": ".agent/skills/write-decision/SKILL.md",
           "mode": "managed",
           "hash": "sha256:3efff8f7d55a4304ac17e8f4a4949857b459d09a5f201372a9ca5a8c5b10a1ee",
+          "delivered": "sha256:3efff8f7d55a4304ac17e8f4a4949857b459d09a5f201372a9ca5a8c5b10a1ee",
           "created_file": true,
           "owner": "target:agents-md"
         },
@@ -192,6 +201,7 @@
           "mode": "region",
           "region": "skills",
           "hash": "sha256:2d7bcfafd53fc1d6053b8a97ec833fc9e487b28c6bfef6802c0d7891f4c34485",
+          "delivered": "sha256:2d7bcfafd53fc1d6053b8a97ec833fc9e487b28c6bfef6802c0d7891f4c34485",
           "owner": "target:agents-md"
         }
       ]
@@ -205,6 +215,7 @@
           "path": ".claude/commands/record-log.md",
           "mode": "managed",
           "hash": "sha256:a31b83484c23936a8c987ae3ec44373ee8eaf9d675264cbe49d58c3574a7aac4",
+          "delivered": "sha256:a31b83484c23936a8c987ae3ec44373ee8eaf9d675264cbe49d58c3574a7aac4",
           "created_file": true,
           "owner": "target:claude-code"
         },
@@ -212,6 +223,7 @@
           "path": ".claude/commands/record-new.md",
           "mode": "managed",
           "hash": "sha256:31ec78c2c96b12ae09c6fb07dad1c39395fbc79e0a2a496bb526246ea7771455",
+          "delivered": "sha256:31ec78c2c96b12ae09c6fb07dad1c39395fbc79e0a2a496bb526246ea7771455",
           "created_file": true,
           "owner": "target:claude-code"
         },
@@ -219,6 +231,7 @@
           "path": ".claude/settings.json",
           "mode": "merge",
           "hash": "sha256:949a1fe43240e43717cb78438fb476f83fb967d1e65eccec96769c1ed30e0d1f",
+          "delivered": "sha256:949a1fe43240e43717cb78438fb476f83fb967d1e65eccec96769c1ed30e0d1f",
           "created_file": true,
           "owner": "target:claude-code"
         },
@@ -226,6 +239,7 @@
           "path": ".claude/skills/prove-it/SKILL.md",
           "mode": "managed",
           "hash": "sha256:8b22ac164726f9503b28780548ba554ecd05aa9094fca5076e80555eccd66aab",
+          "delivered": "sha256:8b22ac164726f9503b28780548ba554ecd05aa9094fca5076e80555eccd66aab",
           "created_file": true,
           "owner": "target:claude-code"
         },
@@ -233,6 +247,7 @@
           "path": ".claude/skills/review-changes/SKILL.md",
           "mode": "managed",
           "hash": "sha256:c2bd5844e609b2d77501170de01c76e578f517ea5e091e44ce3faebb8743b13d",
+          "delivered": "sha256:c2bd5844e609b2d77501170de01c76e578f517ea5e091e44ce3faebb8743b13d",
           "created_file": true,
           "owner": "target:claude-code"
         },
@@ -240,6 +255,7 @@
           "path": ".claude/skills/update-record/SKILL.md",
           "mode": "managed",
           "hash": "sha256:3b3bcfc2f0d3acfc3cd115af35b8e67e043fac4d3cc92ceb1d936c182ac9fbe0",
+          "delivered": "sha256:3b3bcfc2f0d3acfc3cd115af35b8e67e043fac4d3cc92ceb1d936c182ac9fbe0",
           "created_file": true,
           "owner": "target:claude-code"
         },
@@ -247,6 +263,7 @@
           "path": ".claude/skills/write-decision/SKILL.md",
           "mode": "managed",
           "hash": "sha256:3efff8f7d55a4304ac17e8f4a4949857b459d09a5f201372a9ca5a8c5b10a1ee",
+          "delivered": "sha256:3efff8f7d55a4304ac17e8f4a4949857b459d09a5f201372a9ca5a8c5b10a1ee",
           "created_file": true,
           "owner": "target:claude-code"
         },
@@ -255,6 +272,7 @@
           "mode": "region",
           "region": "pointer",
           "hash": "sha256:54829fdf67c26df7e0de1a55e04a10078b52959d91248acdc7268552ba253a82",
+          "delivered": "sha256:54829fdf67c26df7e0de1a55e04a10078b52959d91248acdc7268552ba253a82",
           "created_file": true,
           "owner": "target:claude-code"
         }
@@ -269,6 +287,7 @@
           "path": ".git/hooks/pre-commit",
           "mode": "managed",
           "hash": "sha256:6ff5c53822878d7627b0f1d8527789c80236807008dc56caa40014def5e22769",
+          "delivered": "sha256:6ff5c53822878d7627b0f1d8527789c80236807008dc56caa40014def5e22769",
           "created_file": true,
           "owner": "target:git-hooks",
           "exec": true
@@ -277,6 +296,7 @@
           "path": ".git/hooks/pre-push",
           "mode": "managed",
           "hash": "sha256:a16661cea3778f3fb8fc47b89564c348c18c4752a2e547bb2f51c6e49eca6fac",
+          "delivered": "sha256:a16661cea3778f3fb8fc47b89564c348c18c4752a2e547bb2f51c6e49eca6fac",
           "created_file": true,
           "owner": "target:git-hooks",
           "exec": true

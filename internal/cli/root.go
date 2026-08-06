@@ -69,6 +69,7 @@ Start with ` + "`ilk init`" + `.`,
 		newAgentsCmd(),
 		newHookCmd(),
 		newLayerCmd(),
+		newBaselineCmd(),
 	)
 
 	// Layer-provided subcommands are attached last, so a layer can never shadow a

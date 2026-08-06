@@ -44,7 +44,7 @@ func toActionJSON(a engine.Action) actionJSON {
 }
 
 func newPlanCmd() *cobra.Command {
-	var force, all bool
+	var force, all, noMerge bool
 	cmd := &cobra.Command{
 		Use:   "plan",
 		Short: "Show what `ilk apply` would change, without changing anything",
@@ -54,7 +54,7 @@ func newPlanCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			pl, err := p.Plan(engine.PlanOptions{Force: force, Prune: true})
+			pl, err := p.Plan(engine.PlanOptions{Force: force, Prune: true, NoMerge: noMerge})
 			if err != nil {
 				return err
 			}
@@ -70,30 +70,42 @@ func newPlanCmd() *cobra.Command {
 	}
 	cmd.Flags().BoolVar(&force, "force", false, "plan as if hand-edited files may be overwritten")
 	cmd.Flags().BoolVar(&all, "all", false, "include artifacts that are already up to date")
+	cmd.Flags().BoolVar(&noMerge, "no-merge", false, "refuse edited files instead of merging into them")
 	return cmd
 }
 
 func newApplyCmd() *cobra.Command {
-	var force, yes bool
+	var force, yes, noMerge, markers, accept bool
 	cmd := &cobra.Command{
 		Use:   "apply",
 		Short: "Reconcile the repository with .ilk/config.yaml",
 		Long: `Bring the repository in line with its declared layers.
 
-Apply is idempotent: running it when nothing has changed does nothing. Files a
-human has edited since ilk wrote them are reported and skipped rather than
-overwritten — pass --force to discard those edits deliberately.`,
+Apply is idempotent: running it when nothing has changed does nothing.
+
+A file you have edited since ilk wrote it is merged, not overwritten: where your
+changes and the layer's touch different parts, both survive. Where they genuinely
+collide, ilk refuses and names the lines — pass --merge-markers to write both
+versions into the file, or --force to discard yours.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			p, err := project()
 			if err != nil {
 				return err
 			}
-			pl, err := p.Plan(engine.PlanOptions{Force: force, Prune: true})
+			pl, err := p.Plan(engine.PlanOptions{Force: force, Prune: true, NoMerge: noMerge, MergeMarkers: markers, Accept: accept})
 			if err != nil {
 				return err
 			}
 			if pl.Empty() && len(pl.Conflicts()) == 0 {
+				// Still apply. Nothing on disk changes, but this is what records
+				// the ancestors a later merge needs — a repository set up before
+				// merging existed would otherwise never acquire them, and its
+				// first upgrade over an edited file would refuse for no visible
+				// reason.
+				if err := p.Apply(pl); err != nil {
+					return err
+				}
 				if flagJSON {
 					return emitJSON(planJSON(pl))
 				}
@@ -123,6 +135,9 @@ overwritten — pass --force to discard those edits deliberately.`,
 	}
 	cmd.Flags().BoolVar(&force, "force", false, "overwrite files edited since ilk wrote them")
 	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "apply without confirming")
+	cmd.Flags().BoolVar(&noMerge, "no-merge", false, "refuse edited files instead of merging into them")
+	cmd.Flags().BoolVar(&markers, "merge-markers", false, "write conflict markers into files that cannot merge cleanly")
+	cmd.Flags().BoolVar(&accept, "accept", false, "keep what is on disk and record it as ilk's new baseline")
 	return cmd
 }
 

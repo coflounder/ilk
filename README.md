@@ -64,6 +64,9 @@ ilk drop quality-gates           # removes exactly what it added
 
 ilk adopt gh:someone/their-layer # community layers, same interface
 ilk agents add cursor            # generate config for another agent
+
+ilk upgrade                      # merges layer changes into files you have edited
+ilk baseline list                # files exempt from a layer's checks, and why
 ```
 
 Every command takes `--json`. Agents are first-class consumers of this tool, not an
@@ -110,7 +113,26 @@ overwrite or delete) and "a human has edited this" (stop and say so).
 | `create-only` | nothing after the first write | never touch | leave in place |
 | `append-once` | a marked block, added idempotently | no-op | remove the block |
 
-`region` is the load-bearing one. It means ilk can put guidance in your `AGENTS.md`,
+ilk also keeps a copy of what it last wrote, under `.ilk/base/`. That is what makes
+an upgrade over a file you have edited a **three-way merge** rather than a refusal:
+where your changes and the layer's touch different parts, both survive.
+
+```
+$ ilk upgrade
+  ⇄ merge      AGENTS.md [instructions]                     acme/style
+      merged acme/style's changes with yours
+```
+
+Where they genuinely collide, ilk refuses and names the lines. It never guesses —
+a wrong merge is worse than a refusal, because a refusal is visible. You then pick:
+
+| | |
+|---|---|
+| `--merge-markers` | write both versions into the file and resolve there |
+| `--accept` | keep your version, and record it as ilk's new baseline |
+| `--force` | take the layer's version, discarding yours |
+
+`region` is the load-bearing mode. It means ilk can put guidance in your `AGENTS.md`,
 your `.gitignore` and your CI config without ever owning them:
 
 ```markdown
@@ -134,6 +156,32 @@ $ ilk adopt quality-gates
   ~ block ~    AGENTS.md [skills]                           target:agents-md
 
   Apply? [y/N]
+```
+
+## Adopting into a repository with history
+
+A layer governs what happens next, not what came before. When a layer's directory
+contract lands on a directory that already has files — the common case for `docs/` —
+those files are recorded as its baseline and exempted from its checks:
+
+```
+$ ilk init
+  · 4 existing file(s) will be exempt from ilk/record's checks
+      docs/CONTRIBUTING.md, docs/api_reference.md, docs/getting-started.md, …
+      They predate the layer, so it does not judge them. `ilk baseline` to review.
+```
+
+Without this, `ilk init` in any repository with existing documentation opens with a
+wall of failures about files nobody has touched, which is a good way to get a tool
+deleted. Files added *after* adoption are governed normally.
+
+The exemption is a ratchet, not an amnesty. It is recorded, visible in
+`ilk baseline list`, and tightened one file at a time:
+
+```sh
+ilk baseline list                          # what is exempt, and from which layer
+ilk baseline clear docs/api_reference.md   # conform it, then hold it to the rules
+ilk init --no-baseline                     # or be held to them from the start
 ```
 
 ## Working with any agent

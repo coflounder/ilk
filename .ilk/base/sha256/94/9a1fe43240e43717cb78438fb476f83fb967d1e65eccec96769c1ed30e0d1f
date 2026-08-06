@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "ilk hook run session-start",
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  }
+}
