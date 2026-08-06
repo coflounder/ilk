@@ -11,6 +11,30 @@
   The fenced blocks below are generated from the layers in .ilk/config.yaml.
 -->
 
+`ilk` manages the process layers a repository uses to work well with coding agents.
+It is a Go binary with no runtime dependencies. `docs/ARCH-system-overview.md` has the
+package map; read it before changing anything that crosses a package boundary.
+
+Non-obvious things that catch people out here:
+
+- **The built-in layers are embedded, not read from disk.** Editing
+  `internal/builtin/layers/**` only takes effect after `go build` — a stale binary
+  silently uses the old templates.
+- **`internal/engine/engine_test.go` is the contract, not a test suite.** It asserts
+  that adopt → edit around → upgrade → drop leaves a repository as it was. If a change
+  makes one of those tests fail, the change is almost certainly wrong; loosening the
+  assertion is not the fix.
+- **Two functions decide correctness for the whole tool**: `planOne` in
+  `internal/engine/plan.go`, and `Upsert`/`Remove` in `internal/fence`. Everything else
+  is presentation.
+- **Ownership modes are not interchangeable.** Before adding an artifact, decide who
+  owns the file. Choosing `managed` for a file a human might also write in is the
+  single most damaging mistake available in this codebase.
+- **Every check must carry a `fix`.** The manifest will not validate without one, and
+  a fix that does not tell the reader what to actually do defeats the point.
+- CI runs `ilk layer test` against both built-in layers. They are held to the same
+  contract as any published layer.
+
 <!-- ilk:begin layer=ilk/quality-gates region=instructions — managed by ilk — edits inside this block are overwritten; run `ilk drop` to remove it -->
 Work is not done because it looks done. Before claiming a task is complete, run
 `ilk check` and let it decide. It runs this repository's tests, linter and build,
