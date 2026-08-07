@@ -272,10 +272,10 @@ when it is not.`,
 
 			for id, missing := range p.MissingRequirements() {
 				add("error", fmt.Sprintf("%s requires %s, which nothing supplies", id, strings.Join(missing, ", ")),
-					fmt.Sprintf("set it: ilk adopt %s --set %s=\"...\", or add it under `capabilities:` in .ilk/config.yaml", id, missing[0]))
+					fmt.Sprintf("set it: ilk add %s --set %s=\"...\", or add it under `capabilities:` in .ilk/config.yaml", id, missing[0]))
 			}
 
-			for _, entry := range p.Lock.Layers {
+			for _, entry := range p.Lock.Owners {
 				l, ok := p.Layer(entry.ID)
 				if !ok || entry.Digest == "" {
 					continue

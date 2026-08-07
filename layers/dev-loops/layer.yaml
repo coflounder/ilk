@@ -1,10 +1,10 @@
 id: ilk/dev-loops
-version: 0.1.0
+version: 0.2.0
 summary: Run an agent until a gate passes, not until it says it is finished — a bounded loop whose completion condition lives outside the model.
 facets:
   arc: execution
   kind: harness
-ilk: ">=0.1.0"
+ilk: ">=0.2.0"
 
 requires:
   - test.command

@@ -1,10 +1,10 @@
 id: ilk/toolkit
-version: 0.1.0
-summary: How to operate and extend ilk in this repository — adopting, configuring, applying, resolving conflicts, and writing your own layer.
+version: 0.2.0
+summary: How to operate and extend ilk in this repository — adding layers, configuring, applying, resolving conflicts, and writing your own layer.
 facets:
   arc: operations
   kind: process
-ilk: ">=0.1.0"
+ilk: ">=0.2.0"
 
 provides:
   - ilk.toolkit
@@ -15,9 +15,9 @@ provides:
 # misunderstood its own budget advice.
 
 skills:
-  - name: adopt-a-layer
-    description: Evaluate a layer and add it to this repository. Use when asked to adopt, install or try an ilk layer, when someone links to one, or when deciding whether a published layer is worth taking on.
-    src: skills/adopt-a-layer.md
+  - name: add-a-layer
+    description: Evaluate a layer and add it to this repository. Use when asked to add, install or try an ilk layer, when someone links to one, or when deciding whether a published layer is worth taking on.
+    src: skills/add-a-layer.md
   - name: apply-ilk-changes
     description: Reconcile the repository with its declared layers. Use when `ilk status` reports drift, after editing .ilk/config.yaml by hand, when `ilk check` reports ilk.drift, or when upgrading a layer to a new version.
     src: skills/apply-ilk-changes.md
@@ -36,7 +36,7 @@ skills:
 
 # The default way a proposal reaches a layer's repository. Every layer that names a
 # GitHub repository in its `contribution:` block is contributable with no further
-# setup, because this layer is adopted by `ilk init`. A layer hosted elsewhere sets
+# setup, because `ilk init` brings this layer in. A layer hosted elsewhere sets
 # `contribution.submit` to a command of its own and nothing in ilk changes.
 files:
   - src: bin/ilk-propose.sh

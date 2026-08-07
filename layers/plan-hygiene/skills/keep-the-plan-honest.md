@@ -45,7 +45,7 @@ A fabricated evidence section is worse than an empty one, because it is trusted.
 
 ```
 ilk check --only hygiene.wip,hygiene.owner,hygiene.evidence
-ilk blueprint next        # if the blueprint layer is adopted
+ilk blueprint next        # if this repository has the blueprint layer
 ```
 
 Work through the failures in that order — the WIP limit first, because demoting stalled

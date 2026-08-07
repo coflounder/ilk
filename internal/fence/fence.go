@@ -2,7 +2,7 @@
 // a block inside a file whose surrounding content belongs to a human.
 //
 // This is the "fence rule" — decide which parts of a document a machine may
-// rewrite, and mark them off. It is what makes `ilk drop` non-destructive: ilk
+// rewrite, and mark them off. It is what makes `ilk rm` non-destructive: ilk
 // removes exactly the lines it wrote and leaves everything else untouched.
 package fence
 
@@ -118,7 +118,7 @@ func (m Marker) end() string {
 
 // Warning is emitted on the ilk-owned marker lines so a human who opens the file
 // knows not to hand-edit inside them.
-const Warning = "managed by ilk — edits inside this block are overwritten; run `ilk drop` to remove it"
+const Warning = "managed by ilk — edits inside this block are overwritten; run `ilk rm` to remove it"
 
 type bounds struct {
 	begin, end int // line indices; end is the index of the closing marker line
@@ -218,7 +218,7 @@ func Extract(content string, style Style, m Marker) (string, bool, error) {
 
 // Remove deletes the region identified by m along with its markers. It also
 // collapses the blank line that Upsert inserted before an appended region, so
-// that adopt-then-drop is a byte-for-byte round trip.
+// that add-then-rm is a byte-for-byte round trip.
 func Remove(content string, style Style, m Marker) (string, bool, error) {
 	lines := splitLines(content)
 	b, found, err := locate(lines, style, m)

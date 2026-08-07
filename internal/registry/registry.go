@@ -7,7 +7,7 @@
 // that described the idea.
 //
 // The embedded copy is a snapshot taken at release time. A layer added to the
-// index afterwards is still adoptable by its source; it just will not be listed,
+// index afterwards can still be added by its source; it just will not be listed,
 // and `ilk search` says so rather than implying the list is exhaustive.
 package registry
 
@@ -35,7 +35,7 @@ type Entry struct {
 // Builtin reports whether the layer ships inside the binary.
 func (e Entry) Builtin() bool { return e.Source == "builtin" }
 
-// Ref is what a user would pass to `ilk adopt`.
+// Ref is what a user would pass to `ilk add`.
 func (e Entry) Ref() string {
 	if e.Builtin() {
 		return e.Name()
@@ -57,7 +57,7 @@ type index struct {
 }
 
 // All returns every listed layer, sorted so built-ins come first — those are the
-// ones adoptable with no network, which is what somebody with a fresh install
+// ones addable with no network, which is what somebody with a fresh install
 // wants to see at the top.
 func All() ([]Entry, error) {
 	var idx index

@@ -1,11 +1,11 @@
 ---
 name: sync-the-github-project
-description: Reconcile the plan with a GitHub Project, or adopt a board that already has items. Use when the board and the record disagree, when a new spec needs to appear on the board, or when setting this up for the first time.
+description: Reconcile the plan with a GitHub Project, or link a board that already has items. Use when the board and the record disagree, when a new spec needs to appear on the board, or when setting this up for the first time.
 ---
 
 # Sync the GitHub Project
 
-The documents in `{{ .Vars.plans_dir }}/` are the source of truth. The GitHub Project
+The documents in `{{ index .Caps "record.plans" }}/` are the source of truth. The GitHub Project
 is a view of them. Everything below follows from that: the board is written to, and
 never read back.
 

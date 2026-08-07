@@ -11,5 +11,6 @@ Put here: half-formed designs, transcripts worth keeping for an hour, scratch
 queries, an agent's working notes mid-task, the three approaches you rejected.
 
 This directory is gitignored by default. If something in here turns out to matter,
-promote it: move it into `../{{ .Vars.docs_dir }}/`, `../{{ .Vars.plans_dir }}/`, or
-`../{{ .Vars.log_dir }}/` with a proper name and frontmatter.
+promote it: move it into `{{ index .Caps "record.docs" }}/`,
+`{{ index .Caps "record.plans" }}/`, or `{{ index .Caps "record.log" }}/` with a
+proper name and frontmatter.

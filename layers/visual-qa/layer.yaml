@@ -1,33 +1,35 @@
 id: ilk/visual-qa
-version: 0.1.0
+version: 0.2.0
 summary: An agent that changes the interface has to show you what it looks like — screenshots captured against the acceptance criteria, kept with the work.
 facets:
   arc: quality
   kind: gate
-ilk: ">=0.1.0"
+ilk: ">=0.2.0"
 
 requires:
   - record.plans
 
 provides:
-  - visual.evidence
+  visual.evidence: "{{ .Vars.group }}/{{ .Vars.evidence_dir }}"
 
 variables:
-  plans_dir:
-    default: plans
-    description: Where the plan documents live.
+  group:
+    default: docs
+    description: The grouping captured evidence sits in, alongside the plans it proves.
   evidence_dir:
     default: evidence
     description: Where captured screenshots are kept, alongside the record rather than in a build artefact nobody keeps.
 
 dirs:
-  - path: "{{ .Vars.evidence_dir }}"
+  - group: "{{ .Vars.group }}"
+    name: "{{ .Vars.evidence_dir }}"
+    order: 50
     purpose: Screenshots captured as proof that an interface change does what its spec said.
     keep: true
 
 files:
   - src: templates/README.md.tmpl
-    dest: "{{ .Vars.evidence_dir }}/README.md"
+    dest: '{{ index .Caps "visual.evidence" }}/README.md'
     mode: create-only
 
 instructions:
@@ -46,7 +48,7 @@ checks:
     title: Interface work shows what it looks like
     fix: "Add an `## Evidence` section linking the screenshots you captured, one per acceptance criterion that describes something visible. `ilk check` verifies the files exist; a person still has to look at them, which is the point — nobody can automate whether a layout is right."
     args:
-      dirs: ["{{ .Vars.plans_dir }}"]
+      dirs: ['{{ index .Caps "record.plans" }}']
       heading: Evidence
       min_items: 1
       where:
@@ -58,7 +60,7 @@ checks:
     title: Linked screenshots actually exist
     fix: "Capture the screenshot and commit it, or fix the path. A link to a screenshot nobody took is worse than no link — it reads as evidence."
     args:
-      dirs: ["{{ .Vars.plans_dir }}"]
+      dirs: ['{{ index .Caps "record.plans" }}']
 
 contribution:
   repo: coflounder/ilk

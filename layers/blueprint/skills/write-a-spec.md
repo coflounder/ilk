@@ -68,7 +68,7 @@ spec quietly diverging from what is being built, because then neither document n
 code can be trusted.
 
 If the approach changes materially after work starts, record the decision in
-`docs/DEC-*.md` and link it. The spec says what is being built; the decision says why
+`{{ index .Caps "record.docs" }}/DEC-*.md` and link it. The spec says what is being built; the decision says why
 it stopped being the other thing.
 
 ## Before you call it ready

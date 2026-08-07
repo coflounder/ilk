@@ -1,18 +1,23 @@
 id: ilk/ask-human
-version: 0.1.0
+version: 0.2.0
 summary: A written escalation path — an agent records a blocking question where a human will see it, and the repository refuses to pretend the answer is known.
 facets:
   arc: operations
   kind: process
-ilk: ">=0.1.0"
+ilk: ">=0.2.0"
 
 provides:
-  - ask.questions
+  ask.questions: "{{ .Vars.group }}/{{ .Vars.questions_dir }}"
 
 variables:
+  group:
+    default: docs
+    description: The grouping open questions sit in, alongside the rest of the record.
   questions_dir:
     default: questions
-    description: Where open questions live. Visible at the repository root on purpose.
+    description: >-
+      Where open questions live. What makes one unmissable is `ilk check` failing
+      while it is open, not where the folder sits.
   max_open_blocking:
     default: "0"
     description: >-
@@ -21,13 +26,15 @@ variables:
       sign, not a queue.
 
 dirs:
-  - path: "{{ .Vars.questions_dir }}"
+  - group: "{{ .Vars.group }}"
+    name: "{{ .Vars.questions_dir }}"
+    order: 40
     purpose: Questions an agent could not answer for itself, and their answers.
     keep: true
 
 files:
   - src: templates/README.md.tmpl
-    dest: "{{ .Vars.questions_dir }}/README.md"
+    dest: '{{ index .Caps "ask.questions" }}/README.md'
     mode: create-only
   - src: bin/ilk-ask-human.sh
     dest: .ilk/bin/ilk-ask-human.sh
@@ -50,7 +57,7 @@ checks:
     title: No blocking question is sitting unanswered
     fix: "Answer the question named above: edit the file, write the `## Answer`, and set `status: answered`. If it turns out not to be blocking after all, set `blocking: false` and say why in the document — a question that stops nothing should not stop everything."
     args:
-      dirs: ["{{ .Vars.questions_dir }}"]
+      dirs: ['{{ index .Caps "ask.questions" }}']
       max: "{{ .Vars.max_open_blocking }}"
       where:
         status: open
@@ -62,7 +69,7 @@ checks:
     title: Answered questions record the answer
     fix: "Add an `## Answer` section saying what was decided and by whom. An answer that lives only in a conversation is one the next session cannot inherit, which is the whole reason the question was written down."
     args:
-      dirs: ["{{ .Vars.questions_dir }}"]
+      dirs: ['{{ index .Caps "ask.questions" }}']
       heading: Answer
       min_items: 1
       where:

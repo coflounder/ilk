@@ -10,7 +10,7 @@ Bring the repository back in line with the layers it declares.
 ## The model
 
 `.ilk/config.yaml` is the desired state. `ilk apply` reconciles the repository to it.
-Everything else is sugar: `adopt` and `drop` edit that file and reconcile, `upgrade`
+Everything else is sugar: `add` and `rm` edit that file and reconcile, `upgrade`
 re-resolves layer sources and reconciles.
 
 Two commands, always in this order:
@@ -25,10 +25,10 @@ ilk apply     # do it
 ## Reading a plan
 
 ```
-  + create     docs/README.md                      ilk/record
+  + create     docs/reference/README.md            ilk/record
   ~ block ~    AGENTS.md [instructions]            ilk/record
   ⇄ merge      AGENTS.md [instructions]            acme/style
-  · skip       docs/README.md                      ilk/record
+  · skip       docs/reference/README.md            ilk/record
   ! CONFLICT   .claude/settings.json               target:claude-code
 ```
 
@@ -42,7 +42,7 @@ ilk apply     # do it
 | `!` | refused. Nothing is written. See the `resolve-an-ilk-conflict` skill |
 
 The owner column matters. `ilk/record` is a layer; `target:claude-code` is an agent
-projection; `ilk/core` is ilk's own. Dropping a layer removes only its own rows.
+projection; `ilk/core` is ilk's own. Removing a layer takes away only its own rows.
 
 ## Upgrading
 
@@ -64,7 +64,7 @@ are unsure of the state, run it — that is cheaper than reasoning about it.
 
 ```
 ilk check      # exits non-zero on failure; every failure prints its own fix
-ilk status     # adopted layers, configured agents, and anything out of sync
+ilk status     # this repository's layers, configured agents, and anything out of sync
 ilk doctor     # whether the environment can actually deliver what the layers declared
 ```
 

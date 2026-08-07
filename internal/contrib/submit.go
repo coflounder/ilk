@@ -84,7 +84,7 @@ func Submit(p *engine.Project, l *engine.ResolvedLayer, prop *Proposal, document
 	}
 	if strings.HasPrefix(command, ".ilk/") {
 		if _, err := os.Stat(p.Repo.Path(command)); err != nil {
-			return "", fmt.Errorf("%s is missing. It ships with the ilk/toolkit layer — `ilk adopt toolkit` restores it, or set `contribution.submit` in the layer to a command of your own", command)
+			return "", fmt.Errorf("%s is missing. It ships with the ilk/toolkit layer — `ilk add toolkit` restores it, or set `contribution.submit` in the layer to a command of your own", command)
 		}
 	}
 

@@ -207,13 +207,13 @@ func TestASkillEditIsAttributedToItsLayer(t *testing.T) {
 	// ownership alone would make the single most valuable thing an adopter can
 	// improve invisible to the layer that shipped it.
 	p, l = withTarget(t, p)
-	tune(t, p, ".agent/skills/use-the-demo/SKILL.md", "Run it.", "Run it, then read the output.")
+	tune(t, p, ".agents/skills/use-the-demo/SKILL.md", "Run it.", "Run it, then read the output.")
 
 	prop, err := Build(p, l)
 	if err != nil {
 		t.Fatal(err)
 	}
-	e, ok := edit(prop, ".agent/skills/use-the-demo/SKILL.md")
+	e, ok := edit(prop, ".agents/skills/use-the-demo/SKILL.md")
 	if !ok {
 		t.Fatalf("the skill edit was not attributed to the layer: %+v", prop.Edits)
 	}
@@ -230,20 +230,53 @@ func TestASkillEditIsAttributedToItsLayer(t *testing.T) {
 	}
 }
 
+// opencode copies skill bodies rather than linking to them, so the same edit can
+// legitimately appear at two paths. Showing the maintainer the same edit twice
+// suggests a disagreement that is not there.
 func TestTheSameSkillIsNotReportedOncePerAgent(t *testing.T) {
 	p, l := fixture(t)
+	p, l = withTarget(t, p, "agents-md", "opencode")
+	tune(t, p, ".agents/skills/use-the-demo/SKILL.md", "Run it.", "Run it carefully.")
+	tune(t, p, ".opencode/skills/use-the-demo/SKILL.md", "Run it.", "Run it carefully.")
+
+	prop, err := Build(p, l)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := len(prop.Edits); n != 1 {
+		t.Fatalf("got %d edits for one skill, want 1: %+v", n, prop.Edits)
+	}
+}
+
+// claude-code links to the canonical body instead of copying it, so an edit made
+// through the Claude path is the same edit — and the link itself, having no
+// content of its own, is never something a maintainer could act on.
+func TestAnEditThroughASymlinkedSkillIsReportedOnce(t *testing.T) {
+	p, l := fixture(t)
 	p, l = withTarget(t, p, "agents-md", "claude-code")
-	tune(t, p, ".agent/skills/use-the-demo/SKILL.md", "Run it.", "Run it carefully.")
+
+	link := p.Repo.Path(".claude/skills/use-the-demo")
+	info, err := os.Lstat(link)
+	if err != nil || info.Mode()&os.ModeSymlink == 0 {
+		t.Fatalf("expected %s to be a symlink (err=%v)", link, err)
+	}
+
+	// Editing through the link writes the canonical file, because it is the same
+	// file. That is the whole point of linking rather than copying.
 	tune(t, p, ".claude/skills/use-the-demo/SKILL.md", "Run it.", "Run it carefully.")
 
 	prop, err := Build(p, l)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Showing the maintainer the same edit twice suggests a disagreement that is
-	// not there.
 	if n := len(prop.Edits); n != 1 {
 		t.Fatalf("got %d edits for one skill, want 1: %+v", n, prop.Edits)
+	}
+	if _, ok := edit(prop, ".claude/skills/use-the-demo"); ok {
+		t.Error("the symlink was reported as an edit; it carries no content to improve")
+	}
+	if _, ok := edit(prop, ".agents/skills/use-the-demo/SKILL.md"); !ok {
+		t.Errorf("the edit was not attributed to the canonical body: %+v", prop.Edits)
 	}
 }
 

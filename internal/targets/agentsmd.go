@@ -75,7 +75,7 @@ func (t agentsMD) Artifacts(in Input) ([]Artifact, error) {
 		b.WriteString("Detailed procedures live in files, not in this document. Read the matching\n")
 		b.WriteString("file when its situation applies — do not read them all up front.\n\n")
 		for _, s := range skills {
-			fmt.Fprintf(&b, "- **%s** — %s\n  `.agent/skills/%s/SKILL.md`\n", s.Name, s.Description, s.Name)
+			fmt.Fprintf(&b, "- **%s** — %s\n  `.agents/skills/%s/SKILL.md`\n", s.Name, s.Description, s.Name)
 		}
 		out = append(out, Artifact{
 			Path:    "AGENTS.md",
@@ -89,7 +89,7 @@ func (t agentsMD) Artifacts(in Input) ([]Artifact, error) {
 	// at these.
 	for _, s := range in.AllSkills() {
 		out = append(out, Artifact{
-			Path:    fmt.Sprintf(".agent/skills/%s/SKILL.md", s.Name),
+			Path:    fmt.Sprintf(".agents/skills/%s/SKILL.md", s.Name),
 			Mode:    manifest.ModeManaged,
 			Content: skillDocument(s),
 		})

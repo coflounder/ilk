@@ -70,6 +70,9 @@ func (p *Project) execute(a *Action) error {
 		if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
 			return err
 		}
+		if a.Mode == manifest.ModeSymlink {
+			return writeSymlink(abs, *a.writeContent)
+		}
 		return writeAtomic(abs, *a.writeContent, permFor(a.exec))
 	}
 	return fmt.Errorf("unknown operation %q", a.Op)
@@ -82,19 +85,35 @@ func permFor(exec bool) os.FileMode {
 	return 0o644
 }
 
+// writeSymlink points a link at target, replacing an existing link.
+//
+// The existing entry is only ever removed when it is itself a symlink. The plan
+// refuses before it gets here if a real file occupies the path, and this second
+// check keeps that guarantee true even if the disk changed in between.
+func writeSymlink(abs, target string) error {
+	if info, err := os.Lstat(abs); err == nil {
+		if info.Mode()&os.ModeSymlink == 0 {
+			return fmt.Errorf("refusing to replace a real file with a symlink")
+		}
+		if err := os.Remove(abs); err != nil {
+			return err
+		}
+	}
+	return os.Symlink(target, abs)
+}
+
 // writeLock rebuilds the lockfile from the actions that succeeded. Anything that
 // conflicted keeps its previous entry, so a later run still knows what ilk
 // believed it had written.
 func (p *Project) writeLock(pl *Plan) error {
 	next := lock.New()
-	next.Targets = append([]string(nil), p.Config.Targets...)
 
-	byOwner := map[string]*lock.Layer{}
-	ensure := func(owner string) *lock.Layer {
+	byOwner := map[string]*lock.Owner{}
+	ensure := func(owner string) *lock.Owner {
 		if e, ok := byOwner[owner]; ok {
 			return e
 		}
-		e := &lock.Layer{ID: owner, Files: []lock.File{}}
+		e := &lock.Owner{ID: owner, Kind: lock.KindFor(owner), Files: []lock.File{}}
 		if l, ok := p.Layer(owner); ok {
 			e.Version = l.Loaded.Manifest.Version
 			e.Source = l.Loaded.Source
@@ -163,7 +182,7 @@ func (p *Project) storeAncestors(pl *Plan, next *lock.Lock) error {
 		if !a.track || a.Op == OpConflict {
 			continue
 		}
-		if a.Mode == manifest.ModeCreateOnly || a.Mode == ModeDir {
+		if a.Mode == manifest.ModeCreateOnly || a.Mode == ModeDir || a.Mode == manifest.ModeSymlink {
 			continue
 		}
 		for _, content := range []string{a.hashBody, a.deliveredBody} {
@@ -177,7 +196,7 @@ func (p *Project) storeAncestors(pl *Plan, next *lock.Lock) error {
 	}
 
 	keep := map[string]bool{}
-	for _, entry := range next.Layers {
+	for _, entry := range next.Owners {
 		for _, f := range entry.Files {
 			for _, h := range []string{f.Hash, f.Delivered} {
 				if h != "" {
@@ -191,7 +210,7 @@ func (p *Project) storeAncestors(pl *Plan, next *lock.Lock) error {
 }
 
 // mergeFuncFor recovers the merge function for a co-owned file whose target is no
-// longer configured, so `ilk drop` can still vacate it cleanly.
+// longer configured, so `ilk rm` can still vacate it cleanly.
 func (p *Project) mergeFuncFor(owner, path string) func(string, bool) (string, error) {
 	name := strings.TrimPrefix(owner, TargetOwnerPrefix)
 	if name == owner {

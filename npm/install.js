@@ -14,13 +14,13 @@ const zlib = require("node:zlib");
 const { execFileSync } = require("node:child_process");
 
 const REPO = "coflounder/ilk";
-const { version } = require("./package.json");
+const { name, version } = require("./package.json");
 
 const PLATFORMS = { darwin: "darwin", linux: "linux" };
 const ARCHES = { x64: "amd64", arm64: "arm64" };
 
 function fail(message, hint) {
-  console.error(`\n@ilk/cli: ${message}`);
+  console.error(`\n${name}: ${message}`);
   if (hint) console.error(`  ${hint}`);
   console.error("");
   process.exit(1);
@@ -106,9 +106,9 @@ async function main() {
 
   try {
     const out = execFileSync(dest, ["--version"], { encoding: "utf8" }).trim();
-    console.log(`@ilk/cli: installed ${out}`);
+    console.log(`${name}: installed ${out}`);
   } catch {
-    console.log(`@ilk/cli: installed ilk ${version}`);
+    console.log(`${name}: installed ilk ${version}`);
   }
 }
 

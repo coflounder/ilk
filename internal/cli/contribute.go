@@ -138,8 +138,8 @@ func runSubmit(p *engine.Project, l *engine.ResolvedLayer, prop *contrib.Proposa
 func newContributeStatusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
-		Short: "Show, for every adopted layer, what there is to send back",
-		Long: `Survey every adopted layer at once.
+		Short: "Show, for every layer here, what there is to send back",
+		Long: `Survey every layer here at once.
 
 Useful periodically rather than per-layer: contributing is the kind of task that never
 becomes urgent, and a repository that has quietly diverged from six layers is the normal
@@ -198,7 +198,7 @@ outcome of using them for a year.`,
 				printf("  %s %-26s %s%s\n", mark, r.layer, strings.Join(what, ", "), note)
 			}
 			if !any {
-				println(sty.dim("Every adopted layer is being used exactly as it shipped."))
+				println(sty.dim("Every layer here is being used exactly as it shipped."))
 				return nil
 			}
 			printf("\n  %s\n", sty.dim("ilk contribute <layer>  drafts a proposal from this evidence"))

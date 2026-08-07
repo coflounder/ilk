@@ -172,7 +172,7 @@ func (p *Project) Plan(opts PlanOptions) (*Plan, error) {
 
 	for id, missing := range p.MissingRequirements() {
 		pl.Warnings = append(pl.Warnings, fmt.Sprintf(
-			"%s requires %s, which nothing supplies — set it under `capabilities:` in .ilk/config.yaml, or adopt a layer that provides it",
+			"%s requires %s, which nothing supplies — set it under `capabilities:` in .ilk/config.yaml, or add a layer that provides it",
 			id, strings.Join(missing, ", ")))
 	}
 	sort.Strings(pl.Warnings)
@@ -204,6 +204,12 @@ func (p *Project) planOne(d Desired, files *fileCache, opts PlanOptions) (Action
 	_, locked, isLocked := p.Lock.Find(d.Owner, d.Path, d.Region)
 	if isLocked {
 		a.createdFile = locked.CreatedFile
+	}
+
+	// A symlink is settled before any content is read: reading through one would
+	// follow it, and a link to a directory is not a file at all.
+	if d.Mode == manifest.ModeSymlink {
+		return p.planSymlink(a, d, locked, isLocked, opts)
 	}
 
 	current, exists, err := files.read(d.Path)
@@ -386,8 +392,92 @@ func (p *Project) planOne(d Desired, files *fileCache, opts PlanOptions) (Action
 	return a, fmt.Errorf("%s: unsupported mode %q", d.Path, d.Mode)
 }
 
+// planSymlinkRemoval takes back a link ilk wrote, refusing one that has been
+// repointed since — the same courtesy ModeManaged extends to an edited file.
+func (p *Project) planSymlinkRemoval(a Action, f lock.File, opts PlanOptions) Action {
+	abs := p.Repo.Path(f.Path)
+	info, err := os.Lstat(abs)
+	switch {
+	case errors.Is(err, os.ErrNotExist):
+		a.Op = OpSkip
+		a.Note = "already gone"
+		return a
+	case err != nil:
+		a.Op = OpSkip
+		a.Note = "could not read: " + err.Error()
+		return a
+	case info.Mode()&os.ModeSymlink == 0:
+		a.Op = OpSkip
+		a.Note = "no longer a symlink — left alone"
+		return a
+	}
+	target, err := os.Readlink(abs)
+	if err != nil {
+		a.Op = OpSkip
+		a.Note = "could not read: " + err.Error()
+		return a
+	}
+	if lock.Hash(target) != f.Hash && !opts.Force {
+		a.Op = OpConflict
+		a.Note = "repointed since ilk wrote it — left in place; delete it yourself, or re-run with --force"
+		return a
+	}
+	a.Op = OpDelete
+	return a
+}
+
+// planSymlink settles a link artifact. The rules mirror ModeManaged — ilk writes
+// what it owns, refuses what somebody else put there, and never follows the link
+// to reason about whatever is on the other end.
+func (p *Project) planSymlink(a Action, d Desired, locked lock.File, isLocked bool, opts PlanOptions) (Action, error) {
+	abs := p.Repo.Path(d.Path)
+	a.hashBody = d.Content
+
+	info, err := os.Lstat(abs)
+	switch {
+	case errors.Is(err, os.ErrNotExist):
+		a.Op = OpCreate
+		a.createdFile = true
+		a.setWrite(d.Content)
+		return a, nil
+	case err != nil:
+		return a, err
+	}
+
+	if info.Mode()&os.ModeSymlink == 0 {
+		// Something real occupies the path. Overwriting it would destroy content
+		// ilk did not write, which --force is deliberately not a licence for here:
+		// there is no ancestor to fall back on and nothing to merge.
+		a.Op = OpConflict
+		a.Note = "exists and is not a symlink — move it aside; ilk will not replace a real file with a link"
+		return a, nil
+	}
+
+	target, err := os.Readlink(abs)
+	if err != nil {
+		return a, err
+	}
+	if target == d.Content {
+		a.Op = OpUnchanged
+		return a, nil
+	}
+	if !isLocked && !opts.Force {
+		a.Op = OpConflict
+		a.Note = "a symlink ilk did not write is already here — remove it, or re-run with --force to let ilk take ownership"
+		return a, nil
+	}
+	if isLocked && lock.Hash(target) != locked.Hash && !opts.Force {
+		a.Op = OpConflict
+		a.Note = "repointed since ilk wrote it — left alone; re-run with --force to reset it"
+		return a, nil
+	}
+	a.Op = OpUpdate
+	a.setWrite(d.Content)
+	return a, nil
+}
+
 // planRemovals reverses artifacts recorded in the lockfile that nothing wants any
-// more — the drop half of the contract.
+// more — the rm half of the contract.
 func (p *Project) planRemovals(desiredKeys map[string]bool, files *fileCache, opts PlanOptions) ([]Action, error) {
 	var out []Action
 
@@ -398,7 +488,7 @@ func (p *Project) planRemovals(desiredKeys map[string]bool, files *fileCache, op
 		file  lock.File
 	}
 	var entries []entry
-	for _, l := range p.Lock.Layers {
+	for _, l := range p.Lock.Owners {
 		for _, f := range l.Files {
 			entries = append(entries, entry{l.ID, f})
 		}
@@ -419,6 +509,13 @@ func (p *Project) planRemovals(desiredKeys map[string]bool, files *fileCache, op
 			continue // handled by planDirRemovals, which knows not to read a directory as a file
 		}
 		a := Action{Path: e.file.Path, Region: e.file.Region, Owner: e.owner, Mode: e.file.Mode, Removal: true}
+
+		// As in planOne, a link is settled without reading through it.
+		if e.file.Mode == manifest.ModeSymlink {
+			out = append(out, p.planSymlinkRemoval(a, e.file, opts))
+			continue
+		}
+
 		current, exists, err := files.read(e.file.Path)
 		if err != nil {
 			return nil, err
@@ -527,7 +624,7 @@ func (p *Project) planRemovals(desiredKeys map[string]bool, files *fileCache, op
 func (p *Project) planDirRemovals(desiredKeys map[string]bool) []Action {
 	var out []Action
 	seen := map[string]bool{}
-	for _, l := range p.Lock.Layers {
+	for _, l := range p.Lock.Owners {
 		for _, f := range l.Files {
 			if f.Mode != ModeDir || f.Path == "" {
 				continue

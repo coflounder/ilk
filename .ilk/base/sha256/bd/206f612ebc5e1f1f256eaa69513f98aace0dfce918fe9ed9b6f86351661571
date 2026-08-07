@@ -1,0 +1,30 @@
+This repository keeps a **project record** next to the code. Agents cannot inherit
+what was never written down, so anything a future session would need to know goes
+in a file, not in a chat.
+
+| Directory | Holds | Filename grammar |
+|---|---|---|
+| `docs/reference/` | What is true now | `ARCH-system-overview.md` — uppercase type, kebab slug |
+| `docs/plans/` | What we intend to build, and what "accepted" means | `PLAN-billing-rewrite.md` |
+| `docs/log/` | What happened, dated | `2026-08-06-shipped-billing.md` |
+| `scratch/` | Rough notes. Ungoverned, unchecked, gitignored | anything |
+
+The first three sit together under `docs/`, whose `README.md` indexes
+them. Create documents with `ilk record new <dir> <title>` so the naming and
+frontmatter are right the first time. Documents in `docs/reference/`
+also declare `covers:` — the paths they describe. Staleness is measured against
+those paths rather than the calendar, so a document goes stale exactly when its
+subject changes.
+
+Rules that matter:
+
+- **Put rough thinking in `scratch/`.** It exists so the
+  other three stay clean. A governed system needs an ungoverned annex, or the
+  governance leaks.
+- **Never edit inside an `ilk:begin` / `ilk:end` block.** Those lines are generated.
+- **If your change touches a path some document `covers:`, that document is yours
+  this session.** Update it in the same change, or run `ilk record review <file>` to
+  see what moved and record that you read it.
+
+Verify before claiming done: `ilk check` validates the record and prints the fix for
+anything it rejects. `ilk brief` prints the current state. Both accept `--json`.

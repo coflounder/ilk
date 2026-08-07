@@ -1,7 +1,7 @@
 // Package lock reads and writes .ilk/lock.json — ilk's record of what it
 // actually wrote.
 //
-// The lockfile is what makes drop and upgrade safe. Every file ilk touches is
+// The lockfile is what makes rm and upgrade safe. Every file ilk touches is
 // recorded with a hash of the content ilk put there, so ilk can tell the
 // difference between "unchanged since I wrote it" (safe to overwrite or delete)
 // and "a human has edited this" (stop and ask).
@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/coflounder/ilk/internal/manifest"
 )
@@ -24,21 +25,41 @@ const FileName = "lock.json"
 
 // Lock is .ilk/lock.json.
 type Lock struct {
-	Version int      `json:"version"`
-	Layers  []Layer  `json:"layers"`
-	Targets []string `json:"targets"`
+	Version int     `json:"version"`
+	Owners  []Owner `json:"owners"`
 }
 
-// Layer is the recorded result of adopting one layer.
-type Layer struct {
+// Kind distinguishes the three sorts of thing that can own an artifact. They are
+// not interchangeable: only a layer can be added or removed, only a target is
+// switched on by `ilk agents`, and core is always present.
+type Kind string
+
+const (
+	// KindLayer is an ordinary layer, whether built into the binary or fetched.
+	KindLayer Kind = "layer"
+	// KindCore is ilk's own housekeeping, present regardless of configuration.
+	KindCore Kind = "core"
+	// KindTarget is an agent adapter, which projects other owners' artifacts
+	// into one agent's file formats rather than contributing content itself.
+	KindTarget Kind = "target"
+)
+
+// Owner is everything ilk wrote on behalf of one producer.
+//
+// The name is deliberate: an owner is not always a layer. `ilk/core` owns the
+// artifacts ilk keeps for itself, and each `target:*` owns one agent adapter's
+// projection. Calling this list `layers` is what made the file read as though
+// ilk had adopted things nobody asked for.
+type Owner struct {
 	ID      string            `json:"id"`
-	Version string            `json:"version"`
-	Source  string            `json:"source"`
+	Kind    Kind              `json:"kind"`
+	Version string            `json:"version,omitempty"`
+	Source  string            `json:"source,omitempty"`
 	Digest  string            `json:"digest,omitempty"`
 	Vars    map[string]string `json:"vars,omitempty"`
 	Files   []File            `json:"files"`
 	// Baseline lists files that were already in this layer's directories when it
-	// was adopted. A layer governs what happens next, not what came before: a
+	// arrived. A layer governs what happens next, not what came before: a
 	// repository that already had a `docs/` folder should not be greeted by a
 	// wall of failures about files nobody has touched. These paths are exempt
 	// from the layer's checks until somebody clears them with `ilk baseline`.
@@ -65,17 +86,30 @@ type File struct {
 	// ilk wrote it" and overwrite it.
 	Delivered string `json:"delivered,omitempty"`
 	// CreatedFile records that the file did not exist before ilk wrote it, which
-	// is what allows drop to remove an emptied file rather than leaving a husk.
+	// is what allows rm to remove an emptied file rather than leaving a husk.
 	CreatedFile bool `json:"created_file,omitempty"`
 	// Owner names the producer, either a layer id or a target name, so `ilk
-	// drop` and `ilk agents sync` can each clean up only their own output.
+	// rm` and `ilk agents sync` can each clean up only their own output.
 	Owner string `json:"owner,omitempty"`
 	Exec  bool   `json:"exec,omitempty"`
 }
 
 // New returns an empty lock.
 func New() *Lock {
-	return &Lock{Version: 1, Layers: []Layer{}}
+	return &Lock{Version: 1, Owners: []Owner{}}
+}
+
+// KindFor classifies an owner id. Core and target ids are structural, so the
+// classification never has to be guessed or stored twice.
+func KindFor(id string) Kind {
+	switch {
+	case id == "ilk/core":
+		return KindCore
+	case strings.HasPrefix(id, "target:"):
+		return KindTarget
+	default:
+		return KindLayer
+	}
 }
 
 // Path returns the lockfile path for a repository root.
@@ -97,17 +131,36 @@ func Load(root string) (*Lock, error) {
 	if err := json.Unmarshal(data, &l); err != nil {
 		return nil, err
 	}
-	if l.Layers == nil {
-		l.Layers = []Layer{}
+
+	// Lockfiles written before the field was renamed call this list `layers`.
+	// Reading one as an empty lock would be silent and destructive: ilk would
+	// believe it had never written anything here, stop recognising its own files,
+	// and quietly abandon every artifact it was supposed to be able to take back.
+	if len(l.Owners) == 0 {
+		var legacy struct {
+			Layers []Owner `json:"layers"`
+		}
+		if err := json.Unmarshal(data, &legacy); err == nil {
+			l.Owners = legacy.Layers
+		}
+	}
+
+	if l.Owners == nil {
+		l.Owners = []Owner{}
+	}
+	for i := range l.Owners {
+		if l.Owners[i].Kind == "" {
+			l.Owners[i].Kind = KindFor(l.Owners[i].ID)
+		}
 	}
 	return &l, nil
 }
 
 // Save writes the lockfile deterministically, so it produces clean diffs.
 func (l *Lock) Save(root string) error {
-	sort.Slice(l.Layers, func(i, j int) bool { return l.Layers[i].ID < l.Layers[j].ID })
-	for i := range l.Layers {
-		files := l.Layers[i].Files
+	sort.Slice(l.Owners, func(i, j int) bool { return l.Owners[i].ID < l.Owners[j].ID })
+	for i := range l.Owners {
+		files := l.Owners[i].Files
 		sort.Slice(files, func(a, b int) bool {
 			if files[a].Path != files[b].Path {
 				return files[a].Path < files[b].Path
@@ -127,43 +180,59 @@ func (l *Lock) Save(root string) error {
 	return os.WriteFile(path, data, 0o644)
 }
 
-// Layer returns the recorded state for a layer id.
-func (l *Lock) Layer(id string) (*Layer, bool) {
-	for i := range l.Layers {
-		if l.Layers[i].ID == id {
-			return &l.Layers[i], true
+// Owner returns the recorded state for an owner id.
+func (l *Lock) Owner(id string) (*Owner, bool) {
+	for i := range l.Owners {
+		if l.Owners[i].ID == id {
+			return &l.Owners[i], true
 		}
 	}
 	return nil, false
 }
 
-// Put replaces the recorded state for a layer.
-func (l *Lock) Put(entry Layer) {
-	for i := range l.Layers {
-		if l.Layers[i].ID == entry.ID {
-			l.Layers[i] = entry
+// Put replaces the recorded state for an owner.
+func (l *Lock) Put(entry Owner) {
+	if entry.Kind == "" {
+		entry.Kind = KindFor(entry.ID)
+	}
+	for i := range l.Owners {
+		if l.Owners[i].ID == entry.ID {
+			l.Owners[i] = entry
 			return
 		}
 	}
-	l.Layers = append(l.Layers, entry)
+	l.Owners = append(l.Owners, entry)
 }
 
-// Remove deletes the recorded state for a layer.
+// Remove deletes the recorded state for an owner.
 func (l *Lock) Remove(id string) bool {
-	for i := range l.Layers {
-		if l.Layers[i].ID == id {
-			l.Layers = append(l.Layers[:i], l.Layers[i+1:]...)
+	for i := range l.Owners {
+		if l.Owners[i].ID == id {
+			l.Owners = append(l.Owners[:i], l.Owners[i+1:]...)
 			return true
 		}
 	}
 	return false
 }
 
-// IDs lists the locked layer ids.
+// IDs lists every locked owner id.
 func (l *Lock) IDs() []string {
-	ids := make([]string, 0, len(l.Layers))
-	for _, e := range l.Layers {
+	ids := make([]string, 0, len(l.Owners))
+	for _, e := range l.Owners {
 		ids = append(ids, e.ID)
+	}
+	sort.Strings(ids)
+	return ids
+}
+
+// LayerIDs lists only the owners that are layers, which is what every caller
+// asking "what has this repository taken on" actually means.
+func (l *Lock) LayerIDs() []string {
+	ids := make([]string, 0, len(l.Owners))
+	for _, e := range l.Owners {
+		if e.Kind == KindLayer || (e.Kind == "" && KindFor(e.ID) == KindLayer) {
+			ids = append(ids, e.ID)
+		}
 	}
 	sort.Strings(ids)
 	return ids
@@ -174,8 +243,8 @@ func (l *Lock) IDs() []string {
 // The owner is part of the key, not a detail: two layers may each own a region
 // of the same name in the same file — `instructions` in AGENTS.md is the obvious
 // case — and matching on path and region alone silently returns the wrong one.
-func (l *Lock) Find(owner, path, region string) (Layer, File, bool) {
-	for _, entry := range l.Layers {
+func (l *Lock) Find(owner, path, region string) (Owner, File, bool) {
+	for _, entry := range l.Owners {
 		if entry.ID != owner {
 			continue
 		}
@@ -185,7 +254,7 @@ func (l *Lock) Find(owner, path, region string) (Layer, File, bool) {
 			}
 		}
 	}
-	return Layer{}, File{}, false
+	return Owner{}, File{}, false
 }
 
 // Hash is the digest ilk stores for provenance.

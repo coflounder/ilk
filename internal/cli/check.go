@@ -22,7 +22,7 @@ func newCheckCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "check",
 		Short: "Validate the repository; every failure prints its own fix",
-		Long: `Run every check the adopted layers register, plus the ones ilk always runs.
+		Long: `Run every check this repository's layers register, plus the ones ilk always runs.
 
 Exits non-zero when anything fails, so it can be wired into hooks and CI. Each
 failure prints what is wrong and what to do about it — precisely enough that an
@@ -153,7 +153,7 @@ func printReport(r *checks.Report) {
 		parts = append(parts, sty.dim(fmt.Sprintf("%d skipped", r.Skipped)))
 	}
 	if len(parts) == 0 {
-		parts = append(parts, sty.dim("no checks registered — adopt a layer that brings some"))
+		parts = append(parts, sty.dim("no checks registered — add a layer that brings some"))
 	}
 	println(strings.Join(parts, "  "))
 }

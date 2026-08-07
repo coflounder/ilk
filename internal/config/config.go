@@ -1,5 +1,5 @@
 // Package config reads and writes .ilk/config.yaml — the repository's declared
-// desired state. `ilk adopt` and `ilk drop` are sugar over editing this file;
+// desired state. `ilk add` and `ilk rm` are sugar over editing this file;
 // `ilk apply` reconciles the repository to it.
 package config
 
@@ -144,7 +144,7 @@ func (c *Config) Save(root string) error {
 const header = `# ilk — declared process layers for this repository.
 #
 # This file is the desired state. ` + "`ilk apply`" + ` reconciles the repository to it.
-# ` + "`ilk adopt <layer>`" + ` and ` + "`ilk drop <layer>`" + ` edit it for you, but editing it
+# ` + "`ilk add <layer>`" + ` and ` + "`ilk rm <layer>`" + ` edit it for you, but editing it
 # by hand and running ` + "`ilk apply`" + ` works exactly the same way.
 #
 # Capabilities tell layers how this project verifies itself. Layers require
@@ -287,9 +287,10 @@ func (c *Config) Layer(id string) (LayerRef, bool) {
 	return LayerRef{}, false
 }
 
-// Adopt adds or replaces a layer reference, keeping the list sorted so that
-// generated output (and diffs) stay deterministic.
-func (c *Config) Adopt(ref LayerRef) {
+// Set adds or replaces a layer reference, keeping the list sorted so that
+// generated output (and diffs) stay deterministic. `ilk add` and `ilk upgrade`
+// both land here — the second one always replacing.
+func (c *Config) Set(ref LayerRef) {
 	for i, l := range c.Layers {
 		if l.ID == ref.ID {
 			c.Layers[i] = ref
@@ -300,8 +301,8 @@ func (c *Config) Adopt(ref LayerRef) {
 	sort.Slice(c.Layers, func(i, j int) bool { return c.Layers[i].ID < c.Layers[j].ID })
 }
 
-// Drop removes a layer reference. It reports whether anything was removed.
-func (c *Config) Drop(id string) bool {
+// Remove deletes a layer reference. It reports whether anything was removed.
+func (c *Config) Remove(id string) bool {
 	for i, l := range c.Layers {
 		if l.ID == id {
 			c.Layers = append(c.Layers[:i], c.Layers[i+1:]...)

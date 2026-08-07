@@ -4,7 +4,7 @@
 
 Coding agents cannot inherit what was never written down. `ilk` manages the layers a
 repository uses to work well with them — directory contracts, instructions, skills,
-hooks, gates and checks — as versioned units you can adopt, upgrade and drop at any
+hooks, gates and checks — as versioned units you can add, upgrade and remove at any
 point in a project's life.
 
 ```sh
@@ -21,9 +21,9 @@ and a pre-commit hook. No registry, no network, nothing to choose.
 A generator answers "what should a repo look like on day zero", then leaves. Its later
 improvements never reach you, and you cannot undo what it did.
 
-`ilk` answers day *n*. Practice is adopted incrementally, upgraded deliberately, and
+`ilk` answers day *n*. Practice is added incrementally, upgraded deliberately, and
 removed cleanly. When someone publishes a post about a new pattern on a Tuesday, a
-repository can adopt it that afternoon and drop it on Thursday when it turns out not
+repository can add it that afternoon and remove it on Thursday when it turns out not
 to fit.
 
 Three commitments constrain everything else:
@@ -55,14 +55,14 @@ go install github.com/coflounder/ilk/cmd/ilk@latest
 ilk init                         # set the repository up
 ilk brief                        # the packet a session should start with
 ilk check                        # validate; every failure prints its fix
-ilk status                       # what is adopted, and what has drifted
+ilk status                       # what this repository has, and what has drifted
 
 ilk list --available             # layers you can add
-ilk info quality-gates           # what a layer contains, before adopting it
-ilk adopt quality-gates --set test.command="go test ./..."
-ilk drop quality-gates           # removes exactly what it added
+ilk info gates           # what a layer contains, before adding it
+ilk add gates --set test.command="go test ./..."
+ilk rm gates           # removes exactly what it added
 
-ilk adopt gh:someone/their-layer # community layers, same interface
+ilk add gh:someone/their-layer # community layers, same interface
 ilk agents add cursor            # generate config for another agent
 ```
 
@@ -90,20 +90,20 @@ hooks:        [...]               # session-start, pre-commit, pre-push, …
 commands:     [...]               # extend the CLI: `ilk quality-gates report`
 ```
 
-Layers require **capabilities**, not each other. `quality-gates` needs `test.command`;
+Layers require **capabilities**, not each other. `gates` needs `test.command`;
 anything that supplies it — your config, or another layer — satisfies that, so one gate
 layer works in any language.
 
-See [docs/LAYERS.md](docs/LAYERS.md) to write one, and
-[docs/PROPOSAL.md](docs/PROPOSAL.md) for the reasoning behind the design.
+See [docs/reference/REF-writing-layers.md](https://github.com/coflounder/ilk/blob/main/docs/reference/REF-writing-layers.md) to write one, and
+[docs/reference/REF-design-proposal.md](https://github.com/coflounder/ilk/blob/main/docs/reference/REF-design-proposal.md) for the reasoning behind the design.
 
-## How drop can be safe
+## How rm can be safe
 
 Every file ilk writes has an ownership mode, and the lockfile records a hash of what
 ilk put there. That is the difference between "unchanged since I wrote it" (safe to
 overwrite or delete) and "a human has edited this" (stop and say so).
 
-| mode | ilk owns | on upgrade | on drop |
+| mode | ilk owns | on upgrade | on rm |
 |---|---|---|---|
 | `managed` | the whole file | overwrite | delete |
 | `region` | a fenced block inside a file you own | replace the block | remove the block, keep the file |
@@ -126,11 +126,11 @@ Prose I wrote. ilk will never touch this.
 Nothing is written until you have seen the whole plan:
 
 ```
-$ ilk adopt quality-gates
+$ ilk add gates
 
-  + create     .github/workflows/ilk.yml                    ilk/quality-gates
+  + create     .github/workflows/ilk.yml                    ilk/gates
   + create     .git/hooks/pre-push                          target:git-hooks
-  + block +    AGENTS.md [instructions]                     ilk/quality-gates
+  + block +    AGENTS.md [instructions]                     ilk/gates
   ~ block ~    AGENTS.md [skills]                           target:agents-md
 
   Apply? [y/N]
@@ -144,7 +144,7 @@ targets project that into whatever each agent reads.
 | Neutral artifact | Where it lands |
 |---|---|
 | instructions | `AGENTS.md`, plus pointer stubs for `CLAUDE.md`, `.cursor/rules/`, `.github/copilot-instructions.md`, `GEMINI.md` |
-| skill | `.agent/skills/<name>/SKILL.md`, mirrored to `.claude/skills/`; indexed in `AGENTS.md` for agents with no skill support |
+| skill | `.agents/skills/<name>/SKILL.md`, mirrored to `.claude/skills/`; indexed in `AGENTS.md` for agents with no skill support |
 | command | `ilk <layer> <command>`; thin slash-command wrappers where an agent has them |
 | hook | git hooks (universal), plus native hooks where an agent has them |
 
@@ -174,7 +174,7 @@ when their situation applies, not in every context window.
 ```sh
 go test ./...                  # the contract lives in internal/engine/engine_test.go
 go build ./cmd/ilk
-ilk layer test ./layers/mine   # prove your layer's adopt/drop round trip
+ilk layer test ./layers/mine   # prove your layer's add/rm round trip
 ```
 
 ## Licence

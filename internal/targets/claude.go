@@ -11,10 +11,10 @@ import (
 // claudeCode projects into Claude Code's native surfaces: skills it can load on
 // demand, slash commands that shell out to ilk, and hooks in settings.json.
 //
-// Nothing here carries content of its own. The skill bodies are the same ones in
-// .agent/skills, and every command and hook invokes the CLI, so a repository
-// configured for Claude Code behaves identically for an agent that has never
-// heard of it.
+// Nothing here carries content of its own. The skills are symlinks to the
+// canonical bodies in .agents/skills, and every command and hook invokes the CLI,
+// so a repository configured for Claude Code behaves identically for an agent
+// that has never heard of it — and a skill is only ever edited in one place.
 type claudeCode struct{}
 
 func (claudeCode) Name() string        { return "claude-code" }
@@ -38,11 +38,14 @@ func (t claudeCode) Artifacts(in Input) ([]Artifact, error) {
 		Content: pointerBody("Claude Code"),
 	})
 
+	// One link per skill, not one link for the directory. `.claude/skills/` is a
+	// shared namespace — a person may keep hand-written skills there — so ilk
+	// takes exactly the entries it owns and leaves the rest of the directory alone.
 	for _, s := range in.AllSkills() {
 		out = append(out, Artifact{
-			Path:    fmt.Sprintf(".claude/skills/%s/SKILL.md", s.Name),
-			Mode:    manifest.ModeManaged,
-			Content: skillDocument(s),
+			Path:    fmt.Sprintf(".claude/skills/%s", s.Name),
+			Mode:    manifest.ModeSymlink,
+			Content: fmt.Sprintf("../../.agents/skills/%s", s.Name),
 		})
 	}
 

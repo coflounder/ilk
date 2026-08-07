@@ -15,7 +15,7 @@ know the alternatives were considered, so they get proposed again.
 ## How
 
 ```
-ilk archive it docs/ARCH-old-gateway.md arch-new-gateway
+ilk archive it {{ index .Caps "record.docs" }}/ARCH-old-gateway.md arch-new-gateway
 ```
 
 The second argument is the id of whatever replaced it. It is optional and worth

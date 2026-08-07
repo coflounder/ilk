@@ -1,12 +1,12 @@
 # Layers
 
-Layers that ship alongside ilk but not inside it. Adopt one with:
+Layers that ship alongside ilk but not inside it. Add one with:
 
 ```sh
-ilk adopt gh:coflounder/ilk/layers/blueprint
+ilk add gh:coflounder/ilk/layers/blueprint
 ```
 
-Pin a version with `@v0.2.0`. Nothing here is adopted by default — `ilk init` gives you
+Pin a version with `@v0.2.0`. Nothing here is added by default — `ilk init` gives you
 the built-in layers only, so a fresh repository still needs no network.
 
 ## What is here
@@ -23,7 +23,23 @@ the built-in layers only, so a fresh repository still needs no network.
 | [`gh-projects`](gh-projects/) | A GitHub Project made to match the plan — the record is the source of truth, and an ambiguous match refuses rather than guesses |
 | [`maintainer`](maintainer/) | Proposals from repositories using your layers arrive as reviewable documents; one nobody can judge fails the checks rather than sitting in a queue |
 
-The first three of these plus `compound-lessons` and `archive` come from the
+### Built in
+
+Three more layers ship *inside* the binary, so `ilk init` works with no network at all.
+They are ordinary layers — same manifest format, same `ilk layer test` contract, same CI
+— and they live elsewhere only because `go:embed` cannot read above its own package
+directory:
+
+| Layer | Source |
+|---|---|
+| [`record`](../internal/builtin/layers/record/) | `internal/builtin/layers/record/` |
+| [`gates`](../internal/builtin/layers/gates/) | `internal/builtin/layers/gates/` |
+| [`toolkit`](../internal/builtin/layers/toolkit/) | `internal/builtin/layers/toolkit/` |
+
+Editing them takes effect only after `go build` — a stale binary silently uses the old
+templates, which is the single most common way to waste an hour in this repository.
+
+The first three community layers plus `compound-lessons` and `archive` come from the
 [MetaHarness essay](https://www.tenex.co/blog/building-an-ai-native-sdlc) — the project
 record, the connected plan, the escalation path, lessons that compound, and an archive
 the tooling refuses to write into. `dev-loops` and `visual-qa` are the two failure modes
@@ -34,11 +50,11 @@ the source of truth if the tracker everyone else reads agrees with it.
 ## Layers that run code
 
 `blueprint`, `archive`, `ask-human`, `dev-loops`, `gh-projects` and `maintainer` ship
-shell commands, so adopting them requires consent:
+shell commands, so adding them requires consent:
 
 ```sh
 ilk info gh:coflounder/ilk/layers/dev-loops     # read it first
-ilk adopt gh:coflounder/ilk/layers/dev-loops --allow-exec
+ilk add gh:coflounder/ilk/layers/dev-loops --allow-exec
 ```
 
 `plan-hygiene`, `visual-qa` and `compound-lessons` are entirely declarative and need no
@@ -49,7 +65,7 @@ flag.
 ## Every layer here takes proposals
 
 Each declares a `contribution:` block and ships its own `CONTRIBUTING.md` saying what
-it wants to hear about. From a repository that has adopted one:
+it wants to hear about. From a repository that has one:
 
 ```sh
 ilk contribute status                    what there is to send back, across every layer
@@ -71,6 +87,96 @@ there. A layer its adopters cannot improve decays, and that is too easy to not n
 
 These are specified rather than vague — each has a decided shape, and what is missing is
 the work, not the design. Contributions welcome; so is disagreement with the shape.
+
+### `pulumi` — the first layer in the `infra` group
+
+Infrastructure as code, with the one discipline that matters when an agent is holding
+the keys: **`preview` is agent work, `up` is human work.**
+
+**Decided.** Two capabilities, `infra.preview.command` (`pulumi preview --diff`) and
+`infra.up.command`, and they are not symmetrical. The preview command is wired into
+`ilk check` as a gate. The up command is deliberately *not* wired into anything — it is
+declared so that a skill can name it and a human can run it, and a hook that invoked it
+would be a bug, not a feature. An agent that can apply infrastructure changes is an
+agent that can delete a production database while reasoning about a typo.
+
+A stack per directory under the `infra` group — `infra/dns`, `infra/auth`, `infra/cms` —
+each with its own `Pulumi.yaml`. This is the layer that makes the `infra` group carry
+something, and the reason the group exists as a canonical name rather than one a layer
+invents.
+
+**Checks:** every stack directory has a `Pulumi.yaml`; no `Pulumi.*.yaml` contains an
+unencrypted `secret:` value; `preview` is clean for the stacks the change touched.
+The last one only runs where credentials exist, which is exactly what `requires:` is
+for — no credentials, check skipped, and `ilk doctor` says why.
+
+**Blocked on the same credential story as `linear-mirror`.** `preview` needs a
+backend and a passphrase. They must come from the environment, never the repository,
+and the failure when they are absent has to say so rather than looking like an empty
+diff. That answer is worth deciding once for both layers.
+
+**Not started because** the credential question is genuinely undecided, and shipping a
+layer whose main check silently no-ops without credentials would be worse than not
+shipping it.
+
+### `autoresearch` — findings with provenance, so nobody re-derives them
+
+A place for what was learned about the world *outside* the repository: which API version
+actually works, what the vendor's rate limit really is, why the obvious library was
+rejected. Agents re-derive this every session, at full cost, and throw it away.
+
+**Decided.** A `research` directory in the `docs` group, with documents carrying
+`question:`, `sources:` (URLs, dated), `confidence:` and — the load-bearing field —
+`expires:`.
+
+**Why `expires:` rather than `covers:`.** The record layer measures staleness by coupling:
+a document goes stale when the code it describes changes. That is exactly right for
+architecture and exactly wrong here. Research goes stale because *the world* moved — a
+vendor changed a limit, a library shipped a major version — and watching this repository
+can never detect that. `record` already has `max_age_days` for this case and turns it
+off by default; a research layer is where it earns its keep, per document rather than
+per directory.
+
+**Checks:** every finding cites at least one source; every finding states what would
+change its conclusion (a finding that cannot be falsified is an opinion); nothing is
+past its `expires:` date without being re-read.
+
+**The honest risk:** this is one confident wrong answer away from being worse than no
+layer at all, because a written finding carries more authority than a fresh guess. The
+`confidence:` field and the mandatory falsification clause are there to make a shaky
+finding legible as shaky. Whether that is enough is the open question, and it is the
+part worth arguing about before building it.
+
+**Pairs with** `codegraph`: that one indexes what is inside the repository, this one
+records what is outside it.
+
+### `brainstorm` — probably should not be its own layer
+
+The idea: force divergent thinking before convergent — several genuinely different
+options considered before one is chosen, rather than the first idea becoming the plan by
+default.
+
+**The problem with the obvious version.** A check that counts alternatives in a document
+is trivially gameable, and worse, gaming it is the path of least resistance: an agent
+asked for three options will produce one option and two strawmen, pass the check, and
+have learned that the ritual is the requirement. A check that can be satisfied without
+doing the thing teaches people to not do the thing.
+
+**What is actually checkable** is not the number of alternatives but the *link between a
+decision and what it rejected*. That artifact already exists: `docs/reference/DEC-*.md`,
+written by the `write-decision` skill. A decision naming the alternatives it rejected and
+why is durable, useful to a future reader, and hard to fake usefully — because the
+rejected options have to be specific enough to argue with.
+
+**So the recommendation is:** extend `write-decision` and `compound-lessons` with a
+"rejected alternatives" section and a check that a `DEC-` document has one, rather than
+build a `brainstorm` layer. Divergent thinking itself belongs in `scratch/`, which is
+ungoverned on purpose — that is what the ungoverned annex is *for*, and putting process
+around it would leak governance into the one place the record deliberately keeps free
+of it.
+
+**Build the standalone layer only if** somebody can name a check for it that cannot be
+satisfied by writing three paragraphs nobody believes.
 
 ### `mcp-servers` — needs a core change first
 
@@ -180,15 +286,15 @@ reasonable layer for a team that wants it; it just should not be the default.
 Publishing a layer should cost about as much as publishing the post that described the
 idea. There is no server and no account:
 
-1. Write it — [docs/REF-writing-layers.md](../docs/REF-writing-layers.md) is the guide,
+1. Write it — [docs/reference/REF-writing-layers.md](../docs/reference/REF-writing-layers.md) is the guide,
    and `ilk layer new` scaffolds one.
-2. `ilk layer test ./your-layer` must pass. It adopts the layer into a throwaway
-   repository, applies twice to prove idempotency, drops it, and asserts the repository
+2. `ilk layer test ./your-layer` must pass. It adds the layer to a throwaway
+   repository, applies twice to prove idempotency, removes it, and asserts the repository
    came back. A layer that cannot be cleanly removed is one nobody can safely try.
 3. Add an entry to [`internal/registry/registry.yaml`](../internal/registry/registry.yaml)
    so `ilk search` can find it, and open a pull request.
 
-Your layer does not have to live in this repository. `ilk adopt gh:you/your-layer` works
+Your layer does not have to live in this repository. `ilk add gh:you/your-layer` works
 whether or not it is indexed; the index only makes it discoverable.
 
 CI runs `ilk layer validate` and `ilk layer test` against everything in this directory on

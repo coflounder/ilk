@@ -140,7 +140,7 @@ func newMirrorLinkCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "link [mirror]",
 		Short: "Match documents to items that already exist in the tracker",
-		Long: `Adopt a tracker that already has content.
+		Long: `Take on a tracker that already has content.
 
 Unlinked documents are matched to existing items by title, and the match is recorded
 in the frontmatter key ilk owns. From then on identity is exact and titles no longer

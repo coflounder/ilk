@@ -160,7 +160,7 @@ func Find(p *engine.Project, id string) (*engine.ResolvedLayer, manifest.Mirror,
 	}
 	switch {
 	case len(found) == 0 && id == "":
-		return nil, manifest.Mirror{}, fmt.Errorf("no adopted layer declares a mirror — `ilk search tracker` shows layers that do")
+		return nil, manifest.Mirror{}, fmt.Errorf("no layer here declares a mirror — `ilk search tracker` shows layers that do")
 	case len(found) == 0:
 		return nil, manifest.Mirror{}, fmt.Errorf("no mirror called %q — %s", id, availableMirrors(p))
 	case len(found) > 1:

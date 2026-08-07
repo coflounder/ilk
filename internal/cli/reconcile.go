@@ -164,7 +164,7 @@ type statusLayer struct {
 func newStatusCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "status",
-		Short: "Show adopted layers and anything that has drifted",
+		Short: "Show this repository's layers and anything that has drifted",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			p, err := project()
@@ -187,7 +187,7 @@ func newStatusCmd() *cobra.Command {
 				InSync:       pl.Empty(),
 			}
 			counts := map[string]int{}
-			for _, e := range p.Lock.Layers {
+			for _, e := range p.Lock.Owners {
 				counts[e.ID] = len(e.Files)
 			}
 			for _, l := range p.Layers {
@@ -213,7 +213,7 @@ func newStatusCmd() *cobra.Command {
 
 			printf("%s\n", sty.bold("Layers"))
 			if len(doc.Layers) == 0 {
-				printf("  %s\n", sty.dim("none adopted — `ilk list --available` shows what you can add"))
+				printf("  %s\n", sty.dim("none yet — `ilk list --available` shows what you can add"))
 			}
 			for _, l := range doc.Layers {
 				printf("  %-24s %-8s %s\n", l.ID, sty.dim(l.Version), sty.dim(fmt.Sprintf("%d files", l.Files)))

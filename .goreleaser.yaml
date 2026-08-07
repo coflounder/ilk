@@ -74,6 +74,6 @@ release:
 
     ```sh
     curl -fsSL https://raw.githubusercontent.com/coflounder/ilk/main/install.sh | sh
-    npm install -g @ilk/cli
+    npm install -g @coflounder/ilk
     brew install coflounder/tap/ilk
     ```

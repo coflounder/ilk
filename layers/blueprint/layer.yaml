@@ -1,10 +1,10 @@
 id: ilk/blueprint
-version: 0.1.0
+version: 0.2.0
 summary: One connected plan rather than a pile of tickets — epics, specs and milestones that must resolve, and acceptance criteria that must exist.
 facets:
   arc: planning
   kind: process
-ilk: ">=0.1.0"
+ilk: ">=0.2.0"
 
 # The plan documents live in the record's plans directory. Requiring the
 # capability rather than the layer means anything that provides a plans directory
@@ -17,9 +17,6 @@ provides:
   - blueprint.milestones
 
 variables:
-  plans_dir:
-    default: plans
-    description: Where the blueprint's documents live. Must match the record layer's plans directory.
   require_milestone:
     default: "true"
     enum: ["true", "false"]
@@ -29,10 +26,10 @@ variables:
 
 files:
   - src: templates/EPIC.md.tmpl
-    dest: "{{ .Vars.plans_dir }}/EPIC-example.md"
+    dest: '{{ index .Caps "record.plans" }}/EPIC-example.md'
     mode: create-only
   - src: templates/SPEC.md.tmpl
-    dest: "{{ .Vars.plans_dir }}/SPEC-example.md"
+    dest: '{{ index .Caps "record.plans" }}/SPEC-example.md'
     mode: create-only
   - src: bin/ilk-blueprint-next.sh
     dest: .ilk/bin/ilk-blueprint-next.sh
@@ -58,8 +55,8 @@ checks:
     title: Every spec belongs to an epic
     fix: "Add `epic: <id>` to the spec's frontmatter naming an EPIC document in this directory, or `epic: none` if the work genuinely stands alone. A spec belonging to nothing is work nobody agreed to."
     args:
-      dirs: ["{{ .Vars.plans_dir }}"]
-      targets: ["{{ .Vars.plans_dir }}"]
+      dirs: ['{{ index .Caps "record.plans" }}']
+      targets: ['{{ index .Caps "record.plans" }}']
       field: epic
       required: "true"
       allow: [none]
@@ -71,8 +68,8 @@ checks:
     title: Every spec belongs to a milestone
     fix: "Add `milestone: <id>` naming a MILESTONE document, or `milestone: backlog` for work that is scoped but not yet scheduled. A spec with no checkpoint cannot be reported on."
     args:
-      dirs: ["{{ .Vars.plans_dir }}"]
-      targets: ["{{ .Vars.plans_dir }}"]
+      dirs: ['{{ index .Caps "record.plans" }}']
+      targets: ['{{ index .Caps "record.plans" }}']
       field: milestone
       required: "{{ .Vars.require_milestone }}"
       allow: [backlog, none]
@@ -84,7 +81,7 @@ checks:
     title: Every spec says what "done" means
     fix: "Add an `## Acceptance criteria` section with at least one checkable statement. A criterion nobody can evaluate is not a criterion — write what somebody would run or look at to decide."
     args:
-      dirs: ["{{ .Vars.plans_dir }}"]
+      dirs: ['{{ index .Caps "record.plans" }}']
       heading: Acceptance criteria
       min_items: 1
       match: "^SPEC-"
@@ -95,7 +92,7 @@ checks:
     title: Every epic states its outcome
     fix: "Add an `## Outcome` section saying what is different when this epic is done, in terms a stakeholder would use. An epic with no outcome is a category, not a commitment."
     args:
-      dirs: ["{{ .Vars.plans_dir }}"]
+      dirs: ['{{ index .Caps "record.plans" }}']
       heading: Outcome
       min_items: 1
       match: "^EPIC-"

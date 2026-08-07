@@ -243,6 +243,52 @@ func (r *Repo) MatchesAnything(pattern string) bool {
 	return strings.TrimSpace(string(out)) != ""
 }
 
+// Uncarried reports which of the given paths git would not put in a fresh
+// checkout, either because they are ignored or because they sit inside `.git`.
+//
+// The distinction matters wherever ilk reasons about a file being absent. An
+// artifact ilk owns that is missing from a working tree is normally drift — but
+// one git deliberately does not carry cannot be present in a clone at all, and
+// calling that drift makes `ilk check` fail in CI for every repository, on files
+// nobody could have restored.
+//
+// One `git check-ignore` for the whole set, rather than one per path.
+func (r *Repo) Uncarried(paths []string) map[string]bool {
+	out := map[string]bool{}
+	if len(paths) == 0 {
+		return out
+	}
+
+	var candidates []string
+	for _, p := range paths {
+		// Anything under .git is outside the working tree by definition; git has
+		// no opinion to ask it for.
+		if p == ".git" || strings.HasPrefix(p, ".git/") {
+			out[p] = true
+			continue
+		}
+		candidates = append(candidates, p)
+	}
+	if len(candidates) == 0 || !r.IsGit() {
+		return out
+	}
+
+	cmd := exec.Command("git", "check-ignore", "--stdin")
+	cmd.Dir = r.Root
+	cmd.Stdin = strings.NewReader(strings.Join(candidates, "\n") + "\n")
+	stdout, err := cmd.Output()
+	// check-ignore exits 1 when nothing matched, which is not an error here.
+	if err != nil && len(stdout) == 0 {
+		return out
+	}
+	for _, line := range strings.Split(string(stdout), "\n") {
+		if line = strings.TrimSpace(line); line != "" {
+			out[line] = true
+		}
+	}
+	return out
+}
+
 // gitPathspecs marks glob patterns so git treats `**` the way the rest of the
 // world does, rather than as a literal.
 func gitPathspecs(patterns []string) []string {
