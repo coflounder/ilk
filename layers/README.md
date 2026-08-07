@@ -88,6 +88,89 @@ there. A layer its adopters cannot improve decays, and that is too easy to not n
 These are specified rather than vague — each has a decided shape, and what is missing is
 the work, not the design. Contributions welcome; so is disagreement with the shape.
 
+The order these get built in is
+[docs/plans/PLAN-layer-queue.md](../docs/plans/PLAN-layer-queue.md), along with the
+reason nothing here is next until `ilk layer test` can assert a check rejects
+something.
+
+### `deprecation` — a removal date the code is held to
+
+`DEPRECATED-*.md` in the record, carrying a `remove_after:` date and the `covers:`
+paths the deprecation applies to. The check fails once that date has passed and the
+covered paths still exist.
+
+**Decided.** This is staleness-by-coupling pointed at removal instead of review, and
+it reuses the same machinery: a document declares what it is about, and git says
+whether that subject is still there. A deprecation nobody removes is the most common
+way a codebase accumulates two ways to do everything, and the usual reminder — a
+comment saying "remove after v3" — is invisible to everything that could act on it.
+
+**Checks:** every `DEPRECATED-` document has a `remove_after:` and a non-empty
+`covers:`; nothing is past its date while its covered paths still match; a
+deprecation whose paths already match nothing is reported as done rather than
+lingering.
+
+**The open question** is what happens on the day it fires. Failing `ilk check` is
+right, but a deprecation that becomes urgent on a date nobody chose deliberately
+will get exempted rather than actioned. It may need the same baseline mechanism the
+record layer uses, so an extension is a visible decision rather than a silent one.
+
+### `secrets` — wrap a scanner, do not write one
+
+**Decided: wrap, do not build.** The same call `codegraph` made. Detection is a
+solved problem with well-maintained tools; what is missing is the discipline around
+it. A capability, `secrets.command`, supplies the scanner — gitleaks, trufflehog,
+whatever the project already uses — and the layer supplies the pre-commit hook, the
+CI gate, and the part nobody writes down: what to do once one has leaked.
+
+**Checks:** the scanner is clean. That is the whole check, and it is deliberately
+thin, because the layer's value is the hook plus the skill rather than the
+detection.
+
+**The skill is the point.** An agent that finds a committed credential will
+reliably do the wrong thing — remove it in a new commit and report it fixed, which
+leaves it in the history and in every clone. The skill says: rotate first, because
+the credential is compromised the moment it is pushed and rewriting history does not
+un-compromise it; then purge; then rotate again if the purge was slow.
+
+**Rated highest-consequence** of anything on this list. An agent committing a key is
+the failure mode with the largest blast radius and the shortest path to happening.
+
+### `migrations` — an applied migration is immutable
+
+Hash every migration ilk has seen applied, and fail when one of them changes. Require
+either a down migration or an explicit, written statement that this one is
+irreversible.
+
+**Decided.** Editing an already-applied migration is the kind of mistake that works
+perfectly on the machine that made it and corrupts every other environment, which is
+exactly the shape of error an agent makes and no test catches.
+
+**Blocked on a question rather than on work.** The immutability rule is universal;
+where migrations live and what "applied" means is not. It likely needs a capability
+supplying both the directory and the applied set, which is a wider interface than any
+current layer asks for. Worth settling before writing it, because a layer that only
+fits one ORM is a layer that should have been a script.
+
+**First consumer** would be a drizzle project, which is a reasonable place to find out
+whether the interface generalises.
+
+### `release-notes` — assembled from the record, not from memory
+
+Derive a changelog from `docs/log/` entries and the plans marked accepted since the
+last release, rather than having somebody reconstruct it from commit messages.
+
+**Decided.** The record already holds what happened and what was accepted; a release
+note written by hand is that same information typed a second time, less accurately.
+Pairs with `pr-prep`, which does the same derivation one scope down.
+
+**Shape:** a command that assembles the notes for a version range, a check that a
+tagged release has notes, and a convention for the one thing derivation cannot supply
+— which changes a reader actually needs to act on.
+
+**Not before `pr-prep`**, which is smaller and establishes whether deriving prose
+from the record produces something anybody wants to read.
+
 ### `pulumi` — the first layer in the `infra` group
 
 Infrastructure as code, with the one discipline that matters when an agent is holding

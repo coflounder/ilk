@@ -106,8 +106,13 @@ Remaining:
   `gh-projects` proves it, but it leans on `gh` for authentication. A provider with its
   own API token — Linear, Jira — needs a decided answer for where the token comes from
   and what the failure looks like when it is absent.
-- More layers: `pr-prep`, `codegraph`, `pulumi`, `autoresearch`, `html-wireframe`,
-  `incident`. The backlog with decided shapes is in
+- **Check assertions in `ilk layer test`.** It proves add/rm reversibility and
+  nothing about enforcement, so ten of twelve layers have no evidence their checks
+  reject anything. This is the next piece of work; see
+  [PLAN-layer-queue](PLAN-layer-queue.md).
+- More layers: `pr-prep`, `codegraph`, `pulumi`, `autoresearch`, `deprecation`,
+  `secrets`, `migrations`, `release-notes`, `html-wireframe`, `incident`, in the
+  order set out in [PLAN-layer-queue](PLAN-layer-queue.md). The backlog with decided shapes is in
   [layers/README.md](../../layers/README.md). `pulumi` is the first tenant of the `infra`
   group and shares `linear-mirror`'s credential blocker; `brainstorm` was specified and
   then argued out of existing, on the grounds that a check counting alternatives is
