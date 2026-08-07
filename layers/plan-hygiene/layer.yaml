@@ -1,10 +1,10 @@
 id: ilk/plan-hygiene
-version: 0.1.0
+version: 0.2.0
 summary: Backlog hygiene as failing checks rather than a meeting — a work-in-progress limit, active work that has an owner, and finished work that has evidence.
 facets:
   arc: planning
   kind: gate
-ilk: ">=0.1.0"
+ilk: ">=0.2.0"
 
 requires:
   - record.plans
@@ -13,9 +13,6 @@ provides:
   - hygiene.flow
 
 variables:
-  plans_dir:
-    default: plans
-    description: Where the plan documents live.
   wip_limit:
     default: "3"
     description: >-
@@ -29,7 +26,7 @@ checks:
     title: Work in progress is within the limit
     fix: "Finish something before starting something else, or move one of these back to `status: proposed`. If the limit is genuinely wrong for this team, raise `wip_limit` deliberately — but a limit you raise whenever you hit it is not a limit."
     args:
-      dirs: ["{{ .Vars.plans_dir }}"]
+      dirs: ['{{ index .Caps "record.plans" }}']
       max: "{{ .Vars.wip_limit }}"
       where:
         status: active
@@ -40,7 +37,7 @@ checks:
     title: Active work has somebody accountable for it
     fix: "Add `owner:` to the frontmatter naming a person or a team. Work that is in progress with nobody named is work that stalls without anybody noticing."
     args:
-      dirs: ["{{ .Vars.plans_dir }}"]
+      dirs: ['{{ index .Caps "record.plans" }}']
       require: [owner]
       where:
         status: active
@@ -51,7 +48,7 @@ checks:
     title: Finished work says how it was verified
     fix: "Add an `## Evidence` section to the completed document: the commands that were run and what they said, the pull request, the acceptance criteria and what settles each. \"Done\" is a claim; this is what makes it checkable by somebody who was not there."
     args:
-      dirs: ["{{ .Vars.plans_dir }}"]
+      dirs: ['{{ index .Caps "record.plans" }}']
       heading: Evidence
       min_items: 1
       where:

@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newAdoptCmd() *cobra.Command {
+func newAddCmd() *cobra.Command {
 	var (
 		set        []string
 		vars       []string
@@ -24,14 +24,14 @@ func newAdoptCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "adopt <layer>",
+		Use:   "add <layer>",
 		Short: "Add a layer to this repository",
-		Long: `Adopt a layer and reconcile the repository to it.
+		Long: `Add a layer and reconcile the repository to it.
 
 A layer reference is a built-in name (` + "`record`" + `), a path (` + "`./layers/mine`" + `),
 or a git source (` + "`gh:owner/repo@v1`" + `). You see the whole change before anything
-is written, and ` + "`ilk drop`" + ` removes exactly what was added.`,
-		Args: requireArgs(1, "ilk adopt <layer>"),
+is written, and ` + "`ilk rm`" + ` removes exactly what was added.`,
+		Args: requireArgs(1, "ilk add <layer>"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			p, err := project()
 			if err != nil {
@@ -46,7 +46,7 @@ is written, and ` + "`ilk drop`" + ` removes exactly what was added.`,
 			m := loaded.Manifest
 
 			if _, already := p.Config.Layer(m.ID); already {
-				return fmt.Errorf("%s is already adopted — use `ilk upgrade %s` to move it to a newer version, or `ilk drop %s` first", m.ID, m.Name(), m.Name())
+				return fmt.Errorf("%s is already here — use `ilk upgrade %s` to move it to a newer version, or `ilk rm %s` first", m.ID, m.Name(), m.Name())
 			}
 
 			// Executable content from a source ilk did not ship is the one thing
@@ -55,7 +55,7 @@ is written, and ` + "`ilk drop`" + ` removes exactly what was added.`,
 				return fmt.Errorf("%s runs commands (scripts, checks or subcommands) and comes from %s\n"+
 					"  review it first, then re-run with --allow-exec to consent:\n"+
 					"    ilk info %s\n"+
-					"    ilk adopt %s --allow-exec", m.ID, loaded.Source, ref, ref)
+					"    ilk add %s --allow-exec", m.ID, loaded.Source, ref, ref)
 			}
 
 			chosen, err := parseAssignments(vars)
@@ -74,7 +74,7 @@ is written, and ` + "`ilk drop`" + ` removes exactly what was added.`,
 				return err
 			}
 
-			p.Config.Adopt(config.LayerRef{
+			p.Config.Set(config.LayerRef{
 				ID:        m.ID,
 				Version:   m.Version,
 				Source:    sourceFor(ref, m.ID),
@@ -103,14 +103,14 @@ is written, and ` + "`ilk drop`" + ` removes exactly what was added.`,
 				return emitJSON(planJSON(pl))
 			}
 
-			printf("%s %s %s\n", sty.bold("adopt"), m.ID, sty.dim(m.Version))
+			printf("%s %s %s\n", sty.bold("add"), m.ID, sty.dim(m.Version))
 			printf("  %s\n", sty.dim(m.Summary))
 			printf("  %s %s\n\n", sty.dim("source:"), sty.dim(loaded.Source))
 			printPlan(pl, false)
 			printBaselines(next, pl)
 
 			if noApply {
-				printf("\n%s\n", sty.dim("Nothing written. Re-run without --no-apply to adopt."))
+				printf("\n%s\n", sty.dim("Nothing written. Re-run without --no-apply to add it."))
 				return nil
 			}
 			if !yes && !confirm("\nApply?") {
@@ -123,8 +123,8 @@ is written, and ` + "`ilk drop`" + ` removes exactly what was added.`,
 			if err := next.Apply(pl); err != nil {
 				return err
 			}
-			printf("\n%s %s\n", sty.green("adopted."), summariseCounts(pl))
-			printLayerAfterAdopt(m)
+			printf("\n%s %s\n", sty.green("added."), summariseCounts(pl))
+			printLayerAfterAdd(m)
 			return nil
 		},
 	}
@@ -139,7 +139,7 @@ is written, and ` + "`ilk drop`" + ` removes exactly what was added.`,
 	return cmd
 }
 
-func printLayerAfterAdopt(m *manifest.Layer) {
+func printLayerAfterAdd(m *manifest.Layer) {
 	if len(m.Commands) > 0 {
 		printf("\n%s\n", sty.bold("New commands"))
 		for _, c := range m.Commands {
@@ -164,17 +164,17 @@ func sourceFor(ref, id string) string {
 	return ref
 }
 
-func newDropCmd() *cobra.Command {
+func newRmCmd() *cobra.Command {
 	var yes, force bool
 	cmd := &cobra.Command{
-		Use:   "drop <layer>",
+		Use:   "rm <layer>",
 		Short: "Remove a layer and everything it added",
 		Long: `Remove a layer from this repository.
 
 Files ilk fully owns are deleted; fenced blocks are removed from files it only
 partly owns; files it merely seeded are left in place, because they are yours by
 then. Anything you edited after ilk wrote it is reported and left alone.`,
-		Args: requireArgs(1, "ilk drop <layer>"),
+		Args: requireArgs(1, "ilk rm <layer>"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			p, err := project()
 			if err != nil {
@@ -182,11 +182,11 @@ then. Anything you edited after ilk wrote it is reported and left alone.`,
 			}
 			target, ok := p.Layer(args[0])
 			if !ok {
-				return fmt.Errorf("%q is not adopted here — `ilk list` shows what is", args[0])
+				return fmt.Errorf("%q is not in this repository — `ilk list` shows what is", args[0])
 			}
 			id := target.ID()
 
-			p.Config.Drop(id)
+			p.Config.Remove(id)
 			next, err := engine.NewProject(p.Repo, p.Config, p.Lock, p.Version)
 			if err != nil {
 				return err
@@ -206,7 +206,7 @@ then. Anything you edited after ilk wrote it is reported and left alone.`,
 				return emitJSON(planJSON(pl))
 			}
 
-			printf("%s %s\n\n", sty.bold("drop"), id)
+			printf("%s %s\n\n", sty.bold("rm"), id)
 			printPlan(pl, false)
 			if !yes && !confirm("\nApply?") {
 				println(sty.dim("Nothing removed."))
@@ -218,7 +218,7 @@ then. Anything you edited after ilk wrote it is reported and left alone.`,
 			if err := next.Apply(pl); err != nil {
 				return err
 			}
-			printf("\n%s %s\n", sty.green("dropped."), summariseCounts(pl))
+			printf("\n%s %s\n", sty.green("removed."), summariseCounts(pl))
 			return nil
 		},
 	}
@@ -232,7 +232,7 @@ func newUpgradeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "upgrade [layer]",
 		Short: "Re-resolve layers and apply any changes they bring",
-		Long: `Move adopted layers to whatever their source now resolves to.
+		Long: `Move this repository's layers to whatever their source now resolves to.
 
 A file you have edited since ilk wrote it is merged rather than overwritten: where
 your changes and the layer's touch different parts, both survive. Where they
@@ -245,18 +245,22 @@ genuinely collide, ilk refuses and says where.`,
 			}
 			if len(args) == 1 {
 				if _, ok := p.Layer(args[0]); !ok {
-					return fmt.Errorf("%q is not adopted here — `ilk list` shows what is", args[0])
+					return fmt.Errorf("%q is not in this repository — `ilk list` shows what is", args[0])
 				}
 			}
 
 			// Record the versions the layers now resolve to.
+			var rerecorded bool
 			for _, l := range p.Layers {
 				if len(args) == 1 && l.ID() != args[0] && l.Name() != args[0] {
 					continue
 				}
 				ref := l.Ref
+				if ref.Version != l.Loaded.Manifest.Version {
+					rerecorded = true
+				}
 				ref.Version = l.Loaded.Manifest.Version
-				p.Config.Adopt(ref)
+				p.Config.Set(ref)
 			}
 
 			pl, err := p.Plan(engine.PlanOptions{Force: force, Prune: true, NoMerge: noMerge, MergeMarkers: markers, Accept: accept})
@@ -273,6 +277,16 @@ genuinely collide, ilk refuses and says where.`,
 				return emitJSON(planJSON(pl))
 			}
 			if pl.Empty() && len(pl.Conflicts()) == 0 {
+				// A new version whose content happens to be identical still moved.
+				// Returning without saving would leave .ilk/config.yaml claiming the
+				// old version for ever, and every later upgrade would agree with it.
+				if rerecorded {
+					if err := p.Config.Save(p.Repo.Root); err != nil {
+						return err
+					}
+					println(sty.dim("Re-resolved. The versions in .ilk/config.yaml now match what the sources give; no files changed."))
+					return nil
+				}
 				println(sty.dim("Everything is already at the version it resolves to."))
 				return nil
 			}
@@ -314,7 +328,7 @@ func newListCmd() *cobra.Command {
 	var available bool
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List adopted layers, or everything available",
+		Short: "List the layers in this repository, or everything available",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			var rows []layerJSON
@@ -327,7 +341,7 @@ func newListCmd() *cobra.Command {
 						ID: l.ID(), Version: l.Loaded.Manifest.Version,
 						Summary: l.Loaded.Manifest.Summary, Facets: l.Loaded.Manifest.Facets,
 						Adopted: true, Requires: l.Loaded.Manifest.Requires,
-						Provides: l.Loaded.Manifest.Provides, Source: l.Loaded.Source,
+						Provides: l.Loaded.Manifest.Provides.Names(), Source: l.Loaded.Source,
 					})
 				}
 			} else if !available {
@@ -346,7 +360,7 @@ func newListCmd() *cobra.Command {
 					rows = append(rows, layerJSON{
 						ID: b.Manifest.ID, Version: b.Manifest.Version,
 						Summary: b.Manifest.Summary, Facets: b.Manifest.Facets,
-						Requires: b.Manifest.Requires, Provides: b.Manifest.Provides,
+						Requires: b.Manifest.Requires, Provides: b.Manifest.Provides.Names(),
 						Source: "builtin",
 					})
 				}
@@ -358,7 +372,7 @@ func newListCmd() *cobra.Command {
 			}
 
 			if len(rows) == 0 {
-				println(sty.dim("No layers adopted. `ilk list --available` shows what you can add."))
+				println(sty.dim("No layers here yet. `ilk list --available` shows what you can add."))
 				return nil
 			}
 			for _, r := range rows {
@@ -372,19 +386,19 @@ func newListCmd() *cobra.Command {
 				}
 			}
 			if available {
-				printf("\n%s\n", sty.dim("adopt one with `ilk adopt <name>`; community layers work too: `ilk adopt gh:owner/repo`"))
+				printf("\n%s\n", sty.dim("add one with `ilk add <name>`; community layers work too: `ilk add gh:owner/repo`"))
 			}
 			return nil
 		},
 	}
-	cmd.Flags().BoolVar(&available, "available", false, "include layers that are not adopted yet")
+	cmd.Flags().BoolVar(&available, "available", false, "include layers this repository does not have yet")
 	return cmd
 }
 
 func newInfoCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "info <layer>",
-		Short: "Show what a layer contains before you adopt it",
+		Short: "Show what a layer contains before you add it",
 		Args:  requireArgs(1, "ilk info <layer>"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cache := ".ilk/cache"
@@ -436,7 +450,15 @@ func newInfoCmd() *cobra.Command {
 				reqs = append(reqs, r)
 			}
 			section("Requires", reqs)
-			section("Provides", m.Provides)
+			var provides []string
+			for _, name := range m.Provides.Names() {
+				if v := m.Provides[name]; v != "" {
+					provides = append(provides, fmt.Sprintf("%-24s %s", name, sty.dim(v)))
+					continue
+				}
+				provides = append(provides, name)
+			}
+			section("Provides", provides)
 
 			var dirs []string
 			for _, d := range m.Dirs {
@@ -485,7 +507,7 @@ func newInfoCmd() *cobra.Command {
 				printf("\n%s ~%d tokens of always-on instructions\n", sty.dim("context cost:"), b)
 			}
 			if m.NeedsExec() {
-				printf("%s this layer ships executable content; adopting it needs --allow-exec\n", sty.yellow("note:"))
+				printf("%s this layer ships executable content; adding it needs --allow-exec\n", sty.yellow("note:"))
 			}
 			return nil
 		},

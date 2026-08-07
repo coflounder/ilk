@@ -120,7 +120,7 @@ func newGemini() gemini {
 func newOpencode() opencode {
 	return opencode{pointerTarget{
 		name:  "opencode",
-		desc:  "OpenCode — skills mirrored from .agent/skills",
+		desc:  "OpenCode — skills mirrored from .agents/skills",
 		path:  ".opencode/AGENTS.md",
 		agent: "OpenCode",
 	}}

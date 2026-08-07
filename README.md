@@ -4,7 +4,7 @@
 
 Coding agents cannot inherit what was never written down. `ilk` manages the layers a
 repository uses to work well with them — directory contracts, instructions, skills,
-hooks, gates and checks — as versioned units you can adopt, upgrade and drop at any
+hooks, gates and checks — as versioned units you can add, upgrade and remove at any
 point in a project's life.
 
 ```sh
@@ -22,9 +22,9 @@ no network, nothing to choose.
 A generator answers "what should a repo look like on day zero", then leaves. Its later
 improvements never reach you, and you cannot undo what it did.
 
-`ilk` answers day *n*. Practice is adopted incrementally, upgraded deliberately, and
+`ilk` answers day *n*. Practice is added incrementally, upgraded deliberately, and
 removed cleanly. When someone publishes a post about a new pattern on a Tuesday, a
-repository can adopt it that afternoon and drop it on Thursday when it turns out not
+repository can add it that afternoon and remove it on Thursday when it turns out not
 to fit.
 
 Three commitments constrain everything else:
@@ -36,6 +36,23 @@ Three commitments constrain everything else:
 - **Community-extensible.** Publishing a layer is as cheap as publishing the blog post
   that described the idea: a git repo with a manifest.
 
+## What it puts in your repository
+
+Layers group the directories they introduce, so the root stays legible as you add more:
+
+```
+docs/            README.md is a generated index of what is below
+  reference/     what is true now
+  plans/         what we intend to build
+  log/           what happened, dated
+scratch/         rough notes, ungoverned and gitignored on purpose
+```
+
+Ordering lives in that generated index, not in the paths — no `00-`, `01-` prefixes to
+renumber, and nothing for two independently published layers to collide over. Layers
+that need somewhere new join an existing group (`docs/questions`, `docs/evidence`) or
+declare their own; `infra/` and `ops/` are recognised alongside `docs/`.
+
 ## Install
 
 ```sh
@@ -45,7 +62,7 @@ curl -fsSL https://raw.githubusercontent.com/coflounder/ilk/main/install.sh | sh
 or
 
 ```sh
-npm install -g @ilk/cli
+npm install -g @coflounder/ilk
 brew install coflounder/tap/ilk
 go install github.com/coflounder/ilk/cmd/ilk@latest
 ```
@@ -56,18 +73,19 @@ go install github.com/coflounder/ilk/cmd/ilk@latest
 ilk init                         # set the repository up
 ilk brief                        # the packet a session should start with
 ilk check                        # validate; every failure prints its fix
-ilk status                       # what is adopted, and what has drifted
+ilk status                       # what this repository has, and what has drifted
 
-ilk search                       # layers you could adopt
+ilk search                       # layers you could add
 ilk list --available             # layers you can add
-ilk info quality-gates           # what a layer contains, before adopting it
-ilk adopt quality-gates --set test.command="go test ./..."
-ilk drop quality-gates           # removes exactly what it added
+ilk info gates           # what a layer contains, before adding it
+ilk add gates --set test.command="go test ./..."
+ilk rm gates             # removes exactly what it added
 
-ilk adopt gh:someone/their-layer # community layers, same interface
+ilk add gh:someone/their-layer   # community layers, same interface
 ilk agents add cursor            # generate config for another agent
 
 ilk upgrade                      # merges layer changes into files you have edited
+ilk update --path ../ilk         # rebuild ilk itself from a source checkout
 ilk baseline list                # files exempt from a layer's checks, and why
 ```
 
@@ -95,20 +113,20 @@ hooks:        [...]               # session-start, pre-commit, pre-push, …
 commands:     [...]               # extend the CLI: `ilk quality-gates report`
 ```
 
-Layers require **capabilities**, not each other. `quality-gates` needs `test.command`;
+Layers require **capabilities**, not each other. `gates` needs `test.command`;
 anything that supplies it — your config, or another layer — satisfies that, so one gate
 layer works in any language.
 
-See [docs/REF-writing-layers.md](docs/REF-writing-layers.md) to write one, and
-[docs/REF-design-proposal.md](docs/REF-design-proposal.md) for the reasoning behind the design.
+See [docs/reference/REF-writing-layers.md](docs/reference/REF-writing-layers.md) to write one, and
+[docs/reference/REF-design-proposal.md](docs/reference/REF-design-proposal.md) for the reasoning behind the design.
 
-## How drop can be safe
+## How rm can be safe
 
 Every file ilk writes has an ownership mode, and the lockfile records a hash of what
 ilk put there. That is the difference between "unchanged since I wrote it" (safe to
 overwrite or delete) and "a human has edited this" (stop and say so).
 
-| mode | ilk owns | on upgrade | on drop |
+| mode | ilk owns | on upgrade | on rm |
 |---|---|---|---|
 | `managed` | the whole file | overwrite | delete |
 | `region` | a fenced block inside a file you own | replace the block | remove the block, keep the file |
@@ -150,17 +168,17 @@ Prose I wrote. ilk will never touch this.
 Nothing is written until you have seen the whole plan:
 
 ```
-$ ilk adopt quality-gates
+$ ilk add gates
 
-  + create     .github/workflows/ilk.yml                    ilk/quality-gates
+  + create     .github/workflows/ilk.yml                    ilk/gates
   + create     .git/hooks/pre-push                          target:git-hooks
-  + block +    AGENTS.md [instructions]                     ilk/quality-gates
+  + block +    AGENTS.md [instructions]                     ilk/gates
   ~ block ~    AGENTS.md [skills]                           target:agents-md
 
   Apply? [y/N]
 ```
 
-## Adopting into a repository with history
+## Adding a layer to a repository with history
 
 A layer governs what happens next, not what came before. When a layer's directory
 contract lands on a directory that already has files — the common case for `docs/` —
@@ -169,13 +187,13 @@ those files are recorded as its baseline and exempted from its checks:
 ```
 $ ilk init
   · 4 existing file(s) will be exempt from ilk/record's checks
-      docs/CONTRIBUTING.md, docs/api_reference.md, docs/getting-started.md, …
+      docs/reference/CONTRIBUTING.md, docs/reference/api_reference.md, …
       They predate the layer, so it does not judge them. `ilk baseline` to review.
 ```
 
 Without this, `ilk init` in any repository with existing documentation opens with a
 wall of failures about files nobody has touched, which is a good way to get a tool
-deleted. Files added *after* adoption are governed normally.
+deleted. Files added *after* that are governed normally.
 
 The exemption is a ratchet, not an amnesty. It is recorded, visible in
 `ilk baseline list`, and tightened one file at a time:
@@ -192,9 +210,9 @@ ilk init --no-baseline                     # or be held to them from the start
 
 | Layer | What it does |
 |---|---|
-| `toolkit` | The skills an agent needs to operate ilk here — adopt, configure, apply, resolve a conflict, write a layer |
+| `toolkit` | The skills an agent needs to operate ilk here — add, configure, apply, resolve a conflict, write a layer |
 | `record` | The project record: what is true, what is intended, what happened, plus the checks that keep it honest |
-| `quality-gates` | Tests, lint and build wired into `ilk check`, git hooks and CI |
+| `gates` | Tests, lint and build wired into `ilk check`, git hooks and CI |
 
 Nine more ship alongside in [`layers/`](layers/):
 
@@ -213,12 +231,12 @@ Nine more ship alongside in [`layers/`](layers/):
 ```sh
 ilk search planning
 ilk info gh:coflounder/ilk/layers/blueprint
-ilk adopt gh:coflounder/ilk/layers/blueprint --allow-exec
+ilk add gh:coflounder/ilk/layers/blueprint --allow-exec
 ```
 
 The index is embedded, so `ilk search` works offline. It lists what somebody
 registered; it endorses nothing. `ilk info` shows what a layer writes, what it costs
-in always-on context, and whether it runs code — read it before adopting.
+in always-on context, and whether it runs code — read it before adding it.
 
 ## Keeping a tracker in agreement with the record
 
@@ -239,7 +257,7 @@ until the whole plan has been seen. Three rules make that safe to run unattended
 **An ambiguous match is refused, not guessed.** When a document's title could mean two
 items, ilk names both and writes neither. A wrong link is silent and permanent — every
 later sync writes to the wrong item, and nobody finds out until somebody reads the board
-and does not recognise it. Adopting a board that already has items goes through
+and does not recognise it. Linking a board that already has items goes through
 `ilk mirror link`, which records the identity once so titles stop mattering.
 
 **Nothing is deleted remotely.** An item no document claims is reported. Deciding it is
@@ -272,7 +290,7 @@ covers:
 ```
 
 ```
-✗ record.stale   docs/ARCH-payments.md
+✗ record.stale   docs/reference/ARCH-payments.md
     11+ commits touched src/payments/** since this was last reviewed (2026-06-01);
     most recent: d9b7f8c "rewrite settlement flow", 4 days ago
     fix: Run `ilk record review <file>` …
@@ -358,7 +376,7 @@ targets project that into whatever each agent reads.
 | Neutral artifact | Where it lands |
 |---|---|
 | instructions | `AGENTS.md`, plus pointer stubs for `CLAUDE.md`, `.cursor/rules/`, `.github/copilot-instructions.md`, `GEMINI.md` |
-| skill | `.agent/skills/<name>/SKILL.md`, mirrored to `.claude/skills/`; indexed in `AGENTS.md` for agents with no skill support |
+| skill | `.agents/skills/<name>/SKILL.md`, mirrored to `.claude/skills/`; indexed in `AGENTS.md` for agents with no skill support |
 | command | `ilk <layer> <command>`; thin slash-command wrappers where an agent has them |
 | hook | git hooks (universal), plus native hooks where an agent has them |
 
@@ -388,7 +406,7 @@ when their situation applies, not in every context window.
 ```sh
 go test ./...                  # the contract lives in internal/engine/engine_test.go
 go build ./cmd/ilk
-ilk layer test ./layers/mine   # prove your layer's adopt/drop round trip
+ilk layer test ./layers/mine   # prove your layer's add/rm round trip
 ```
 
 ## Licence

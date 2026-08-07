@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -19,7 +20,7 @@ import (
 // newLayerCmd holds the authoring tools. Publishing a layer should be about as
 // much work as publishing the blog post that described the idea, which means the
 // scaffold has to be one command and the test has to prove the thing that
-// actually matters: that dropping the layer restores the repository.
+// actually matters: that removing the layer restores the repository.
 func newLayerCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "layer",
@@ -65,8 +66,8 @@ func newLayerNewCmd() *cobra.Command {
 			printf("%s %s\n", sty.green("created"), target)
 			printf("\n%s\n", sty.bold("Next"))
 			printf("  %-42s %s\n", "ilk layer validate "+target, sty.dim("check the manifest"))
-			printf("  %-42s %s\n", "ilk layer test "+target, sty.dim("prove adopt and drop are lossless"))
-			printf("  %-42s %s\n", "ilk adopt ./"+target, sty.dim("try it here"))
+			printf("  %-42s %s\n", "ilk layer test "+target, sty.dim("prove add and rm are lossless"))
+			printf("  %-42s %s\n", "ilk add ./"+target, sty.dim("try it here"))
 			return nil
 		},
 	}
@@ -78,7 +79,7 @@ func newLayerNewCmd() *cobra.Command {
 func newLayerValidateCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "validate <path>",
-		Short: "Check a layer manifest without adopting it",
+		Short: "Check a layer manifest without adding it",
 		Args:  requireArgs(1, "ilk layer validate <path>"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			loaded, err := layer.Resolve(args[0], ".ilk/cache")
@@ -113,7 +114,7 @@ func newLayerValidateCmd() *cobra.Command {
 				}
 			}
 			if m.Budget() == 0 && len(m.Instructions) > 0 {
-				problems = append(problems, "instructions declare no budget — set `budget:` so repositories can see the context cost before adopting")
+				problems = append(problems, "instructions declare no budget — set `budget:` so repositories can see the context cost before adding it")
 			}
 
 			if flagJSON {
@@ -132,7 +133,21 @@ func newLayerValidateCmd() *cobra.Command {
 	}
 }
 
-// newLayerTestCmd adopts a layer into a throwaway repository and then drops it,
+// stubCapability invents a value for a capability the layer under test requires
+// but nothing in the sandbox supplies.
+//
+// The shape has to match how the capability is used, because a layer will
+// interpolate it. A command capability wants something runnable, and `true` is
+// the shell's own no-op. Anything else names a place, and `true` there would have
+// the layer earnestly writing its templates into a directory called `true/`.
+func stubCapability(name string) string {
+	if strings.HasSuffix(name, ".command") {
+		return "true"
+	}
+	return path.Join(".ilk", "layer-test", name)
+}
+
+// newLayerTestCmd adds a layer to a throwaway repository and then removes it,
 // asserting that the repository comes back byte-for-byte. That round trip is the
 // contract a layer has to keep, and it is the one users cannot verify for
 // themselves without risking their own repository.
@@ -140,7 +155,7 @@ func newLayerTestCmd() *cobra.Command {
 	var keep bool
 	cmd := &cobra.Command{
 		Use:   "test <path>",
-		Short: "Prove that adopting and dropping this layer is lossless",
+		Short: "Prove that adding and removing this layer is lossless",
 		Args:  requireArgs(1, "ilk layer test <path>"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			src, err := filepath.Abs(args[0])
@@ -186,9 +201,9 @@ func newLayerTestCmd() *cobra.Command {
 			cfg := config.Default()
 			cfg.Targets = []string{"claude-code"}
 			for _, req := range loaded.Manifest.Requires {
-				cfg.Capabilities[req] = "true"
+				cfg.Capabilities[req] = stubCapability(req)
 			}
-			cfg.Adopt(config.LayerRef{ID: loaded.Manifest.ID, Version: loaded.Manifest.Version, Source: src})
+			cfg.Set(config.LayerRef{ID: loaded.Manifest.ID, Version: loaded.Manifest.Version, Source: src})
 			if err := cfg.Save(sandbox); err != nil {
 				return err
 			}
@@ -197,11 +212,11 @@ func newLayerTestCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			adoptPlan, err := p.Plan(engine.PlanOptions{Prune: true})
+			addPlan, err := p.Plan(engine.PlanOptions{Prune: true})
 			if err != nil {
 				return err
 			}
-			if err := p.Apply(adoptPlan); err != nil {
+			if err := p.Apply(addPlan); err != nil {
 				return err
 			}
 
@@ -209,7 +224,7 @@ func newLayerTestCmd() *cobra.Command {
 			// now so the round-trip check does not mistake a deliberate hand-over
 			// for residue.
 			seeded := map[string]bool{}
-			for _, a := range adoptPlan.Actions {
+			for _, a := range addPlan.Actions {
 				if a.Mode == manifest.ModeCreateOnly {
 					seeded[a.Path] = true
 				}
@@ -226,12 +241,12 @@ func newLayerTestCmd() *cobra.Command {
 			}
 			idempotent := again.Empty()
 
-			// Now drop it and compare against the fixture.
+			// Now remove it and compare against the fixture.
 			cfg2, err := config.Load(sandbox)
 			if err != nil {
 				return err
 			}
-			cfg2.Drop(loaded.Manifest.ID)
+			cfg2.Remove(loaded.Manifest.ID)
 			// Agent projections are ilk's output, not the layer's. Removing them
 			// too keeps this measuring the thing it claims to measure: whether
 			// *this layer* comes out cleanly.
@@ -243,11 +258,11 @@ func newLayerTestCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			dropPlan, err := p3.Plan(engine.PlanOptions{Prune: true})
+			rmPlan, err := p3.Plan(engine.PlanOptions{Prune: true})
 			if err != nil {
 				return err
 			}
-			if err := p3.Apply(dropPlan); err != nil {
+			if err := p3.Apply(rmPlan); err != nil {
 				return err
 			}
 
@@ -259,12 +274,12 @@ func newLayerTestCmd() *cobra.Command {
 
 			result := map[string]any{
 				"id":          loaded.Manifest.ID,
-				"adopted":     len(adoptPlan.Changes()),
+				"added":       len(addPlan.Changes()),
 				"idempotent":  idempotent,
 				"residue":     residue,
 				"handed_over": handed,
 				"lossless":    len(residue) == 0,
-				"conflicts":   len(adoptPlan.Conflicts()),
+				"conflicts":   len(addPlan.Conflicts()),
 			}
 			if flagJSON {
 				if len(residue) > 0 || !idempotent {
@@ -274,9 +289,9 @@ func newLayerTestCmd() *cobra.Command {
 			}
 
 			printf("%s %s\n\n", sty.bold(loaded.Manifest.ID), sty.dim(loaded.Manifest.Version))
-			printf("  %s %d artifact(s)\n", pass(true), len(adoptPlan.Changes()))
-			printf("  %s adopt is idempotent\n", pass(idempotent))
-			printf("  %s drop restores the repository\n", pass(len(residue) == 0))
+			printf("  %s %d artifact(s)\n", pass(true), len(addPlan.Changes()))
+			printf("  %s add is idempotent\n", pass(idempotent))
+			printf("  %s rm restores the repository\n", pass(len(residue) == 0))
 			for _, r := range residue {
 				printf("      %s %s\n", sty.red("left behind:"), r)
 			}
@@ -364,7 +379,7 @@ func diffSnapshots(before, after map[string]string, seeded map[string]bool) (res
 func scaffoldManifest(id, name string) string {
 	return fmt.Sprintf(`id: %s
 version: 0.1.0
-summary: One line describing what adopting this layer gets you.
+summary: One line describing what adding this layer gets you.
 facets:
   arc: quality        # context | planning | execution | quality | release | operations
   kind: process       # record | process | gate | harness | integration | target
@@ -444,21 +459,21 @@ func scaffoldReadme(id, name string) string {
 
 One paragraph on the problem this layer solves.
 
-## Adopt
+## Add
 
 `+"```"+`
-ilk adopt gh:you/%s
+ilk add gh:you/%s
 `+"```"+`
 
 ## What it adds
 
 Describe the directories, instructions, skills, checks and hooks, so somebody can
-decide whether to adopt it without reading the manifest.
+decide whether to add it without reading the manifest.
 
-## Drop
+## Remove
 
 `+"```"+`
-ilk drop %s
+ilk rm %s
 `+"```"+`
 
 Everything this layer added is removed. Anything you edited afterwards is left

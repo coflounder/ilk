@@ -40,9 +40,9 @@ func newRoot() *cobra.Command {
 		Long: `ilk manages the layers a repository uses to work well with coding agents:
 directory contracts, instructions, skills, hooks, gates and checks.
 
-Layers are adopted, upgraded and dropped at any point in a project's life, not
-just at creation. Adopting one shows you the whole change before it happens, and
-dropping it removes exactly what it added.
+Layers are added, upgraded and removed at any point in a project's life, not
+just at creation. Adding one shows you the whole change before it happens, and
+removing it takes away exactly what it added.
 
 Start with ` + "`ilk init`" + `.`,
 		SilenceUsage:  true,
@@ -55,8 +55,8 @@ Start with ` + "`ilk init`" + `.`,
 
 	root.AddCommand(
 		newInitCmd(),
-		newAdoptCmd(),
-		newDropCmd(),
+		newAddCmd(),
+		newRmCmd(),
 		newUpgradeCmd(),
 		newPlanCmd(),
 		newApplyCmd(),
@@ -66,6 +66,7 @@ Start with ` + "`ilk init`" + `.`,
 		newCheckCmd(),
 		newBriefCmd(),
 		newDoctorCmd(),
+		newSelfCmd(),
 		newAgentsCmd(),
 		newHookCmd(),
 		newLayerCmd(),

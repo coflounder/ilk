@@ -23,7 +23,7 @@ The answer picks the mechanism:
 |---|---|
 | Something was wrong and nothing caught it | **a check** — `ilk check` fails, with a fix that names the repair |
 | Somebody did a task badly for lack of method | **a skill** — a procedure that loads when that situation applies |
-| A choice keeps being relitigated or accidentally reversed | **a decision document** — `docs/DEC-*.md` |
+| A choice keeps being relitigated or accidentally reversed | **a decision document** — `{{ index .Caps "record.docs" }}/DEC-*.md` |
 | The environment allowed something it should not | **a hook or gate** — enforcement that does not rely on cooperation |
 | The problem will recur in other repositories too | **a layer** — publish it so other projects inherit the fix |
 
@@ -61,7 +61,7 @@ spuriously trains people to bypass it, and then you have lost the gate as well.
 
 5. **Consider whether it travels.** If the lesson is about this codebase, `docs/` is
    the right home. If it is about how software gets built, it belongs in a layer, where
-   every project that adopts it inherits the fix as a tested, versioned change rather
+   every project that adds it inherits the fix as a tested, versioned change rather
    than as advice.
 
 ## What not to do

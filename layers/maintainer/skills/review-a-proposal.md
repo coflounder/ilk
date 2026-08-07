@@ -5,7 +5,7 @@ with reasons.
 
 ## When
 
-A proposal arrives in `{{ .Vars.proposals_dir }}/`; somebody asks about the queue;
+A proposal arrives in `{{ index .Caps "maintainer.proposals" }}/`; somebody asks about the queue;
 `ilk check` reports `proposal.queue`. Run `ilk maintainer queue` for what is waiting.
 
 ## Read it in this order
@@ -82,8 +82,8 @@ because nobody looks at it again.
 ## Accepting
 
 Change the layer, bump its version, and say in the verdict which version carries it.
-Run `ilk layer test` on the layer before you push — adopt-is-idempotent and
-drop-restores-the-repository still have to hold.
+Run `ilk layer test` on the layer before you push — add-is-idempotent and
+rm-restores-the-repository still have to hold.
 
 Then it travels: adopters get it through `ilk upgrade`, which three-way merges it
 into repositories that had tuned the layer. Including, usually, the one that proposed

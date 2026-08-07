@@ -129,7 +129,7 @@ button, and it will usually produce work.`,
 func printBaselines(p *engine.Project, pl *engine.Plan) {
 	fresh := map[string][]string{}
 	for id, paths := range pl.Baselines {
-		if entry, ok := p.Lock.Layer(id); ok && len(entry.Baseline) > 0 {
+		if entry, ok := p.Lock.Owner(id); ok && len(entry.Baseline) > 0 {
 			continue // already recorded on a previous run
 		}
 		fresh[id] = paths

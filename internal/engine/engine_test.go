@@ -13,8 +13,8 @@ import (
 	"github.com/coflounder/ilk/internal/repo"
 )
 
-// The contract this file exists to defend: adopting a layer, editing around it,
-// upgrading it and dropping it must leave a repository exactly as it was, apart
+// The contract this file exists to defend: adding a layer, editing around it,
+// upgrading it and removing it must leave a repository exactly as it was, apart
 // from the files ilk deliberately seeded and handed over.
 
 const humanAgents = `# Fixture
@@ -64,6 +64,10 @@ func exists(root, rel string) bool {
 }
 
 // snapshot records every file outside ilk's own state.
+//
+// A symlink is recorded by where it points rather than by what it points at.
+// Following it would both read a directory as a file and, worse, let a link ilk
+// forgot to clean up pass as an ordinary absence.
 func snapshot(t *testing.T, root string) map[string]string {
 	t.Helper()
 	out := map[string]string{}
@@ -72,6 +76,14 @@ func snapshot(t *testing.T, root string) map[string]string {
 			return err
 		}
 		rel, _ := filepath.Rel(root, path)
+		if d.Type()&os.ModeSymlink != 0 {
+			target, err := os.Readlink(path)
+			if err != nil {
+				return err
+			}
+			out[rel] = "-> " + target
+			return nil
+		}
 		if d.IsDir() {
 			if rel == ".ilk" || rel == ".git" {
 				return filepath.SkipDir
@@ -97,7 +109,7 @@ func configWith(t *testing.T, root string, layers ...string) *config.Config {
 	cfg.Targets = []string{"claude-code"}
 	cfg.Capabilities["test.command"] = "true"
 	for _, id := range layers {
-		cfg.Adopt(config.LayerRef{ID: id})
+		cfg.Set(config.LayerRef{ID: id})
 	}
 	if err := cfg.Save(root); err != nil {
 		t.Fatal(err)
@@ -122,26 +134,26 @@ func apply(t *testing.T, root string) *Plan {
 	return pl
 }
 
-func TestAdoptThenDropRestoresTheRepository(t *testing.T) {
+func TestAddThenRemoveRestoresTheRepository(t *testing.T) {
 	root := fixture(t)
 	before := snapshot(t, root)
 
-	configWith(t, root, "ilk/record", "ilk/quality-gates")
+	configWith(t, root, "ilk/record", "ilk/gates")
 	apply(t, root)
 
-	if !exists(root, "docs/README.md") {
-		t.Fatal("adopt did not create the record directories")
+	if !exists(root, "docs/reference/README.md") {
+		t.Fatal("add did not create the record directories")
 	}
 	if !strings.Contains(read(t, root, "AGENTS.md"), "ilk:begin") {
-		t.Fatal("adopt did not write an instruction block")
+		t.Fatal("add did not write an instruction block")
 	}
 
 	cfg, err := config.Load(root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg.Drop("ilk/record")
-	cfg.Drop("ilk/quality-gates")
+	cfg.Remove("ilk/record")
+	cfg.Remove("ilk/gates")
 	cfg.RemoveTarget("claude-code")
 	if err := cfg.Save(root); err != nil {
 		t.Fatal(err)
@@ -157,7 +169,7 @@ func TestAdoptThenDropRestoresTheRepository(t *testing.T) {
 		switch {
 		case !existed:
 			if !isSeeded(path) {
-				t.Errorf("%s survived the drop and is not a seeded file", path)
+				t.Errorf("%s survived the removal and is not a seeded file", path)
 			}
 		case prev != content:
 			// .gitignore keeps ilk's own block for as long as .ilk/ exists: the
@@ -179,14 +191,14 @@ func TestAdoptThenDropRestoresTheRepository(t *testing.T) {
 // isSeeded reports whether a leftover file is one ilk deliberately hands over.
 func isSeeded(path string) bool {
 	switch path {
-	case "docs/README.md", "plans/README.md", "log/README.md", "scratch/README.md",
-		".github/workflows/ilk.yml":
+	case "docs/reference/README.md", "docs/plans/README.md", "docs/log/README.md",
+		"scratch/README.md", ".github/workflows/ilk.yml":
 		return true
 	}
 	return false
 }
 
-func TestHumanProseAroundABlockSurvivesUpgradeAndDrop(t *testing.T) {
+func TestHumanProseAroundABlockSurvivesUpgradeAndRemoval(t *testing.T) {
 	root := fixture(t)
 	configWith(t, root, "ilk/record")
 	apply(t, root)
@@ -206,7 +218,7 @@ func TestHumanProseAroundABlockSurvivesUpgradeAndDrop(t *testing.T) {
 	}
 
 	cfg, _ := config.Load(root)
-	cfg.Drop("ilk/record")
+	cfg.Remove("ilk/record")
 	cfg.RemoveTarget("claude-code")
 	_ = cfg.Save(root)
 	apply(t, root)
@@ -214,13 +226,13 @@ func TestHumanProseAroundABlockSurvivesUpgradeAndDrop(t *testing.T) {
 	got := read(t, root, "AGENTS.md")
 	want := humanAgents + addition
 	if got != want {
-		t.Fatalf("drop did not restore AGENTS.md:\n got %q\nwant %q", got, want)
+		t.Fatalf("rm did not restore AGENTS.md:\n got %q\nwant %q", got, want)
 	}
 }
 
 func TestApplyIsIdempotent(t *testing.T) {
 	root := fixture(t)
-	configWith(t, root, "ilk/record", "ilk/quality-gates")
+	configWith(t, root, "ilk/record", "ilk/gates")
 	apply(t, root)
 	first := snapshot(t, root)
 
@@ -252,7 +264,7 @@ func TestEditingAManagedFileIsRefusedRatherThanOverwritten(t *testing.T) {
 	configWith(t, root, "ilk/record")
 	apply(t, root)
 
-	target := ".agent/skills/write-decision/SKILL.md"
+	target := ".agents/skills/write-decision/SKILL.md"
 	edited := read(t, root, target) + "\n<!-- a human's note -->\n"
 	if err := os.WriteFile(filepath.Join(root, target), []byte(edited), 0o644); err != nil {
 		t.Fatal(err)
@@ -325,28 +337,28 @@ func TestEditingInsideABlockIsRefused(t *testing.T) {
 	}
 }
 
-func TestDroppingOneLayerLeavesTheOtherIntact(t *testing.T) {
+func TestRemovingOneLayerLeavesTheOtherIntact(t *testing.T) {
 	root := fixture(t)
-	configWith(t, root, "ilk/record", "ilk/quality-gates")
+	configWith(t, root, "ilk/record", "ilk/gates")
 	apply(t, root)
 
 	cfg, _ := config.Load(root)
-	cfg.Drop("ilk/quality-gates")
+	cfg.Remove("ilk/gates")
 	_ = cfg.Save(root)
 	apply(t, root)
 
 	agents := read(t, root, "AGENTS.md")
 	if !strings.Contains(agents, "layer=ilk/record") {
-		t.Error("dropping quality-gates removed the record layer's block")
+		t.Error("removing quality-gates took away the record layer's block")
 	}
-	if strings.Contains(agents, "layer=ilk/quality-gates") {
-		t.Error("the dropped layer's block is still present")
+	if strings.Contains(agents, "layer=ilk/gates") {
+		t.Error("the removed layer's block is still present")
 	}
-	if !exists(root, ".agent/skills/write-decision/SKILL.md") {
-		t.Error("dropping one layer removed another layer's skill")
+	if !exists(root, ".agents/skills/write-decision/SKILL.md") {
+		t.Error("removing one layer took away another layer's skill")
 	}
-	if exists(root, ".agent/skills/prove-it/SKILL.md") {
-		t.Error("the dropped layer's skill is still present")
+	if exists(root, ".agents/skills/prove-it/SKILL.md") {
+		t.Error("the removed layer's skill is still present")
 	}
 }
 
@@ -355,13 +367,13 @@ func TestSeededFilesAreNeverOverwritten(t *testing.T) {
 	configWith(t, root, "ilk/record")
 	apply(t, root)
 
-	mine := "# My own docs README\n"
-	if err := os.WriteFile(filepath.Join(root, "docs/README.md"), []byte(mine), 0o644); err != nil {
+	mine := "# My own reference README\n"
+	if err := os.WriteFile(filepath.Join(root, "docs/reference/README.md"), []byte(mine), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	apply(t, root)
 
-	if got := read(t, root, "docs/README.md"); got != mine {
+	if got := read(t, root, "docs/reference/README.md"); got != mine {
 		t.Fatalf("a create-only file was overwritten:\n%s", got)
 	}
 }
@@ -401,7 +413,7 @@ func TestMissingRequirementIsReportedNotFatal(t *testing.T) {
 	root := fixture(t)
 	cfg := config.Default()
 	cfg.Targets = []string{"claude-code"}
-	cfg.Adopt(config.LayerRef{ID: "ilk/quality-gates"})
+	cfg.Set(config.LayerRef{ID: "ilk/gates"})
 	if err := cfg.Save(root); err != nil {
 		t.Fatal(err)
 	}
@@ -411,7 +423,7 @@ func TestMissingRequirementIsReportedNotFatal(t *testing.T) {
 		t.Fatalf("a layer with an unmet requirement should still load: %v", err)
 	}
 	missing := p.MissingRequirements()
-	if got := missing["ilk/quality-gates"]; len(got) != 1 || got[0] != "test.command" {
+	if got := missing["ilk/gates"]; len(got) != 1 || got[0] != "test.command" {
 		t.Fatalf("expected test.command to be reported missing, got %v", missing)
 	}
 
@@ -436,10 +448,10 @@ func TestLockRecordsProvenanceForEveryArtifact(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(lk.Layers) == 0 {
+	if len(lk.Owners) == 0 {
 		t.Fatal("the lockfile recorded nothing")
 	}
-	for _, entry := range lk.Layers {
+	for _, entry := range lk.Owners {
 		for _, f := range entry.Files {
 			if f.Path == "" {
 				t.Errorf("%s recorded a file with no path", entry.ID)
@@ -486,11 +498,11 @@ func onlyAddedCoreBlock(before, after string) bool {
 // A layer governs what happens next, not what came before. These tests defend the
 // first-run experience of a repository that already has documentation.
 
-func TestAdoptingALayerExemptsWhatWasAlreadyThere(t *testing.T) {
+func TestAddingALayerExemptsWhatWasAlreadyThere(t *testing.T) {
 	root := fixture(t)
-	write(t, root, "docs/getting-started.md", "# Getting started\n")
-	write(t, root, "docs/api_reference.md", "# API\n")
-	write(t, root, "docs/guides/deploy.md", "# Deploy\n")
+	write(t, root, "docs/reference/getting-started.md", "# Getting started\n")
+	write(t, root, "docs/reference/api_reference.md", "# API\n")
+	write(t, root, "docs/reference/guides/deploy.md", "# Deploy\n")
 
 	configWith(t, root, "ilk/record")
 	apply(t, root)
@@ -500,27 +512,27 @@ func TestAdoptingALayerExemptsWhatWasAlreadyThere(t *testing.T) {
 		t.Fatal(err)
 	}
 	baseline := p.Baseline()
-	for _, path := range []string{"docs/getting-started.md", "docs/api_reference.md", "docs/guides/deploy.md"} {
+	for _, path := range []string{"docs/reference/getting-started.md", "docs/reference/api_reference.md", "docs/reference/guides/deploy.md"} {
 		if !baseline[path] {
 			t.Errorf("%s predates the layer and should be exempt; baseline is %v", path, baseline)
 		}
 	}
 	// Files ilk itself seeded are ilk's problem, not history's.
-	if baseline["docs/README.md"] {
+	if baseline["docs/reference/README.md"] {
 		t.Error("a file ilk seeded should not be in the baseline")
 	}
 }
 
 func TestBaselineIsDecidedOnceAndDoesNotGrow(t *testing.T) {
 	root := fixture(t)
-	write(t, root, "docs/old.md", "# Old\n")
+	write(t, root, "docs/reference/old.md", "# Old\n")
 
 	configWith(t, root, "ilk/record")
 	apply(t, root)
 
-	// A file added after adoption is governed, so it must not be swept into the
+	// A file added afterwards is governed, so it must not be swept into the
 	// exemption by a later apply.
-	write(t, root, "docs/added_later.md", "# Later\n")
+	write(t, root, "docs/reference/added_later.md", "# Later\n")
 	apply(t, root)
 
 	p, err := Load(root, "test")
@@ -528,21 +540,21 @@ func TestBaselineIsDecidedOnceAndDoesNotGrow(t *testing.T) {
 		t.Fatal(err)
 	}
 	baseline := p.Baseline()
-	if !baseline["docs/old.md"] {
+	if !baseline["docs/reference/old.md"] {
 		t.Error("the original exemption was lost")
 	}
-	if baseline["docs/added_later.md"] {
+	if baseline["docs/reference/added_later.md"] {
 		t.Error("a file created after adoption was quietly exempted")
 	}
 }
 
 func TestNoBaselineGovernsExistingFilesImmediately(t *testing.T) {
 	root := fixture(t)
-	write(t, root, "docs/old.md", "# Old\n")
+	write(t, root, "docs/reference/old.md", "# Old\n")
 
 	cfg := config.Default()
 	cfg.Targets = []string{"claude-code"}
-	cfg.Adopt(config.LayerRef{ID: "ilk/record"})
+	cfg.Set(config.LayerRef{ID: "ilk/record"})
 	if err := cfg.Save(root); err != nil {
 		t.Fatal(err)
 	}
@@ -562,8 +574,8 @@ func TestNoBaselineGovernsExistingFilesImmediately(t *testing.T) {
 
 func TestClearingTheBaselineIsSelective(t *testing.T) {
 	root := fixture(t)
-	write(t, root, "docs/one.md", "# One\n")
-	write(t, root, "docs/two.md", "# Two\n")
+	write(t, root, "docs/reference/one.md", "# One\n")
+	write(t, root, "docs/reference/two.md", "# Two\n")
 
 	configWith(t, root, "ilk/record")
 	apply(t, root)
@@ -572,32 +584,32 @@ func TestClearingTheBaselineIsSelective(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cleared := p.ClearBaseline([]string{"docs/one.md"})
-	if len(cleared) != 1 || cleared[0] != "docs/one.md" {
+	cleared := p.ClearBaseline([]string{"docs/reference/one.md"})
+	if len(cleared) != 1 || cleared[0] != "docs/reference/one.md" {
 		t.Fatalf("expected to clear docs/one.md, got %v", cleared)
 	}
 	baseline := p.Baseline()
-	if baseline["docs/one.md"] {
-		t.Error("docs/one.md is still exempt")
+	if baseline["docs/reference/one.md"] {
+		t.Error("docs/reference/one.md is still exempt")
 	}
-	if !baseline["docs/two.md"] {
+	if !baseline["docs/reference/two.md"] {
 		t.Error("clearing one path cleared another")
 	}
 
-	if again := p.ClearBaseline([]string{"docs/nonexistent.md"}); len(again) != 0 {
+	if again := p.ClearBaseline([]string{"docs/reference/nonexistent.md"}); len(again) != 0 {
 		t.Errorf("clearing a path that was never exempt should report nothing, got %v", again)
 	}
 }
 
-func TestDroppingALayerForgetsItsBaseline(t *testing.T) {
+func TestRemovingALayerForgetsItsBaseline(t *testing.T) {
 	root := fixture(t)
-	write(t, root, "docs/old.md", "# Old\n")
+	write(t, root, "docs/reference/old.md", "# Old\n")
 
 	configWith(t, root, "ilk/record")
 	apply(t, root)
 
 	cfg, _ := config.Load(root)
-	cfg.Drop("ilk/record")
+	cfg.Remove("ilk/record")
 	_ = cfg.Save(root)
 	apply(t, root)
 
@@ -606,7 +618,7 @@ func TestDroppingALayerForgetsItsBaseline(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(p.Baseline()) != 0 {
-		t.Errorf("dropping the layer should forget its exemptions, got %v", p.Baseline())
+		t.Errorf("removing the layer should forget its exemptions, got %v", p.Baseline())
 	}
 }
 
@@ -635,11 +647,11 @@ files:
 	return dir
 }
 
-func adoptMutable(t *testing.T, root, layerDir string) {
+func addMutable(t *testing.T, root, layerDir string) {
 	t.Helper()
 	cfg := config.Default()
 	cfg.Targets = []string{}
-	cfg.Adopt(config.LayerRef{ID: "test/mutable", Source: layerDir})
+	cfg.Set(config.LayerRef{ID: "test/mutable", Source: layerDir})
 	if err := cfg.Save(root); err != nil {
 		t.Fatal(err)
 	}
@@ -654,7 +666,7 @@ Line four.
 func TestUpgradeMergesLayerChangesWithUserEdits(t *testing.T) {
 	root := fixture(t)
 	layerDir := mutableLayer(t, t.TempDir(), originalBody)
-	adoptMutable(t, root, layerDir)
+	addMutable(t, root, layerDir)
 	apply(t, root)
 
 	if got := read(t, root, "owned.md"); got != originalBody {
@@ -693,7 +705,7 @@ func TestUpgradeMergesLayerChangesWithUserEdits(t *testing.T) {
 func TestUpgradeRefusesWhenTheSameLinesCollide(t *testing.T) {
 	root := fixture(t)
 	layerDir := mutableLayer(t, t.TempDir(), originalBody)
-	adoptMutable(t, root, layerDir)
+	addMutable(t, root, layerDir)
 	apply(t, root)
 
 	// Both sides rewrite the same line.
@@ -733,7 +745,7 @@ func TestUpgradeRefusesWhenTheSameLinesCollide(t *testing.T) {
 func TestMergeMarkersWriteBothVersions(t *testing.T) {
 	root := fixture(t)
 	layerDir := mutableLayer(t, t.TempDir(), originalBody)
-	adoptMutable(t, root, layerDir)
+	addMutable(t, root, layerDir)
 	apply(t, root)
 
 	write(t, root, "owned.md", strings.Replace(originalBody, "Line two.", "Line two, mine.", 1))
@@ -762,7 +774,7 @@ func TestMergeMarkersWriteBothVersions(t *testing.T) {
 func TestFencedRegionsMergeToo(t *testing.T) {
 	root := fixture(t)
 	layerDir := mutableLayer(t, t.TempDir(), originalBody)
-	adoptMutable(t, root, layerDir)
+	addMutable(t, root, layerDir)
 
 	cfg, _ := config.Load(root)
 	cfg.Targets = []string{"claude-code"}
@@ -793,7 +805,7 @@ func TestFencedRegionsMergeToo(t *testing.T) {
 func TestUserEditWithNoLayerChangeIsDriftNotAMerge(t *testing.T) {
 	root := fixture(t)
 	layerDir := mutableLayer(t, t.TempDir(), originalBody)
-	adoptMutable(t, root, layerDir)
+	addMutable(t, root, layerDir)
 	apply(t, root)
 
 	// The layer has not moved; only the user has. Accepting this silently would
@@ -825,7 +837,7 @@ func TestUserEditWithNoLayerChangeIsDriftNotAMerge(t *testing.T) {
 func TestAncestorsAreStoredAndCollected(t *testing.T) {
 	root := fixture(t)
 	layerDir := mutableLayer(t, t.TempDir(), originalBody)
-	adoptMutable(t, root, layerDir)
+	addMutable(t, root, layerDir)
 	apply(t, root)
 
 	lk, err := lock.Load(root)
@@ -833,7 +845,7 @@ func TestAncestorsAreStoredAndCollected(t *testing.T) {
 		t.Fatal(err)
 	}
 	var checked int
-	for _, entry := range lk.Layers {
+	for _, entry := range lk.Owners {
 		for _, f := range entry.Files {
 			if f.Hash == "" {
 				continue
@@ -872,7 +884,7 @@ func countStored(t *testing.T, root string) int {
 func TestAcceptRecordsYourVersionAsTheNewBaseline(t *testing.T) {
 	root := fixture(t)
 	layerDir := mutableLayer(t, t.TempDir(), originalBody)
-	adoptMutable(t, root, layerDir)
+	addMutable(t, root, layerDir)
 	apply(t, root)
 
 	mine := originalBody + "A line I want to keep.\n"
@@ -929,7 +941,7 @@ func TestAcceptRecordsYourVersionAsTheNewBaseline(t *testing.T) {
 func TestAMergedFileSurvivesRepeatedApplies(t *testing.T) {
 	root := fixture(t)
 	layerDir := mutableLayer(t, t.TempDir(), originalBody)
-	adoptMutable(t, root, layerDir)
+	addMutable(t, root, layerDir)
 	apply(t, root)
 
 	write(t, root, "owned.md", strings.Replace(originalBody, "Line two.", "Line two, mine.", 1))
@@ -969,7 +981,7 @@ func TestAMergedFileSurvivesRepeatedApplies(t *testing.T) {
 func TestASecondUpgradeMergesAgainstTheLayersPreviousVersion(t *testing.T) {
 	root := fixture(t)
 	layerDir := mutableLayer(t, t.TempDir(), originalBody)
-	adoptMutable(t, root, layerDir)
+	addMutable(t, root, layerDir)
 	apply(t, root)
 
 	write(t, root, "owned.md", strings.Replace(originalBody, "Line two.", "Line two, mine.", 1))
@@ -998,7 +1010,7 @@ func TestASeededFileDeletedByTheUserIsNotRecreated(t *testing.T) {
 	configWith(t, root, "ilk/record")
 	apply(t, root)
 
-	seeded := "docs/README.md"
+	seeded := "docs/reference/README.md"
 	if !exists(root, seeded) {
 		t.Fatalf("setup: %s was not seeded", seeded)
 	}

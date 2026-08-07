@@ -26,7 +26,7 @@ layers:
 
   - id: ilk/toolkit
     source: builtin
-    summary: How to operate and extend ilk in this repository — adopting, configuring, applying, resolving conflicts, and writing your own layer.
+    summary: How to operate and extend ilk in this repository — adding layers, configuring, applying, resolving conflicts, and writing your own layer.
     arc: operations
     kind: process
 
@@ -36,7 +36,7 @@ layers:
     arc: context
     kind: record
 
-  - id: ilk/quality-gates
+  - id: ilk/gates
     source: builtin
     summary: Verification an agent cannot talk its way past — tests, lint and build wired into `ilk check`, git hooks and CI.
     arc: quality

@@ -105,25 +105,25 @@ func Find(p *engine.Project, id string) (*engine.ResolvedLayer, error) {
 	}
 	switch {
 	case len(matches) == 0 && id == "":
-		return nil, fmt.Errorf("no layers are adopted here — there is nothing to contribute back to")
+		return nil, fmt.Errorf("this repository has no layers — there is nothing to contribute back to")
 	case len(matches) == 0:
-		return nil, fmt.Errorf("no adopted layer called %q — %s", id, adoptedNames(p))
+		return nil, fmt.Errorf("no layer called %q — %s", id, layerNames(p))
 	case len(matches) > 1:
-		return nil, fmt.Errorf("more than one layer matches %q — %s", id, adoptedNames(p))
+		return nil, fmt.Errorf("more than one layer matches %q — %s", id, layerNames(p))
 	}
 	return matches[0], nil
 }
 
-func adoptedNames(p *engine.Project) string {
+func layerNames(p *engine.Project) string {
 	var names []string
 	for _, l := range p.Layers {
 		names = append(names, l.ID())
 	}
 	if len(names) == 0 {
-		return "nothing is adopted"
+		return "there are no layers here"
 	}
 	sort.Strings(names)
-	return "adopted: " + strings.Join(names, ", ")
+	return "here: " + strings.Join(names, ", ")
 }
 
 // Build gathers everything this repository knows about a layer.
@@ -144,10 +144,10 @@ func Build(p *engine.Project, l *engine.ResolvedLayer) (*Proposal, error) {
 	return prop, nil
 }
 
-func findLocked(lk *lock.Lock, id string) *lock.Layer {
-	for i := range lk.Layers {
-		if lk.Layers[i].ID == id {
-			return &lk.Layers[i]
+func findLocked(lk *lock.Lock, id string) *lock.Owner {
+	for i := range lk.Owners {
+		if lk.Owners[i].ID == id {
+			return &lk.Owners[i]
 		}
 	}
 	return nil
@@ -252,8 +252,8 @@ func attributable(p *engine.Project, l *engine.ResolvedLayer) []lock.File {
 	// The whole lockfile, not this layer's entry. A layer that contributes only
 	// skills has no entry of its own — it writes no files directly — and going
 	// via its entry would make exactly those layers uncontributable.
-	for i := range p.Lock.Layers {
-		for _, f := range p.Lock.Layers[i].Files {
+	for i := range p.Lock.Owners {
+		for _, f := range p.Lock.Owners[i].Files {
 			if f.Owner == l.ID() {
 				out = append(out, f)
 				continue

@@ -44,7 +44,7 @@ jobs:
         run: go build -o ilk ./cmd/ilk
 
       # The built-in layers must keep the same contract every published layer is
-      # held to: adopt is idempotent, and drop restores the repository.
+      # held to: add is idempotent, and rm restores the repository.
       - name: Layer contract
         run: |
           set -e
@@ -70,7 +70,7 @@ jobs:
           done
 
       # Every layer in the index must actually resolve, or `ilk search` is
-      # advertising things nobody can adopt.
+      # advertising things nobody can add.
       - name: Registry index
         shell: bash
         run: |
@@ -147,12 +147,12 @@ jobs:
           "$bin" apply -y | tee out.txt
           grep -q "Already up to date" out.txt
 
-          "$bin" drop quality-gates -y
-          "$bin" drop record -y
+          "$bin" rm gates -y
+          "$bin" rm record -y
           "$bin" agents remove claude-code -y
           test "$(cat README.md)" = "$(printf '# Sample\n\nProse a human wrote.')"
 
-      # Adopting into a repository that already has documentation must not open
+      # Landing in a repository that already has documentation must not open
       # with a wall of failures about files nobody has touched.
       - name: Brownfield adoption
         shell: bash
@@ -162,25 +162,25 @@ jobs:
           work=$(mktemp -d)
           cd "$work"
           git init -q . && git config user.email ci@example.com && git config user.name CI
-          mkdir -p docs
-          printf '# Guide\n' > docs/getting_started.md
+          mkdir -p docs/reference
+          printf '# Guide\n' > docs/reference/getting_started.md
           printf '# Sample\n' > README.md
           git add -A && git commit -qm init
 
           "$bin" init -y
           "$bin" check                       # clean: the existing file is exempt
-          "$bin" baseline list | grep -q docs/getting_started.md
+          "$bin" baseline list | grep -q docs/reference/getting_started.md
 
           # A file added after adoption is governed normally.
-          printf '# Nope\n' > docs/badly_named.md
+          printf '# Nope\n' > docs/reference/badly_named.md
           if "$bin" check --only record.naming; then
             echo "a new non-conforming file should have failed the naming check"
             exit 1
           fi
-          rm docs/badly_named.md
+          rm docs/reference/badly_named.md
 
           # Clearing the exemption holds the old file to the rules.
-          "$bin" baseline clear docs/getting_started.md
+          "$bin" baseline clear docs/reference/getting_started.md
           if "$bin" check --only record.naming; then
             echo "a cleared file should be checked"
             exit 1
@@ -203,7 +203,7 @@ jobs:
           "$bin" init -y
 
           for name in hot frozen; do
-            cat > "docs/ARCH-$name.md" <<EOF
+            cat > "docs/reference/ARCH-$name.md" <<EOF
           ---
           id: arch-$name
           title: $name
@@ -231,7 +231,7 @@ jobs:
           fi
 
           # A covers: pattern matching nothing is a silent exemption, not a pass.
-          sed -i 's|src/frozen/\*\*|src/frozn/**|' docs/ARCH-frozen.md
+          sed -i 's|src/frozen/\*\*|src/frozn/**|' docs/reference/ARCH-frozen.md
           if "$bin" check --only record.coverage; then
             echo "a covers: pattern matching nothing should be reported"
             exit 1
@@ -265,8 +265,44 @@ jobs:
           # own version, so the two must not drift.
           node -e "
             const pkg = require('./npm/package.json');
-            if (!/^\d+\.\d+\.\d+$/.test(pkg.version)) {
-              console.error('npm/package.json version must be a plain semver: ' + pkg.version);
+            if (!/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(pkg.version)) {
+              console.error('npm/package.json version must be semver: ' + pkg.version);
+              process.exit(1);
+            }
+          "
+
+      # Packaging errors are only otherwise discovered while cutting a release,
+      # which is the worst moment to find one: the tag is pushed, the GitHub
+      # release exists, and the npm version is burned whether it works or not.
+      - name: Pack
+        working-directory: npm
+        run: |
+          cp ../README.md README.md
+          npm pack --dry-run --json >/tmp/pack.json
+          node -e "
+            const [pack] = require('/tmp/pack.json');
+            const shipped = new Set(pack.files.map((f) => f.path));
+            const required = ['package.json', 'bin/ilk', 'install.js', 'README.md'];
+            const missing = required.filter((f) => !shipped.has(f));
+            if (missing.length) {
+              console.error('the tarball is missing: ' + missing.join(', '));
+              console.error('shipped: ' + [...shipped].join(', '));
+              process.exit(1);
+            }
+            console.log(pack.name + '@' + pack.version + ' → ' + pack.entryCount + ' files, ' + pack.size + ' bytes');
+          "
+
+      - name: The package is publishable as public
+        run: |
+          # A scoped package defaults to restricted. Publishing without
+          # --access public silently produces a package nobody else can install.
+          node -e "
+            const pkg = require('./npm/package.json');
+            const scoped = pkg.name.startsWith('@');
+            const access = (pkg.publishConfig || {}).access;
+            if (scoped && access !== 'public') {
+              console.error(pkg.name + ' is scoped but publishConfig.access is ' + access);
+              console.error('Set \"publishConfig\": { \"access\": \"public\" } so a manual publish cannot get this wrong.');
               process.exit(1);
             }
           "

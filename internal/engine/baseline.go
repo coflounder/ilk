@@ -29,7 +29,7 @@ func (p *Project) planBaselines(desired []Desired, pl *Plan, opts PlanOptions) e
 
 		// A layer that has been applied here before already has its answer; the
 		// baseline is decided once, when the layer arrives.
-		if entry, ok := p.Lock.Layer(id); ok {
+		if entry, ok := p.Lock.Owner(id); ok {
 			if len(entry.Baseline) > 0 {
 				pl.Baselines[id] = entry.Baseline
 			}
@@ -102,7 +102,7 @@ func existingFiles(abs, rel string) ([]string, error) {
 // Baseline returns every path currently exempt from its layer's checks.
 func (p *Project) Baseline() map[string]bool {
 	out := map[string]bool{}
-	for _, entry := range p.Lock.Layers {
+	for _, entry := range p.Lock.Owners {
 		for _, path := range entry.Baseline {
 			out[path] = true
 		}
@@ -114,7 +114,7 @@ func (p *Project) Baseline() map[string]bool {
 // them, for `ilk baseline list` and `ilk status`.
 func (p *Project) BaselineByLayer() map[string][]string {
 	out := map[string][]string{}
-	for _, entry := range p.Lock.Layers {
+	for _, entry := range p.Lock.Owners {
 		if len(entry.Baseline) > 0 {
 			out[entry.ID] = append([]string(nil), entry.Baseline...)
 		}
@@ -134,8 +134,8 @@ func (p *Project) ClearBaseline(paths []string) []string {
 	}
 
 	var cleared []string
-	for i := range p.Lock.Layers {
-		entry := &p.Lock.Layers[i]
+	for i := range p.Lock.Owners {
+		entry := &p.Lock.Owners[i]
 		if len(entry.Baseline) == 0 {
 			continue
 		}

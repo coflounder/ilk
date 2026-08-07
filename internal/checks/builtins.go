@@ -477,6 +477,38 @@ func intArgOr(v any, fallback int) int { return intArg(v, fallback) }
 // checkDrift compares what is on disk against what ilk recorded writing. It is
 // how a repository notices that someone edited inside a generated block, or that
 // a generated file was deleted.
+// symlinkDrift reports whether a link ilk owns has been removed, replaced with a
+// real file, or repointed somewhere else.
+func symlinkDrift(p *engine.Project, owner string, f lock.File) (Finding, bool) {
+	abs := p.Repo.Path(f.Path)
+	info, err := os.Lstat(abs)
+	switch {
+	case os.IsNotExist(err):
+		return Finding{
+			Path:    f.Path,
+			Message: fmt.Sprintf("missing; %s expects to own it", owner),
+		}, true
+	case err != nil:
+		return Finding{Path: f.Path, Message: err.Error()}, true
+	case info.Mode()&os.ModeSymlink == 0:
+		return Finding{
+			Path:    f.Path,
+			Message: fmt.Sprintf("is a real file where %s expects a symlink", owner),
+		}, true
+	}
+	target, err := os.Readlink(abs)
+	if err != nil {
+		return Finding{Path: f.Path, Message: err.Error()}, true
+	}
+	if lock.Hash(target) != f.Hash {
+		return Finding{
+			Path:    f.Path,
+			Message: fmt.Sprintf("points at %s, not where %s put it", target, owner),
+		}, true
+	}
+	return Finding{}, false
+}
+
 func checkDrift(p *engine.Project, _ map[string]any) ([]Finding, error) {
 	var findings []Finding
 	// A file holding conflict markers is reported by ilk.conflicts, which says
@@ -489,11 +521,22 @@ func checkDrift(p *engine.Project, _ map[string]any) ([]Finding, error) {
 		}
 		return false
 	}
-	for _, entry := range p.Lock.Layers {
+	for _, entry := range p.Lock.Owners {
 		for _, f := range entry.Files {
 			if f.Mode == manifest.ModeCreateOnly || f.Mode == engine.ModeDir || f.Hash == "" {
 				continue
 			}
+
+			// A link's content is where it points, not what it points at. Reading
+			// through one would compare the hash of a linked file against the hash
+			// of a path, and fail outright when the link names a directory.
+			if f.Mode == manifest.ModeSymlink {
+				if finding, drifted := symlinkDrift(p, entry.ID, f); drifted {
+					findings = append(findings, finding)
+				}
+				continue
+			}
+
 			data, err := os.ReadFile(p.Repo.Path(f.Path))
 			if os.IsNotExist(err) {
 				findings = append(findings, Finding{
@@ -553,7 +596,7 @@ func checkDrift(p *engine.Project, _ map[string]any) ([]Finding, error) {
 func checkConflicts(p *engine.Project, _ map[string]any) ([]Finding, error) {
 	var findings []Finding
 	seen := map[string]bool{}
-	for _, entry := range p.Lock.Layers {
+	for _, entry := range p.Lock.Owners {
 		for _, f := range entry.Files {
 			if f.Mode == engine.ModeDir || seen[f.Path] {
 				continue

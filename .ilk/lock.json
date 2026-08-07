@@ -1,25 +1,23 @@
 {
   "version": 1,
-  "layers": [
+  "owners": [
     {
       "id": "ilk/compound-lessons",
-      "version": "0.1.0",
-      "source": "/home/user/ilk/layers/compound-lessons",
-      "digest": "sha256:a92266b79399a0c80fbab017ddb0a507e41c94286eaf6638738a5bac5044c86e",
-      "vars": {
-        "docs_dir": "docs"
-      },
+      "kind": "layer",
+      "version": "0.2.0",
+      "source": "/home/dev/workspace/coflounder/repos/ilk/layers/compound-lessons",
+      "digest": "sha256:1e82811a5165acf8ed5c0dc20ea0c3fc053092216a1a5ca6f4f36af0663a2494",
       "files": [
         {
           "path": "AGENTS.md",
           "mode": "region",
           "region": "instructions",
-          "hash": "sha256:7d30a4456e215b653dbf8a25d622909546a3be6954be2c757ea7c3048ed158c1",
-          "delivered": "sha256:7d30a4456e215b653dbf8a25d622909546a3be6954be2c757ea7c3048ed158c1",
+          "hash": "sha256:d5efab3800f38c86bf85e6d42b0510265d79ede1b12bb6ada7b1a17bb20fbb05",
+          "delivered": "sha256:d5efab3800f38c86bf85e6d42b0510265d79ede1b12bb6ada7b1a17bb20fbb05",
           "owner": "ilk/compound-lessons"
         },
         {
-          "path": "docs/LESSON-example.md",
+          "path": "docs/reference/LESSON-example.md",
           "mode": "create-only",
           "created_file": true,
           "owner": "ilk/compound-lessons"
@@ -28,8 +26,7 @@
     },
     {
       "id": "ilk/core",
-      "version": "",
-      "source": "",
+      "kind": "core",
       "files": [
         {
           "path": ".gitignore",
@@ -38,15 +35,51 @@
           "hash": "sha256:0d7d3ed289573db4e00579b71f037bae5411dd479b80368cab733da438c91fd4",
           "delivered": "sha256:0d7d3ed289573db4e00579b71f037bae5411dd479b80368cab733da438c91fd4",
           "owner": "ilk/core"
+        },
+        {
+          "path": "docs/README.md",
+          "mode": "region",
+          "region": "index",
+          "hash": "sha256:0fb0ec3a62f6114c20e88a8314a6d8bcc01a1537a93e1f8b74126d96f488cfc9",
+          "delivered": "sha256:0fb0ec3a62f6114c20e88a8314a6d8bcc01a1537a93e1f8b74126d96f488cfc9",
+          "created_file": true,
+          "owner": "ilk/core"
+        }
+      ]
+    },
+    {
+      "id": "ilk/gates",
+      "kind": "layer",
+      "version": "0.2.0",
+      "source": "builtin",
+      "digest": "sha256:6b72cf74919a5bd967689d1a3bb8c7e1a7177066d9f5fb71ef26de598ea45c2d",
+      "vars": {
+        "ci": "github"
+      },
+      "files": [
+        {
+          "path": ".github/workflows/ilk.yml",
+          "mode": "create-only",
+          "owner": "ilk/gates"
+        },
+        {
+          "path": "AGENTS.md",
+          "mode": "region",
+          "region": "instructions",
+          "hash": "sha256:ba7de74b1868b3e19c61222eb02190cdddb5b4a9a022b4bab2c82eb52735e4d8",
+          "delivered": "sha256:ba7de74b1868b3e19c61222eb02190cdddb5b4a9a022b4bab2c82eb52735e4d8",
+          "owner": "ilk/gates"
         }
       ]
     },
     {
       "id": "ilk/maintainer",
-      "version": "0.1.0",
-      "source": "/home/user/ilk/layers/maintainer",
-      "digest": "sha256:28fdc326dd258580efa6d3a259da7763486a9a86a1c6d8d8f5e8e350a6b5ecea",
+      "kind": "layer",
+      "version": "0.2.0",
+      "source": "/home/dev/workspace/coflounder/repos/ilk/layers/maintainer",
+      "digest": "sha256:c0b8483911e4367b919a8d67ad11e5e590d7e39a9fab43bc7944d8ed91339e6b",
       "vars": {
+        "group": "docs",
         "open_max": "12",
         "proposals_dir": "proposals"
       },
@@ -55,24 +88,24 @@
           "path": "AGENTS.md",
           "mode": "region",
           "region": "instructions",
-          "hash": "sha256:3f6a6f79a1da972c2768e48dc64cf3a3f83f6e21d58314919154a4b096181250",
-          "delivered": "sha256:3f6a6f79a1da972c2768e48dc64cf3a3f83f6e21d58314919154a4b096181250",
+          "hash": "sha256:51d5112df62cae86cd73bf76ea5debd4e9da65ee1f99dabc0428c38c1d6b1283",
+          "delivered": "sha256:51d5112df62cae86cd73bf76ea5debd4e9da65ee1f99dabc0428c38c1d6b1283",
           "owner": "ilk/maintainer"
         },
         {
-          "path": "proposals",
+          "path": "docs/proposals",
           "mode": "dir",
           "owner": "ilk/maintainer"
         },
         {
-          "path": "proposals/.gitkeep",
+          "path": "docs/proposals/.gitkeep",
           "mode": "managed",
           "hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
           "created_file": true,
           "owner": "ilk/maintainer"
         },
         {
-          "path": "proposals/README.md",
+          "path": "docs/proposals/README.md",
           "mode": "create-only",
           "created_file": true,
           "owner": "ilk/maintainer"
@@ -80,40 +113,17 @@
       ]
     },
     {
-      "id": "ilk/quality-gates",
-      "version": "0.1.0",
-      "source": "builtin",
-      "digest": "sha256:9900d46120fc0a5d1f8b6e08f97ff93523bf9d4f2d747312922ee55ad270bd5a",
-      "vars": {
-        "ci": "github"
-      },
-      "files": [
-        {
-          "path": ".github/workflows/ilk.yml",
-          "mode": "create-only",
-          "created_file": true,
-          "owner": "ilk/quality-gates"
-        },
-        {
-          "path": "AGENTS.md",
-          "mode": "region",
-          "region": "instructions",
-          "hash": "sha256:ba7de74b1868b3e19c61222eb02190cdddb5b4a9a022b4bab2c82eb52735e4d8",
-          "delivered": "sha256:ba7de74b1868b3e19c61222eb02190cdddb5b4a9a022b4bab2c82eb52735e4d8",
-          "owner": "ilk/quality-gates"
-        }
-      ]
-    },
-    {
       "id": "ilk/record",
-      "version": "0.1.0",
+      "kind": "layer",
+      "version": "0.2.0",
       "source": "builtin",
-      "digest": "sha256:ae5d46a80f443a12eba75948e46521457617e9b1b86e4589d0dfec790d14cdb8",
+      "digest": "sha256:ae0a153f55a9611f486415d1d85f6910c2ed8c5f92dd626bc5556e1fd505326f",
       "vars": {
-        "docs_dir": "docs",
+        "group": "docs",
         "log_dir": "log",
         "max_age_days": "0",
         "plans_dir": "plans",
+        "reference_dir": "reference",
         "review_after_commits": "10",
         "scratch_dir": "scratch"
       },
@@ -129,8 +139,8 @@
         {
           "path": ".ilk/bin/ilk-record-new.sh",
           "mode": "managed",
-          "hash": "sha256:49ba0ebff4a107d84872634817a645d14d32c922a59232afb10cb3d0bc578f3a",
-          "delivered": "sha256:49ba0ebff4a107d84872634817a645d14d32c922a59232afb10cb3d0bc578f3a",
+          "hash": "sha256:9b9f4a791d2327ba8ef8e76a96fafb4863fa66da4b9275720ffbb95f11f97ff5",
+          "delivered": "sha256:9b9f4a791d2327ba8ef8e76a96fafb4863fa66da4b9275720ffbb95f11f97ff5",
           "created_file": true,
           "owner": "ilk/record",
           "exec": true
@@ -148,62 +158,57 @@
           "path": "AGENTS.md",
           "mode": "region",
           "region": "instructions",
-          "hash": "sha256:fa491f5f1e21f9cfcc52cafbae2f1535ea206c66d1a408b8b960059e9a73e413",
-          "delivered": "sha256:fa491f5f1e21f9cfcc52cafbae2f1535ea206c66d1a408b8b960059e9a73e413",
+          "hash": "sha256:bd206f612ebc5e1f1f256eaa69513f98aace0dfce918fe9ed9b6f86351661571",
+          "delivered": "sha256:bd206f612ebc5e1f1f256eaa69513f98aace0dfce918fe9ed9b6f86351661571",
           "owner": "ilk/record"
         },
         {
-          "path": "docs",
+          "path": "docs/log",
           "mode": "dir",
           "owner": "ilk/record"
         },
         {
-          "path": "docs/.gitkeep",
+          "path": "docs/log/.gitkeep",
+          "mode": "managed",
+          "hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "owner": "ilk/record"
+        },
+        {
+          "path": "docs/log/README.md",
+          "mode": "create-only",
+          "owner": "ilk/record"
+        },
+        {
+          "path": "docs/plans",
+          "mode": "dir",
+          "owner": "ilk/record"
+        },
+        {
+          "path": "docs/plans/.gitkeep",
+          "mode": "managed",
+          "hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "owner": "ilk/record"
+        },
+        {
+          "path": "docs/plans/README.md",
+          "mode": "create-only",
+          "owner": "ilk/record"
+        },
+        {
+          "path": "docs/reference",
+          "mode": "dir",
+          "owner": "ilk/record"
+        },
+        {
+          "path": "docs/reference/.gitkeep",
           "mode": "managed",
           "hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
           "created_file": true,
           "owner": "ilk/record"
         },
         {
-          "path": "docs/README.md",
+          "path": "docs/reference/README.md",
           "mode": "create-only",
-          "created_file": true,
-          "owner": "ilk/record"
-        },
-        {
-          "path": "log",
-          "mode": "dir",
-          "owner": "ilk/record"
-        },
-        {
-          "path": "log/.gitkeep",
-          "mode": "managed",
-          "hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-          "created_file": true,
-          "owner": "ilk/record"
-        },
-        {
-          "path": "log/README.md",
-          "mode": "create-only",
-          "created_file": true,
-          "owner": "ilk/record"
-        },
-        {
-          "path": "plans",
-          "mode": "dir",
-          "owner": "ilk/record"
-        },
-        {
-          "path": "plans/.gitkeep",
-          "mode": "managed",
-          "hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-          "created_file": true,
-          "owner": "ilk/record"
-        },
-        {
-          "path": "plans/README.md",
-          "mode": "create-only",
-          "created_file": true,
           "owner": "ilk/record"
         },
         {
@@ -224,13 +229,31 @@
           "created_file": true,
           "owner": "ilk/record"
         }
+      ],
+      "baseline": [
+        "docs/log/2026-08-06-baselines-and-three-way-merge.md",
+        "docs/log/2026-08-06-first-working-version.md",
+        "docs/log/2026-08-06-staleness-by-coupling.md",
+        "docs/log/2026-08-06-toolkit-and-community-layers.md",
+        "docs/log/2026-08-07-four-more-layers.md",
+        "docs/log/2026-08-07-mirror-and-gh-projects.md",
+        "docs/log/2026-08-07-the-flywheel.md",
+        "docs/log/README.md",
+        "docs/plans/PLAN-roadmap.md",
+        "docs/plans/README.md",
+        "docs/reference/ARCH-system-overview.md",
+        "docs/reference/DEC-fenced-regions-over-whole-files.md",
+        "docs/reference/README.md",
+        "docs/reference/REF-design-proposal.md",
+        "docs/reference/REF-writing-layers.md"
       ]
     },
     {
       "id": "ilk/toolkit",
-      "version": "0.1.0",
+      "kind": "layer",
+      "version": "0.2.0",
       "source": "builtin",
-      "digest": "sha256:d0aad2264c9320ea48b000883920f65f3bdd10a0988294a52e600c5959eb3855",
+      "digest": "sha256:a654cdc3ccc3c319986cd6a42c764b6da21153391962b50d7f8400d95b1549d8",
       "files": [
         {
           "path": ".ilk/bin/ilk-propose.sh",
@@ -245,43 +268,42 @@
     },
     {
       "id": "target:agents-md",
-      "version": "",
-      "source": "",
+      "kind": "target",
       "files": [
         {
-          "path": ".agent/skills/adopt-a-layer/SKILL.md",
+          "path": ".agents/skills/add-a-layer/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:aa1c1b7498d63ccd3a30fbae4376624b0aa74f774eae1b497c38b8d3a2ccab74",
-          "delivered": "sha256:aa1c1b7498d63ccd3a30fbae4376624b0aa74f774eae1b497c38b8d3a2ccab74",
+          "hash": "sha256:c6a8dbb9c393fc8685bd2cc63cafe3a27510f2eab573eeb416a0c4ca25040a55",
+          "delivered": "sha256:c6a8dbb9c393fc8685bd2cc63cafe3a27510f2eab573eeb416a0c4ca25040a55",
           "created_file": true,
           "owner": "target:agents-md"
         },
         {
-          "path": ".agent/skills/apply-ilk-changes/SKILL.md",
+          "path": ".agents/skills/apply-ilk-changes/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:7385d8b1c50f2fea4464de37a92770de534936d329dc205876e3d271e9c424d5",
-          "delivered": "sha256:7385d8b1c50f2fea4464de37a92770de534936d329dc205876e3d271e9c424d5",
+          "hash": "sha256:6f88090b335269dd2796330f5a37e589ecc7bed4fba705b493fd591730999c0a",
+          "delivered": "sha256:6f88090b335269dd2796330f5a37e589ecc7bed4fba705b493fd591730999c0a",
           "created_file": true,
           "owner": "target:agents-md"
         },
         {
-          "path": ".agent/skills/compound-a-lesson/SKILL.md",
+          "path": ".agents/skills/compound-a-lesson/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:69922dd1868c03955f7737492aa062851ac9ebd8ebf28a54b70ba575b1ce731a",
-          "delivered": "sha256:69922dd1868c03955f7737492aa062851ac9ebd8ebf28a54b70ba575b1ce731a",
+          "hash": "sha256:a4f24b63cededd7729077e3d1ccd178084a894465e51c1e6cf4b5d5eb87efddd",
+          "delivered": "sha256:a4f24b63cededd7729077e3d1ccd178084a894465e51c1e6cf4b5d5eb87efddd",
           "created_file": true,
           "owner": "target:agents-md"
         },
         {
-          "path": ".agent/skills/configure-ilk/SKILL.md",
+          "path": ".agents/skills/configure-ilk/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:6cb53db2681480bf50a2679571f18c2198bff807f43ab69acb6e5a0a1dc5150a",
-          "delivered": "sha256:6cb53db2681480bf50a2679571f18c2198bff807f43ab69acb6e5a0a1dc5150a",
+          "hash": "sha256:79e16538b23c30e9aa555479a73d59390f93a4687174c0793ac1b55b7d827178",
+          "delivered": "sha256:79e16538b23c30e9aa555479a73d59390f93a4687174c0793ac1b55b7d827178",
           "created_file": true,
           "owner": "target:agents-md"
         },
         {
-          "path": ".agent/skills/contribute-upstream/SKILL.md",
+          "path": ".agents/skills/contribute-upstream/SKILL.md",
           "mode": "managed",
           "hash": "sha256:3ea5f7e21642effa652a60425f347274ca10cea2fa33f6370baa1c0f632eb1f3",
           "delivered": "sha256:3ea5f7e21642effa652a60425f347274ca10cea2fa33f6370baa1c0f632eb1f3",
@@ -289,15 +311,15 @@
           "owner": "target:agents-md"
         },
         {
-          "path": ".agent/skills/prove-it/SKILL.md",
+          "path": ".agents/skills/prove-it/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:8b22ac164726f9503b28780548ba554ecd05aa9094fca5076e80555eccd66aab",
-          "delivered": "sha256:8b22ac164726f9503b28780548ba554ecd05aa9094fca5076e80555eccd66aab",
+          "hash": "sha256:f19f55ea0c3089cd02dd87223ff443f54d3d5cb1b2ce11c3096779a5c48011ba",
+          "delivered": "sha256:f19f55ea0c3089cd02dd87223ff443f54d3d5cb1b2ce11c3096779a5c48011ba",
           "created_file": true,
           "owner": "target:agents-md"
         },
         {
-          "path": ".agent/skills/resolve-an-ilk-conflict/SKILL.md",
+          "path": ".agents/skills/resolve-an-ilk-conflict/SKILL.md",
           "mode": "managed",
           "hash": "sha256:c0e382f7b9510febc456de119843cbdc2a67f059a639cb6e9a1aa4d58ae43230",
           "delivered": "sha256:c0e382f7b9510febc456de119843cbdc2a67f059a639cb6e9a1aa4d58ae43230",
@@ -305,23 +327,23 @@
           "owner": "target:agents-md"
         },
         {
-          "path": ".agent/skills/review-a-proposal/SKILL.md",
+          "path": ".agents/skills/review-a-proposal/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:07413e45e1594e36a050b11c193b68827c590906f4226d29c243124a2eefe14e",
-          "delivered": "sha256:07413e45e1594e36a050b11c193b68827c590906f4226d29c243124a2eefe14e",
+          "hash": "sha256:e6cb6f89c70ee7f1116a55a6208149443b595dd5eeebf7be84701660af6e623a",
+          "delivered": "sha256:e6cb6f89c70ee7f1116a55a6208149443b595dd5eeebf7be84701660af6e623a",
           "created_file": true,
           "owner": "target:agents-md"
         },
         {
-          "path": ".agent/skills/review-changes/SKILL.md",
+          "path": ".agents/skills/review-changes/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:c2bd5844e609b2d77501170de01c76e578f517ea5e091e44ce3faebb8743b13d",
-          "delivered": "sha256:c2bd5844e609b2d77501170de01c76e578f517ea5e091e44ce3faebb8743b13d",
+          "hash": "sha256:74e36ff10bc88c8d7d616def6e56b90aa8fbfdbf374ac7c026287cb71cc25636",
+          "delivered": "sha256:74e36ff10bc88c8d7d616def6e56b90aa8fbfdbf374ac7c026287cb71cc25636",
           "created_file": true,
           "owner": "target:agents-md"
         },
         {
-          "path": ".agent/skills/update-record/SKILL.md",
+          "path": ".agents/skills/update-record/SKILL.md",
           "mode": "managed",
           "hash": "sha256:2675e8d773db6703414cb9565a185ec242697645d51b85bdcf4161a46c75d8c3",
           "delivered": "sha256:2675e8d773db6703414cb9565a185ec242697645d51b85bdcf4161a46c75d8c3",
@@ -329,15 +351,15 @@
           "owner": "target:agents-md"
         },
         {
-          "path": ".agent/skills/write-a-layer/SKILL.md",
+          "path": ".agents/skills/write-a-layer/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:35ad6cfd30b654805ad17d0b8f77a6d99a50fc16c4a88f8db4eea8084097f384",
-          "delivered": "sha256:35ad6cfd30b654805ad17d0b8f77a6d99a50fc16c4a88f8db4eea8084097f384",
+          "hash": "sha256:df19c84d23fb80911846a6ed4e9b3e2c8cf5ad42dee063f5ef47e07dfc3f5455",
+          "delivered": "sha256:df19c84d23fb80911846a6ed4e9b3e2c8cf5ad42dee063f5ef47e07dfc3f5455",
           "created_file": true,
           "owner": "target:agents-md"
         },
         {
-          "path": ".agent/skills/write-decision/SKILL.md",
+          "path": ".agents/skills/write-decision/SKILL.md",
           "mode": "managed",
           "hash": "sha256:3efff8f7d55a4304ac17e8f4a4949857b459d09a5f201372a9ca5a8c5b10a1ee",
           "delivered": "sha256:3efff8f7d55a4304ac17e8f4a4949857b459d09a5f201372a9ca5a8c5b10a1ee",
@@ -347,23 +369,21 @@
         {
           "path": "AGENTS.md",
           "mode": "create-only",
-          "created_file": true,
           "owner": "target:agents-md"
         },
         {
           "path": "AGENTS.md",
           "mode": "region",
           "region": "skills",
-          "hash": "sha256:82713e2289be857c6a4ef709d4179f1e7252bb529348d13b27006bb1873d3d37",
-          "delivered": "sha256:82713e2289be857c6a4ef709d4179f1e7252bb529348d13b27006bb1873d3d37",
+          "hash": "sha256:2f867b20c8038cf9d1d99103a99898ae6b0dcb24f51d7e4b76962fd2122d438d",
+          "delivered": "sha256:2f867b20c8038cf9d1d99103a99898ae6b0dcb24f51d7e4b76962fd2122d438d",
           "owner": "target:agents-md"
         }
       ]
     },
     {
       "id": "target:claude-code",
-      "version": "",
-      "source": "",
+      "kind": "target",
       "files": [
         {
           "path": ".claude/commands/maintainer-queue.md",
@@ -402,102 +422,89 @@
           "mode": "merge",
           "hash": "sha256:949a1fe43240e43717cb78438fb476f83fb967d1e65eccec96769c1ed30e0d1f",
           "delivered": "sha256:949a1fe43240e43717cb78438fb476f83fb967d1e65eccec96769c1ed30e0d1f",
+          "owner": "target:claude-code"
+        },
+        {
+          "path": ".claude/skills/add-a-layer",
+          "mode": "symlink",
+          "hash": "sha256:00e13081a098be57260c48a819429aa9f28bed7f1089984f57e6461f2ac99836",
           "created_file": true,
           "owner": "target:claude-code"
         },
         {
-          "path": ".claude/skills/adopt-a-layer/SKILL.md",
-          "mode": "managed",
-          "hash": "sha256:aa1c1b7498d63ccd3a30fbae4376624b0aa74f774eae1b497c38b8d3a2ccab74",
-          "delivered": "sha256:aa1c1b7498d63ccd3a30fbae4376624b0aa74f774eae1b497c38b8d3a2ccab74",
+          "path": ".claude/skills/apply-ilk-changes",
+          "mode": "symlink",
+          "hash": "sha256:253e50657b7de9826e3ffc86184dc1872a03fc5ffe357c9bbf47a249c96e5989",
           "created_file": true,
           "owner": "target:claude-code"
         },
         {
-          "path": ".claude/skills/apply-ilk-changes/SKILL.md",
-          "mode": "managed",
-          "hash": "sha256:7385d8b1c50f2fea4464de37a92770de534936d329dc205876e3d271e9c424d5",
-          "delivered": "sha256:7385d8b1c50f2fea4464de37a92770de534936d329dc205876e3d271e9c424d5",
+          "path": ".claude/skills/compound-a-lesson",
+          "mode": "symlink",
+          "hash": "sha256:0209f476c40940b1637bccf4aa7a89e015b72470e19237d49650942952bf3339",
           "created_file": true,
           "owner": "target:claude-code"
         },
         {
-          "path": ".claude/skills/compound-a-lesson/SKILL.md",
-          "mode": "managed",
-          "hash": "sha256:69922dd1868c03955f7737492aa062851ac9ebd8ebf28a54b70ba575b1ce731a",
-          "delivered": "sha256:69922dd1868c03955f7737492aa062851ac9ebd8ebf28a54b70ba575b1ce731a",
+          "path": ".claude/skills/configure-ilk",
+          "mode": "symlink",
+          "hash": "sha256:f8e3d2f9c9e5c1be76eb69d9ea243d04154efec70e0efcce153e0e1f98e94545",
           "created_file": true,
           "owner": "target:claude-code"
         },
         {
-          "path": ".claude/skills/configure-ilk/SKILL.md",
-          "mode": "managed",
-          "hash": "sha256:6cb53db2681480bf50a2679571f18c2198bff807f43ab69acb6e5a0a1dc5150a",
-          "delivered": "sha256:6cb53db2681480bf50a2679571f18c2198bff807f43ab69acb6e5a0a1dc5150a",
+          "path": ".claude/skills/contribute-upstream",
+          "mode": "symlink",
+          "hash": "sha256:2413cffa6e1ac55a8b0da2abb8f3fa7df4781eb7501dca0954c2de014ef4e4bc",
           "created_file": true,
           "owner": "target:claude-code"
         },
         {
-          "path": ".claude/skills/contribute-upstream/SKILL.md",
-          "mode": "managed",
-          "hash": "sha256:3ea5f7e21642effa652a60425f347274ca10cea2fa33f6370baa1c0f632eb1f3",
-          "delivered": "sha256:3ea5f7e21642effa652a60425f347274ca10cea2fa33f6370baa1c0f632eb1f3",
+          "path": ".claude/skills/prove-it",
+          "mode": "symlink",
+          "hash": "sha256:134ac0bbf1a971a2297c5efde386c27098fd30ddc227b9493d5b0ef35c38c034",
           "created_file": true,
           "owner": "target:claude-code"
         },
         {
-          "path": ".claude/skills/prove-it/SKILL.md",
-          "mode": "managed",
-          "hash": "sha256:8b22ac164726f9503b28780548ba554ecd05aa9094fca5076e80555eccd66aab",
-          "delivered": "sha256:8b22ac164726f9503b28780548ba554ecd05aa9094fca5076e80555eccd66aab",
+          "path": ".claude/skills/resolve-an-ilk-conflict",
+          "mode": "symlink",
+          "hash": "sha256:dac57c0647875e77ceb06b6d982fe3293391bf0dbcba94e508d2d56357d1a391",
           "created_file": true,
           "owner": "target:claude-code"
         },
         {
-          "path": ".claude/skills/resolve-an-ilk-conflict/SKILL.md",
-          "mode": "managed",
-          "hash": "sha256:c0e382f7b9510febc456de119843cbdc2a67f059a639cb6e9a1aa4d58ae43230",
-          "delivered": "sha256:c0e382f7b9510febc456de119843cbdc2a67f059a639cb6e9a1aa4d58ae43230",
+          "path": ".claude/skills/review-a-proposal",
+          "mode": "symlink",
+          "hash": "sha256:df61a7eca32f2fcca4a7c33e4a3ab563f4e036f7cfa97f9611ac8ca5d6389875",
           "created_file": true,
           "owner": "target:claude-code"
         },
         {
-          "path": ".claude/skills/review-a-proposal/SKILL.md",
-          "mode": "managed",
-          "hash": "sha256:07413e45e1594e36a050b11c193b68827c590906f4226d29c243124a2eefe14e",
-          "delivered": "sha256:07413e45e1594e36a050b11c193b68827c590906f4226d29c243124a2eefe14e",
+          "path": ".claude/skills/review-changes",
+          "mode": "symlink",
+          "hash": "sha256:710d06c374e148a358191b1720b7c741ca5645fb2ab6da1cb201c1a8de3c6174",
           "created_file": true,
           "owner": "target:claude-code"
         },
         {
-          "path": ".claude/skills/review-changes/SKILL.md",
-          "mode": "managed",
-          "hash": "sha256:c2bd5844e609b2d77501170de01c76e578f517ea5e091e44ce3faebb8743b13d",
-          "delivered": "sha256:c2bd5844e609b2d77501170de01c76e578f517ea5e091e44ce3faebb8743b13d",
+          "path": ".claude/skills/update-record",
+          "mode": "symlink",
+          "hash": "sha256:2b13558b1ebb1b96d9b0cb747a46a76b2483685c088966aceeb0bb7a2f7691be",
           "created_file": true,
           "owner": "target:claude-code"
         },
         {
-          "path": ".claude/skills/update-record/SKILL.md",
-          "mode": "managed",
-          "hash": "sha256:2675e8d773db6703414cb9565a185ec242697645d51b85bdcf4161a46c75d8c3",
-          "delivered": "sha256:2675e8d773db6703414cb9565a185ec242697645d51b85bdcf4161a46c75d8c3",
+          "path": ".claude/skills/write-a-layer",
+          "mode": "symlink",
+          "hash": "sha256:089947aefb88386e7837a0f0a033aeb3ab33cc7cc2298c61b1cc122dcf9adff9",
           "created_file": true,
           "owner": "target:claude-code"
         },
         {
-          "path": ".claude/skills/write-a-layer/SKILL.md",
-          "mode": "managed",
-          "hash": "sha256:35ad6cfd30b654805ad17d0b8f77a6d99a50fc16c4a88f8db4eea8084097f384",
-          "delivered": "sha256:35ad6cfd30b654805ad17d0b8f77a6d99a50fc16c4a88f8db4eea8084097f384",
-          "created_file": true,
-          "owner": "target:claude-code"
-        },
-        {
-          "path": ".claude/skills/write-decision/SKILL.md",
-          "mode": "managed",
-          "hash": "sha256:3efff8f7d55a4304ac17e8f4a4949857b459d09a5f201372a9ca5a8c5b10a1ee",
-          "delivered": "sha256:3efff8f7d55a4304ac17e8f4a4949857b459d09a5f201372a9ca5a8c5b10a1ee",
+          "path": ".claude/skills/write-decision",
+          "mode": "symlink",
+          "hash": "sha256:bb728c338477226e681ee9e0760b264c9103873026de9250cbd9a9eaf22d94f0",
           "created_file": true,
           "owner": "target:claude-code"
         },
@@ -507,15 +514,13 @@
           "region": "pointer",
           "hash": "sha256:54829fdf67c26df7e0de1a55e04a10078b52959d91248acdc7268552ba253a82",
           "delivered": "sha256:54829fdf67c26df7e0de1a55e04a10078b52959d91248acdc7268552ba253a82",
-          "created_file": true,
           "owner": "target:claude-code"
         }
       ]
     },
     {
       "id": "target:git-hooks",
-      "version": "",
-      "source": "",
+      "kind": "target",
       "files": [
         {
           "path": ".git/hooks/pre-commit",
@@ -537,8 +542,5 @@
         }
       ]
     }
-  ],
-  "targets": [
-    "claude-code"
   ]
 }

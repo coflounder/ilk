@@ -21,7 +21,7 @@ import (
 // one-shot expansion, and nothing you adopt through one is trapped in it.
 var profiles = map[string][]string{
 	"minimal":  {"ilk/toolkit", "ilk/record"},
-	"standard": {"ilk/toolkit", "ilk/record", "ilk/quality-gates"},
+	"standard": {"ilk/toolkit", "ilk/record", "ilk/gates"},
 }
 
 func profileNames() []string {
@@ -48,7 +48,7 @@ func newInitCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Set this repository up to work well with coding agents",
-		Long: `Create .ilk/, adopt a starting set of layers, and apply them.
+		Long: `Create .ilk/, add a starting set of layers, and apply them.
 
 With no flags this gives you a project record (what is true, what is intended,
 what happened, and an ungoverned scratchpad), instructions in AGENTS.md, one
@@ -62,7 +62,7 @@ nothing to choose.`,
 			}
 
 			if _, err := os.Stat(config.Path(r.Root)); err == nil {
-				return fmt.Errorf("%s already exists — this repository is already set up; use `ilk adopt` to add a layer", config.Path(r.Root))
+				return fmt.Errorf("%s already exists — this repository is already set up; use `ilk add` to add a layer", config.Path(r.Root))
 			}
 
 			layers, ok := profiles[profile]
@@ -100,11 +100,11 @@ nothing to choose.`,
 					return err
 				}
 				if missing := unsatisfied(loaded, cfg); len(missing) > 0 && id != layers[0] {
-					printf("  %s skipping %s — it needs %s (add it later with `ilk adopt %s`)\n",
+					printf("  %s skipping %s — it needs %s (add it later with `ilk add %s`)\n",
 						sty.yellow("note"), loaded.Manifest.ID, strings.Join(missing, ", "), loaded.Manifest.Name())
 					continue
 				}
-				cfg.Adopt(config.LayerRef{ID: loaded.Manifest.ID, Version: loaded.Manifest.Version})
+				cfg.Set(config.LayerRef{ID: loaded.Manifest.ID, Version: loaded.Manifest.Version})
 			}
 
 			if err := os.MkdirAll(r.IlkPath(), 0o755); err != nil {
@@ -176,10 +176,10 @@ func printNextSteps(p *engine.Project) {
 	printf("\n%s\n", sty.bold("Next"))
 	printf("  %-28s %s\n", "ilk brief", sty.dim("the packet every session should start with"))
 	printf("  %-28s %s\n", "ilk check", sty.dim("validate the repository; failures print their fix"))
-	printf("  %-28s %s\n", "ilk list --available", sty.dim("layers you can adopt"))
+	printf("  %-28s %s\n", "ilk list --available", sty.dim("layers you can add"))
 	if len(p.Config.Capabilities) == 0 {
 		printf("\n  %s tell ilk how to verify this project so gates can run:\n", sty.dim("tip"))
-		printf("  %s\n", sty.dim("  ilk adopt quality-gates --set test.command=\"<your test command>\""))
+		printf("  %s\n", sty.dim("  ilk add gates --set test.command=\"<your test command>\""))
 	}
 }
 

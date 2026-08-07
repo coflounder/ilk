@@ -67,7 +67,7 @@ picking it up:
 1. Read the answer against what you already built. Work done under the wrong
    assumption needs revisiting, not just redirecting from here.
 2. If the answer is a decision with lasting consequences, promote it to a
-   `docs/DEC-*.md` and link it from the question. Answers buried in a questions folder
+   `{{ index .Caps "record.docs" }}/DEC-*.md` and link it from the question. Answers buried in a questions folder
    get re-asked.
 3. Close the loop: the question stays as the record of why the decision was needed.
 

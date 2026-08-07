@@ -1,0 +1,29 @@
+## Skills
+
+Detailed procedures live in files, not in this document. Read the matching
+file when its situation applies — do not read them all up front.
+
+- **add-a-layer** — Evaluate a layer and add it to this repository. Use when asked to add, install or try an ilk layer, when someone links to one, or when deciding whether a published layer is worth taking on.
+  `.agents/skills/add-a-layer/SKILL.md`
+- **apply-ilk-changes** — Reconcile the repository with its declared layers. Use when `ilk status` reports drift, after editing .ilk/config.yaml by hand, when `ilk check` reports ilk.drift, or when upgrading a layer to a new version.
+  `.agents/skills/apply-ilk-changes/SKILL.md`
+- **compound-a-lesson** — Turn something that went wrong, or went well, into a change that alters default behaviour for every future session. Use after an incident, a repeated review comment, a near-miss, or when the same mistake has now been made twice.
+  `.agents/skills/compound-a-lesson/SKILL.md`
+- **configure-ilk** — Change what ilk does in this repository — capabilities, agent targets, layer variables, budgets and check exemptions. Use when a check is skipped for want of a capability, when adding support for another coding agent, or when a layer's defaults do not fit.
+  `.agents/skills/configure-ilk/SKILL.md`
+- **contribute-upstream** — Send a change or a complaint about a layer back to its maintainer, with the evidence attached. Use when a layer's output has been edited here and the edit is standing, when one of its checks cannot be satisfied, when a default was overridden and stayed overridden, or when asked whether a local fix should go upstream.
+  `.agents/skills/contribute-upstream/SKILL.md`
+- **prove-it** — Turn a claim that work is done into evidence a reviewer can check. Use before marking a task complete, opening a pull request, or reporting a result.
+  `.agents/skills/prove-it/SKILL.md`
+- **resolve-an-ilk-conflict** — Decide what to do when ilk refuses to write a file because it was edited after ilk wrote it. Use when a plan shows CONFLICT, when a merge reports conflicting hunks, or when `ilk check` reports ilk.conflicts.
+  `.agents/skills/resolve-an-ilk-conflict/SKILL.md`
+- **review-a-proposal** — Judge a proposal from a repository using one of your layers, and record the verdict with reasons. Use when a proposal arrives, when asked to review the queue, or when deciding whether a local fix somebody sent should become part of the layer.
+  `.agents/skills/review-a-proposal/SKILL.md`
+- **review-changes** — Review a change the way this repository expects, before it is proposed. Use when preparing a pull request or when asked to review a diff.
+  `.agents/skills/review-changes/SKILL.md`
+- **update-record** — Bring the project record back in line with the code after a change. Use after shipping work that alters architecture, interfaces, or operational behaviour, or when `ilk check` reports a stale document.
+  `.agents/skills/update-record/SKILL.md`
+- **write-a-layer** — Author a new ilk layer, or change an existing one. Use when a practice worth repeating should become installable — a directory contract, a check, a skill, a hook or a subcommand — or when asked to extend what ilk does.
+  `.agents/skills/write-a-layer/SKILL.md`
+- **write-decision** — Record an architectural or process decision so future sessions inherit it. Use when a choice is made that a later reader would otherwise have to reverse-engineer, or would plausibly undo by accident.
+  `.agents/skills/write-decision/SKILL.md`

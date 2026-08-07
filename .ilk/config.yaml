@@ -1,7 +1,7 @@
 # ilk — declared process layers for this repository.
 #
 # This file is the desired state. `ilk apply` reconciles the repository to it.
-# `ilk adopt <layer>` and `ilk drop <layer>` edit it for you, but editing it
+# `ilk add <layer>` and `ilk rm <layer>` edit it for you, but editing it
 # by hand and running `ilk apply` works exactly the same way.
 #
 # Capabilities tell layers how this project verifies itself. Layers require
@@ -20,17 +20,17 @@ capabilities:
   test.command: go test ./...
 layers:
   - id: ilk/compound-lessons
-    version: 0.1.0
+    version: 0.2.0
     source: ./layers/compound-lessons
   - id: ilk/maintainer
-    version: 0.1.0
+    version: 0.2.0
     source: ./layers/maintainer
     allow_exec: true
-  - id: ilk/quality-gates
-    version: 0.1.0
+  - id: ilk/gates
+    version: 0.2.0
   - id: ilk/record
-    version: 0.1.0
+    version: 0.2.0
   - id: ilk/toolkit
-    version: 0.1.0
+    version: 0.2.0
 budget:
   instructions: 1500

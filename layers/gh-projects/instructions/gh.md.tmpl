@@ -1,4 +1,4 @@
-The plan in `{{ .Vars.plans_dir }}/` is the source of truth; the GitHub Project is a
+The plan in `{{ index .Caps "record.plans" }}/` is the source of truth; the GitHub Project is a
 view of it. Never edit the board to record a decision — edit the spec and run:
 
     ilk mirror plan gh-projects     # what would change on the board

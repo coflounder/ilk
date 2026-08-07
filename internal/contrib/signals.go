@@ -50,7 +50,7 @@ const (
 // from the lockfile, the config, git history and a check run — which is the point:
 // the evidence is a by-product of using the layer, so contributing costs the
 // adopter nothing but the judgement.
-func collectSignals(p *engine.Project, l *engine.ResolvedLayer, locked *lock.Layer) []Signal {
+func collectSignals(p *engine.Project, l *engine.ResolvedLayer, locked *lock.Owner) []Signal {
 	var out []Signal
 	out = append(out, variableSignals(l)...)
 	out = append(out, checkSignals(p, l)...)
@@ -140,7 +140,7 @@ func checkSignals(p *engine.Project, l *engine.ResolvedLayer) []Signal {
 // before — but a baseline that never shrinks means the layer's demands do not
 // match how this repository actually works. That is worth upstream knowing, and
 // it is invisible from any single diff.
-func baselineSignals(p *engine.Project, l *engine.ResolvedLayer, locked *lock.Layer) []Signal {
+func baselineSignals(p *engine.Project, l *engine.ResolvedLayer, locked *lock.Owner) []Signal {
 	if len(locked.Baseline) == 0 {
 		return nil
 	}
@@ -168,7 +168,7 @@ func baselineSignals(p *engine.Project, l *engine.ResolvedLayer, locked *lock.La
 // Deleting is a stronger opinion than editing: somebody decided the layer was
 // wrong to ship this at all. ilk does not recreate it, so without this the
 // decision stays inside one repository for ever.
-func deletionSignals(p *engine.Project, l *engine.ResolvedLayer, locked *lock.Layer) []Signal {
+func deletionSignals(p *engine.Project, l *engine.ResolvedLayer, locked *lock.Owner) []Signal {
 	var out []Signal
 	for _, f := range locked.Files {
 		if f.Owner != l.ID() || f.Mode == manifest.ModeCreateOnly || f.Region != "" {

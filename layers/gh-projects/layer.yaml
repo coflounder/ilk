@@ -1,10 +1,10 @@
 id: ilk/gh-projects
-version: 0.1.0
+version: 0.2.0
 summary: Keep a GitHub Project in agreement with the record — the plan is the source of truth, the board is a view of it, and a write is either correct or it does not happen.
 facets:
   arc: planning
   kind: integration
-ilk: ">=0.1.0"
+ilk: ">=0.2.0"
 
 requires:
   - record.plans
@@ -13,9 +13,6 @@ provides:
   - tracker.github
 
 variables:
-  plans_dir:
-    default: plans
-    description: Where the plan documents live.
   match:
     default: "^SPEC-"
     description: Which documents in that directory are mirrored.
@@ -41,7 +38,7 @@ variables:
 mirrors:
   - id: gh-projects
     summary: the GitHub Project
-    dir: "{{ .Vars.plans_dir }}"
+    dir: '{{ index .Caps "record.plans" }}'
     match: "{{ .Vars.match }}"
     key: github
     list: .ilk/bin/gh-projects.sh list
@@ -61,7 +58,7 @@ instructions:
 
 skills:
   - name: sync-the-github-project
-    description: Reconcile the plan with a GitHub Project, or adopt a board that already has items. Use when the board and the record disagree, when a new spec needs to appear on the board, or when setting this up for the first time.
+    description: Reconcile the plan with a GitHub Project, or link a board that already has items. Use when the board and the record disagree, when a new spec needs to appear on the board, or when setting this up for the first time.
     src: skills/sync-the-github-project.md
 
 checks:

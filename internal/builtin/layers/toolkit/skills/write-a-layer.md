@@ -5,7 +5,7 @@ Turn a practice worth repeating into something installable, upgradeable and remo
 ## When
 
 A convention in this repository should travel — to another project, or to whoever
-adopts it next. Or you are changing a layer this repository already has.
+adds it next. Or you are changing a layer this repository already has.
 
 ## Scaffold, then test
 
@@ -13,13 +13,13 @@ adopts it next. Or you are changing a layer this repository already has.
 ilk layer new my-pattern --namespace you
 ilk layer validate layers/my-pattern
 ilk layer test layers/my-pattern
-ilk adopt ./layers/my-pattern
+ilk add ./layers/my-pattern
 ```
 
-`ilk layer test` is the one that matters. It adopts the layer into a throwaway
-repository containing files a human wrote, applies twice to prove idempotency, drops
+`ilk layer test` is the one that matters. It adds the layer to a throwaway
+repository containing files a human wrote, applies twice to prove idempotency, removes
 it, and asserts the repository came back. A layer that fails this cannot be safely
-tried, and a layer nobody can safely try is one nobody will adopt.
+tried, and a layer nobody can safely try is one nobody will add.
 
 ## The decision that matters most: ownership mode
 
@@ -27,7 +27,7 @@ Before adding any file, decide who owns it.
 
 | Mode | Use when |
 |---|---|
-| `managed` | The file exists only because your layer does. Upgrades overwrite it; drop deletes it. |
+| `managed` | The file exists only because your layer does. Upgrades overwrite it; `ilk rm` deletes it. |
 | `region` | The file belongs to the repository and you are a guest in it — `AGENTS.md`, `.gitignore`, CI config. |
 | `create-only` | You are giving somebody a starting point they will edit. Never touched again, never removed. |
 | `append-once` | One idempotent addition, keyed by a marker. |
@@ -86,17 +86,17 @@ never seen.
 
 ## Staying easy to say yes to
 
-A layer that only renders files needs no consent to adopt, because `ilk plan` shows
+A layer that only renders files needs no consent to add, because `ilk plan` shows
 every byte first. One that ships scripts, command-based checks or subcommands requires
-`--allow-exec` from whoever adopts it. Staying declarative is worth real effort.
+`--allow-exec` from whoever adds it. Staying declarative is worth real effort.
 
 ## Publishing
 
 Push the directory to a git repository. That is the whole process:
 
 ```
-ilk adopt gh:you/my-pattern
-ilk adopt gh:you/monorepo/layers/my-pattern@v1.2.0
+ilk add gh:you/my-pattern
+ilk add gh:you/monorepo/layers/my-pattern@v1.2.0
 ```
 
 Run `ilk layer test` in your own CI, so adopters inherit the guarantee rather than

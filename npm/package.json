@@ -1,7 +1,7 @@
 {
-  "name": "@ilk/cli",
-  "version": "0.1.0",
-  "description": "A package manager for a repository's process — adopt, upgrade and drop the layers an AI-native repo runs on",
+  "name": "@coflounder/ilk",
+  "version": "0.2.0",
+  "description": "A package manager for a repository's process — add, upgrade and remove the layers an AI-native repo runs on",
   "keywords": [
     "ai",
     "agents",
@@ -20,6 +20,10 @@
     "url": "git+https://github.com/coflounder/ilk.git"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "bin": {
     "ilk": "bin/ilk"
   },

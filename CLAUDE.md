@@ -1,4 +1,4 @@
-<!-- ilk:begin layer=target:claude-code region=pointer — managed by ilk — edits inside this block are overwritten; run `ilk drop` to remove it -->
+<!-- ilk:begin layer=target:claude-code region=pointer — managed by ilk — edits inside this block are overwritten; run `ilk rm` to remove it -->
 This project keeps its agent instructions in **AGENTS.md** at the repository root.
 Read that file — it is the source of truth for Claude Code and every other agent working here.
 

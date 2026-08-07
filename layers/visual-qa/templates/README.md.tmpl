@@ -1,4 +1,4 @@
-# {{ .Vars.evidence_dir }}/ — what the interface actually looks like
+# {{ index .Caps "visual.evidence" }}/ — what the interface actually looks like
 
 Screenshots captured as proof that an interface change does what its spec said.
 
@@ -29,7 +29,7 @@ looking at four images is fast while checking out a branch is not.
 ## Naming
 
 ```
-{{ .Vars.evidence_dir }}/<spec-id>/<state>.png
+{{ index .Caps "visual.evidence" }}/<spec-id>/<state>.png
 ```
 
 For example `evidence/spec-checkout-redesign/empty-cart.png`. The state name should say

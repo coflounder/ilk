@@ -140,14 +140,14 @@ func Build(p *engine.Project, opts Options) (*Brief, error) {
 		b.Skills = append(b.Skills, SkillInfo{
 			Name:        s.Name,
 			Description: s.Description,
-			Path:        fmt.Sprintf(".agent/skills/%s/SKILL.md", s.Name),
+			Path:        fmt.Sprintf(".agents/skills/%s/SKILL.md", s.Name),
 		})
 	}
 
 	b.Commands = []CommandRef{
 		{Command: "ilk check", Summary: "Validate the repository. Every failure prints its own fix."},
 		{Command: "ilk brief", Summary: "Print this packet again, after the state has moved on."},
-		{Command: "ilk status", Summary: "Show adopted layers and anything that has drifted."},
+		{Command: "ilk status", Summary: "Show this repository's layers and anything that has drifted."},
 	}
 	for _, l := range p.Layers {
 		for _, c := range l.Loaded.Manifest.Commands {

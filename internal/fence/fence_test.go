@@ -81,7 +81,7 @@ func TestRemoveKeepsSurroundingContentWhenRegionIsInterior(t *testing.T) {
 
 func TestMultipleRegionsAreIndependent(t *testing.T) {
 	a := Marker{Layer: "ilk/record", Region: "contract"}
-	b := Marker{Layer: "ilk/quality-gates", Region: "gates"}
+	b := Marker{Layer: "ilk/gates", Region: "gates"}
 
 	s := mustUpsert(t, "# Title\n", md, a, "A body\n")
 	s = mustUpsert(t, s, md, b, "B body\n")

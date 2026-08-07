@@ -4,13 +4,16 @@ on:
   push:
     tags: ["v*"]
 
+# Read-only by default; each job asks for exactly what it needs.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   goreleaser:
     name: Build and publish
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the GitHub release and upload its assets
     steps:
       - uses: actions/checkout@v4
         with:
@@ -44,6 +47,9 @@ jobs:
     name: Publish to npm
     runs-on: ubuntu-latest
     needs: goreleaser
+    permissions:
+      contents: read
+      id-token: write # npm provenance attestation
     steps:
       - uses: actions/checkout@v4
 
@@ -52,10 +58,90 @@ jobs:
           node-version: "20"
           registry-url: https://registry.npmjs.org
 
+      - name: Work out the version and dist-tag
+        id: release
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          # A prerelease must never become `latest`, or every `npm install -g`
+          # between the release candidate and the release gets the candidate.
+          case "$version" in
+            *-*) dist_tag=next ;;
+            *)   dist_tag=latest ;;
+          esac
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+          echo "dist_tag=$dist_tag" >>"$GITHUB_OUTPUT"
+          echo "Publishing $version under the '$dist_tag' tag"
+
+      - name: Refuse to republish a version that already exists
+        run: |
+          name=$(node -p "require('./npm/package.json').name")
+          version="${{ steps.release.outputs.version }}"
+          if npm view "$name@$version" version >/dev/null 2>&1; then
+            echo "$name@$version is already on the registry."
+            echo "npm versions are immutable; bump npm/package.json and tag again."
+            exit 1
+          fi
+
+      # The published package is a shim: its postinstall downloads the binary from
+      # this release. If an asset is missing the package still publishes, and every
+      # install fails — on a version that cannot be unpublished after 72 hours.
+      - name: Check every asset the postinstall will fetch
+        run: |
+          version="${{ steps.release.outputs.version }}"
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${version}"
+          missing=0
+          for asset in \
+            "ilk_${version}_linux_amd64.tar.gz" \
+            "ilk_${version}_linux_arm64.tar.gz" \
+            "ilk_${version}_darwin_amd64.tar.gz" \
+            "ilk_${version}_darwin_arm64.tar.gz" \
+            "checksums.txt"
+          do
+            if curl -fsSL --retry 5 --retry-delay 3 -o /dev/null "$base/$asset"; then
+              echo "  ok       $asset"
+            else
+              echo "  MISSING  $asset"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Refusing to publish: the package would install nothing."
+            exit 1
+          fi
+
       - name: Publish
         working-directory: npm
         run: |
+          # The root README is what the npm page shows; npm/README.md is a stub
+          # that this overwrites.
           cp ../README.md README.md
-          npm publish --access public
+          npm publish \
+            --access public \
+            --provenance \
+            --tag "${{ steps.release.outputs.dist_tag }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Install the thing that was actually published, from the registry, the way
+      # a user would. This is the only step that exercises the postinstall's
+      # download, checksum check and binary extraction end to end.
+      - name: Install the published package and run it
+        run: |
+          name=$(node -p "require('./npm/package.json').name")
+          version="${{ steps.release.outputs.version }}"
+          for attempt in 1 2 3 4 5; do
+            if npm install -g "$name@$version"; then
+              break
+            fi
+            echo "not on the registry yet; retrying ($attempt/5)"
+            sleep 10
+          done
+          installed=$(ilk --version)
+          echo "$installed"
+          case "$installed" in
+            *"$version"*) ;;
+            *)
+              echo "the published package reports '$installed', expected $version"
+              exit 1
+              ;;
+          esac

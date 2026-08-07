@@ -11,15 +11,15 @@ func newSearchCmd() *cobra.Command {
 	var all bool
 	cmd := &cobra.Command{
 		Use:   "search [terms...]",
-		Short: "Find layers you could adopt",
-		Long: `Search the layer index for something to adopt.
+		Short: "Find layers you could add",
+		Long: `Search the layer index for something to add.
 
 The index is embedded in the binary, so this works offline — and it is a snapshot
-taken when this ilk was built. A layer published since then is still adoptable by
-its source (` + "`ilk adopt gh:owner/repo`" + `); it just will not be listed here.
+taken when this ilk was built. A layer published since then can still be added by
+its source (` + "`ilk add gh:owner/repo`" + `); it just will not be listed here.
 
 Nothing in the index is endorsed or audited. Run ` + "`ilk info <ref>`" + ` before
-adopting anything: it shows what a layer writes, what it costs in always-on
+adding anything: it shows what a layer writes, what it costs in always-on
 context, and whether it runs code.`,
 		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -59,11 +59,11 @@ context, and whether it runs code.`,
 
 			if len(entries) == 0 {
 				if len(args) == 0 {
-					println(sty.dim("Every listed layer is already adopted. `ilk search --all` shows them anyway."))
+					println(sty.dim("Every listed layer is already here. `ilk search --all` shows them anyway."))
 				} else {
 					printf("%s\n", sty.dim("Nothing in the index matches that."))
 					printf("%s\n", sty.dim("The index is a snapshot; a layer published since this ilk was built"))
-					printf("%s\n", sty.dim("is still adoptable directly: ilk adopt gh:owner/repo"))
+					printf("%s\n", sty.dim("can still be added directly: ilk add gh:owner/repo"))
 				}
 				return nil
 			}
@@ -95,10 +95,10 @@ context, and whether it runs code.`,
 				printf("\n")
 			}
 
-			printf("%s\n", sty.dim("`ilk info <ref>` shows what a layer writes before you adopt it."))
+			printf("%s\n", sty.dim("`ilk info <ref>` shows what a layer writes before you add it."))
 			return nil
 		},
 	}
-	cmd.Flags().BoolVar(&all, "all", false, "include layers this repository has already adopted")
+	cmd.Flags().BoolVar(&all, "all", false, "include layers this repository already has")
 	return cmd
 }

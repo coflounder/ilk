@@ -1,30 +1,41 @@
 id: ilk/record
-version: 0.1.0
+version: 0.2.0
 summary: The project record — what is true, what is intended, what happened — plus the checks that keep it honest.
 facets:
   arc: context
   kind: record
-ilk: ">=0.1.0"
+ilk: ">=0.2.0"
 
+# Each capability carries the path it names, so a layer that needs the plans can
+# find them instead of redeclaring `plans_dir: plans` and hoping it still matches.
 provides:
-  - record.docs
-  - record.plans
-  - record.log
-  - record.scratch
+  record.docs: "{{ .Vars.group }}/{{ .Vars.reference_dir }}"
+  record.plans: "{{ .Vars.group }}/{{ .Vars.plans_dir }}"
+  record.log: "{{ .Vars.group }}/{{ .Vars.log_dir }}"
+  record.scratch: "{{ .Vars.scratch_dir }}"
 
 variables:
-  docs_dir:
+  group:
     default: docs
-    description: Where current truth lives.
+    description: >-
+      The top-level grouping the record lives under. One folder at the root
+      holding four, rather than four at the root — which is what keeps a
+      repository navigable as layers accumulate.
+  reference_dir:
+    default: reference
+    description: Where current truth lives, inside the group.
   plans_dir:
     default: plans
-    description: Where intent lives.
+    description: Where intent lives, inside the group.
   log_dir:
     default: log
-    description: Where history lives.
+    description: Where history lives, inside the group.
   scratch_dir:
     default: scratch
-    description: The ungoverned annex. Nothing here is checked.
+    description: >-
+      The ungoverned annex. Nothing here is checked, and it stays at the
+      repository root on purpose: filing it under the record would make it look
+      governed, which is the one thing it must not be.
   review_after_commits:
     default: "10"
     description: >-
@@ -40,13 +51,19 @@ variables:
       a vendor's behaviour — which watching this repository can never detect.
 
 dirs:
-  - path: "{{ .Vars.docs_dir }}"
+  - group: "{{ .Vars.group }}"
+    name: "{{ .Vars.reference_dir }}"
+    order: 10
     purpose: What is true now — architecture, interfaces, operations, decisions.
     keep: true
-  - path: "{{ .Vars.plans_dir }}"
+  - group: "{{ .Vars.group }}"
+    name: "{{ .Vars.plans_dir }}"
+    order: 20
     purpose: What we intend to build, and what must be true before it is accepted.
     keep: true
-  - path: "{{ .Vars.log_dir }}"
+  - group: "{{ .Vars.group }}"
+    name: "{{ .Vars.log_dir }}"
+    order: 30
     purpose: What happened — dated entries, append-only in spirit.
     keep: true
   - path: "{{ .Vars.scratch_dir }}"
@@ -56,16 +73,16 @@ dirs:
 
 files:
   - src: templates/docs-README.md.tmpl
-    dest: "{{ .Vars.docs_dir }}/README.md"
+    dest: '{{ index .Caps "record.docs" }}/README.md'
     mode: create-only
   - src: templates/plans-README.md.tmpl
-    dest: "{{ .Vars.plans_dir }}/README.md"
+    dest: '{{ index .Caps "record.plans" }}/README.md'
     mode: create-only
   - src: templates/log-README.md.tmpl
-    dest: "{{ .Vars.log_dir }}/README.md"
+    dest: '{{ index .Caps "record.log" }}/README.md'
     mode: create-only
   - src: templates/scratch-README.md.tmpl
-    dest: "{{ .Vars.scratch_dir }}/README.md"
+    dest: '{{ index .Caps "record.scratch" }}/README.md'
     mode: create-only
   - src: bin/ilk-record-new.sh
     dest: .ilk/bin/ilk-record-new.sh
@@ -93,11 +110,11 @@ checks:
   - id: record.frontmatter
     kind: builtin.frontmatter
     title: Record documents carry the required frontmatter
-    fix: "Add the missing keys to the file's YAML frontmatter. `{{ .Vars.docs_dir }}/README.md` shows the shape, or run `ilk record new` to create documents that already have it."
+    fix: 'Add the missing keys to the file''s YAML frontmatter. `{{ index .Caps "record.docs" }}/README.md` shows the shape, or run `ilk record new` to create documents that already have it.'
     args:
       dirs:
-        - "{{ .Vars.docs_dir }}"
-        - "{{ .Vars.plans_dir }}"
+        - '{{ index .Caps "record.docs" }}'
+        - '{{ index .Caps "record.plans" }}'
       require: [id, title, status, updated]
       exempt: [README.md]
   - id: record.log-frontmatter
@@ -106,7 +123,7 @@ checks:
     fix: "Add `date` and `title` to the entry's YAML frontmatter, or create entries with `ilk record log \"...\"`."
     args:
       dirs:
-        - "{{ .Vars.log_dir }}"
+        - '{{ index .Caps "record.log" }}'
       require: [date, title]
       exempt: [README.md]
   - id: record.naming
@@ -115,13 +132,13 @@ checks:
     fix: "Rename the file to match the grammar. `ARCH-system-overview.md` is a record; `arch_system_overview.md` is an error."
     args:
       rules:
-        - dir: "{{ .Vars.docs_dir }}"
+        - dir: '{{ index .Caps "record.docs" }}'
           pattern: "^[A-Z]{2,6}-[a-z0-9]+(-[a-z0-9]+)*\\.md$"
           example: ARCH-system-overview.md
-        - dir: "{{ .Vars.plans_dir }}"
+        - dir: '{{ index .Caps "record.plans" }}'
           pattern: "^[A-Z]{2,6}-[a-z0-9]+(-[a-z0-9]+)*\\.md$"
           example: PLAN-billing-rewrite.md
-        - dir: "{{ .Vars.log_dir }}"
+        - dir: '{{ index .Caps "record.log" }}'
           pattern: "^\\d{4}-\\d{2}-\\d{2}-[a-z0-9]+(-[a-z0-9]+)*\\.md$"
           example: 2026-08-06-shipped-billing.md
       exempt: [README.md]
@@ -131,16 +148,16 @@ checks:
     fix: "Point the link at a file that exists, or create the document it names. A plan referring to a document that was never written is the drift this check exists to catch."
     args:
       dirs:
-        - "{{ .Vars.docs_dir }}"
-        - "{{ .Vars.plans_dir }}"
-        - "{{ .Vars.log_dir }}"
+        - '{{ index .Caps "record.docs" }}'
+        - '{{ index .Caps "record.plans" }}'
+        - '{{ index .Caps "record.log" }}'
   - id: record.stale
     kind: builtin.stale
     title: Documents have not fallen behind the code they describe
     fix: "Run `ilk record review <file>` — it shows exactly what changed under the document's `covers:` paths since it was last read, then records that you have looked. If the document is wrong, fix it; if it is still right, the review alone is the answer."
     args:
       dirs:
-        - "{{ .Vars.docs_dir }}"
+        - '{{ index .Caps "record.docs" }}'
       review_after_commits: "{{ .Vars.review_after_commits }}"
       max_age_days: "{{ .Vars.max_age_days }}"
       exempt: [README.md]
@@ -150,7 +167,7 @@ checks:
     fix: "Add a `covers:` list to the frontmatter naming the paths this document describes, e.g. `covers: [src/payments/**]`. A document that covers nothing is never stale, which is indistinguishable from one that is always right — and a pattern matching nothing is worse, because it looks like it is working."
     args:
       dirs:
-        - "{{ .Vars.docs_dir }}"
+        - '{{ index .Caps "record.docs" }}'
       exempt: [README.md]
 
 hooks:

@@ -1,6 +1,6 @@
 What this layer wants from a proposal:
 
-  - This layer is adopted by every repository `ilk init` touches, so the bar is
+  - Every repository `ilk init` touches gets this layer, so the bar is
     higher than elsewhere: a change here lands everywhere, including repositories
     nobody is watching.
   - Say what the grammar could not express. The naming and frontmatter rules exist so

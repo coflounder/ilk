@@ -10,6 +10,7 @@ package engine
 
 import (
 	"fmt"
+	"path"
 	"sort"
 	"strings"
 
@@ -27,7 +28,7 @@ import (
 const CoreOwner = "ilk/core"
 
 // TargetOwnerPrefix labels artifacts produced by an agent adapter rather than a
-// layer, so `ilk agents sync` and `ilk drop` clean up only their own output.
+// layer, so `ilk agents sync` and `ilk rm` clean up only their own output.
 const TargetOwnerPrefix = "target:"
 
 // Desired is one artifact the repository should contain.
@@ -142,21 +143,51 @@ func (p *Project) resolveLayers() error {
 }
 
 // Capabilities merges the repository's declared capabilities with those any
-// adopted layer provides. Declared values win, so a repository can always
-// override what a layer assumed.
+// layer provides. Declared values win, so a repository can always override what
+// a layer assumed.
+//
+// A layer that supplies a value for a capability has it rendered here, against a
+// context holding only its own variables. That restriction is what keeps this
+// function from needing the answer it is computing: a capability value may not
+// read another capability.
 func (p *Project) Capabilities() map[string]string {
 	caps := map[string]string{}
 	for _, l := range p.Layers {
-		for _, c := range l.Loaded.Manifest.Provides {
-			if _, ok := caps[c]; !ok {
-				caps[c] = l.ID()
+		for _, c := range l.Loaded.Manifest.Provides.Names() {
+			if _, ok := caps[c]; ok {
+				continue
 			}
+			tmpl := l.Loaded.Manifest.Provides[c]
+			if tmpl == "" {
+				// No value: the capability is a bare declaration, and naming the
+				// provider is more useful to a reader than an empty string.
+				caps[c] = l.ID()
+				continue
+			}
+			value, err := render.String(l.ID()+":provides:"+c, tmpl, p.provideCtx(l))
+			if err != nil {
+				// A malformed value must not take down every command that reads
+				// capabilities. `ilk check` reports it through the manifest.
+				caps[c] = l.ID()
+				continue
+			}
+			caps[c] = strings.TrimSpace(value)
 		}
 	}
 	for k, v := range p.Config.Capabilities {
 		caps[k] = v
 	}
 	return caps
+}
+
+// provideCtx is the reduced context a `provides:` value is rendered against.
+func (p *Project) provideCtx(l *ResolvedLayer) render.Context {
+	return render.Context{
+		Repo: render.RepoInfo{Name: p.Repo.Name(), Root: p.Repo.Root},
+		Vars: l.Vars,
+		Caps: map[string]string{},
+		Ilk:  render.IlkInfo{Version: p.Version},
+	}
 }
 
 // MissingRequirements lists capabilities an adopted layer needs that nothing
@@ -198,6 +229,12 @@ func (p *Project) Desired() ([]Desired, error) {
 		out = append(out, items...)
 	}
 
+	groupItems, err := p.groupDesired()
+	if err != nil {
+		return nil, err
+	}
+	out = append(out, groupItems...)
+
 	targetItems, err := p.targetDesired()
 	if err != nil {
 		return nil, err
@@ -223,13 +260,169 @@ func (p *Project) coreDesired() []Desired {
 	}}
 }
 
+// dirPath resolves a directory contract to a repository-relative path. Both the
+// group and the name render, so a repository can still rename either.
+func (p *Project) dirPath(l *ResolvedLayer, d manifest.Dir) (string, error) {
+	if !d.Grouped() {
+		return render.Path(d.Path, l.Ctx)
+	}
+	group, err := render.Path(d.Group, l.Ctx)
+	if err != nil {
+		return "", err
+	}
+	name, err := render.Path(d.Name, l.Ctx)
+	if err != nil {
+		return "", err
+	}
+	if group == "" {
+		return name, nil
+	}
+	return path.Join(group, name), nil
+}
+
+// Group is a resolved grouping with the directories that landed in it.
+type Group struct {
+	Name    string
+	Purpose string
+	Order   int
+	Members []GroupMember
+}
+
+// GroupMember is one directory inside a group.
+type GroupMember struct {
+	Name    string
+	Path    string
+	Purpose string
+	Order   int
+	Owner   string
+}
+
+// Groups resolves every grouping the repository's layers declare, together with
+// the directories that belong to each.
+//
+// Where two layers declare the same group, the first by layer id wins and a
+// canonical declaration always wins — deliberately forgiving, because two layers
+// describing `infra` in slightly different words is not a problem worth failing
+// a plan over.
+func (p *Project) Groups() ([]Group, error) {
+	byName := map[string]*Group{}
+	for _, g := range manifest.CanonicalGroups {
+		byName[g.Name] = &Group{Name: g.Name, Purpose: g.Purpose, Order: g.Order}
+	}
+
+	layers := append([]*ResolvedLayer(nil), p.Layers...)
+	sort.Slice(layers, func(i, j int) bool { return layers[i].ID() < layers[j].ID() })
+
+	for _, l := range layers {
+		for _, g := range l.Loaded.Manifest.Groups {
+			if manifest.IsCanonicalGroup(g.Name) {
+				continue
+			}
+			if _, taken := byName[g.Name]; taken {
+				continue
+			}
+			purpose, err := render.String(l.ID()+":group:"+g.Name, g.Purpose, l.Ctx)
+			if err != nil {
+				return nil, err
+			}
+			byName[g.Name] = &Group{Name: g.Name, Purpose: purpose, Order: g.Order}
+		}
+	}
+
+	for _, l := range layers {
+		for _, d := range l.Loaded.Manifest.Dirs {
+			if !d.Grouped() {
+				continue
+			}
+			full, err := p.dirPath(l, d)
+			if err != nil {
+				return nil, err
+			}
+			group, err := render.Path(d.Group, l.Ctx)
+			if err != nil {
+				return nil, err
+			}
+			g, ok := byName[group]
+			if !ok {
+				return nil, fmt.Errorf("layer %s puts %s in group %q, which nothing declares — add a `groups:` entry for it in that layer", l.ID(), full, group)
+			}
+			purpose, err := render.String(l.ID()+":purpose:"+full, d.Purpose, l.Ctx)
+			if err != nil {
+				return nil, err
+			}
+			g.Members = append(g.Members, GroupMember{
+				Name: path.Base(full), Path: full, Purpose: purpose, Order: d.Order, Owner: l.ID(),
+			})
+		}
+	}
+
+	var out []Group
+	for _, g := range byName {
+		if len(g.Members) == 0 {
+			// A group nothing uses is not a directory; it is just a word ilk knows.
+			continue
+		}
+		sort.SliceStable(g.Members, func(i, j int) bool {
+			if g.Members[i].Order != g.Members[j].Order {
+				return g.Members[i].Order < g.Members[j].Order
+			}
+			return g.Members[i].Name < g.Members[j].Name
+		})
+		out = append(out, *g)
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].Order != out[j].Order {
+			return out[i].Order < out[j].Order
+		}
+		return out[i].Name < out[j].Name
+	})
+	return out, nil
+}
+
+// groupDesired writes each group's index: the ordered list of what is inside it
+// and what each part holds.
+//
+// This is where directory ordering lives. An index can be reordered for free, it
+// carries each directory's stated purpose, and it does not put a number in a path
+// that links and `covers:` globs would then have to track.
+func (p *Project) groupDesired() ([]Desired, error) {
+	groups, err := p.Groups()
+	if err != nil {
+		return nil, err
+	}
+	var out []Desired
+	for _, g := range groups {
+		var b strings.Builder
+		if g.Purpose != "" {
+			b.WriteString(g.Purpose)
+			b.WriteString("\n\n")
+		}
+		b.WriteString("| Directory | Holds |\n|---|---|\n")
+		for _, m := range g.Members {
+			purpose := m.Purpose
+			if strings.TrimSpace(purpose) == "" {
+				purpose = "—"
+			}
+			fmt.Fprintf(&b, "| [`%s/`](%s/) | %s |\n", m.Name, m.Name, purpose)
+		}
+		out = append(out, Desired{
+			Path:    path.Join(g.Name, "README.md"),
+			Mode:    manifest.ModeRegion,
+			Region:  "index",
+			Owner:   CoreOwner,
+			Content: b.String(),
+		})
+	}
+	return out, nil
+}
+
 func (p *Project) layerDesired(l *ResolvedLayer) ([]Desired, error) {
 	m := l.Loaded.Manifest
 	var out []Desired
 	var ignores []string
 
 	for _, d := range m.Dirs {
-		path, err := render.Path(d.Path, l.Ctx)
+		path, err := p.dirPath(l, d)
 		if err != nil {
 			return nil, err
 		}

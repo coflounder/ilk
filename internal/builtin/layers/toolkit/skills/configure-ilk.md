@@ -33,11 +33,11 @@ Comments you add are preserved when ilk rewrites the file.
 ## Capabilities
 
 A capability is how a layer asks "how does this project verify itself" without caring
-what language it is written in. `quality-gates` needs `test.command`; anything that
+what language it is written in. `gates` needs `test.command`; anything that
 supplies it satisfies the requirement.
 
 ```
-ilk adopt quality-gates --set test.command="pytest -q"
+ilk add gates --set test.command="pytest -q"
 ```
 
 or add it to `capabilities:` directly and `ilk apply`.
@@ -46,7 +46,7 @@ A check that needs a capability nobody supplies **skips** rather than fails, and
 so. If `ilk check` shows a skipped check you wanted, this is why.
 
 Conventional names: `test.command`, `lint.command`, `build.command`, `format.command`.
-Use those before inventing new ones — a layer you adopt later will look for them.
+Use those before inventing new ones — a layer you add later will look for them.
 
 ## Agent targets
 

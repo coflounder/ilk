@@ -1,15 +1,19 @@
 id: ilk/maintainer
-version: 0.1.0
+version: 0.2.0
 summary: The receiving end of the flywheel — proposals from repositories using your layers arrive as reviewable documents, and a proposal nobody can judge fails the checks rather than sitting in a queue.
 facets:
   arc: operations
   kind: process
-ilk: ">=0.1.0"
+ilk: ">=0.2.0"
 
 provides:
-  - contribution.inbox
+  contribution.inbox: "{{ .Vars.group }}/{{ .Vars.proposals_dir }}"
+  maintainer.proposals: "{{ .Vars.group }}/{{ .Vars.proposals_dir }}"
 
 variables:
+  group:
+    default: docs
+    description: The grouping incoming proposals sit in, alongside the record they argue about.
   proposals_dir:
     default: proposals
     description: Where incoming proposals land.
@@ -21,13 +25,15 @@ variables:
       that sending things here is not worth the effort. Raise it deliberately.
 
 dirs:
-  - path: "{{ .Vars.proposals_dir }}"
+  - group: "{{ .Vars.group }}"
+    name: "{{ .Vars.proposals_dir }}"
+    order: 60
     purpose: Proposals from repositories using these layers, each awaiting a verdict.
     keep: true
 
 files:
   - src: files/README.md
-    dest: "{{ .Vars.proposals_dir }}/README.md"
+    dest: '{{ index .Caps "maintainer.proposals" }}/README.md'
     mode: create-only
 
 instructions:
@@ -44,7 +50,7 @@ commands:
   - name: queue
     summary: List proposals waiting for a decision, oldest first
     run: |
-      dir='{{ .Vars.proposals_dir }}'
+      dir='{{ index .Caps "maintainer.proposals" }}'
       [ -d "$dir" ] || { echo "no $dir/ — nothing has been proposed here yet"; exit 0; }
       found=0
       for f in "$dir"/*.md; do
@@ -63,7 +69,7 @@ checks:
     title: Proposals say what they are about and where they came from
     kind: builtin.frontmatter
     args:
-      dirs: ["{{ .Vars.proposals_dir }}"]
+      dirs: ['{{ index .Caps "maintainer.proposals" }}']
       require: [layer, from, status]
       exempt: [README.md]
     fix: "Add `layer:`, `from:` and `status:` to the proposal's frontmatter. `ilk contribute` writes all three; a proposal missing them was assembled by hand, and without `from:` nobody can tell whether three similar reports are one repository or three."
@@ -72,7 +78,7 @@ checks:
     title: Proposals have had their case written
     kind: builtin.forbid
     args:
-      dirs: ["{{ .Vars.proposals_dir }}"]
+      dirs: ['{{ index .Caps "maintainer.proposals" }}']
       exempt: [README.md]
       patterns:
         - text: "TODO(you):"
@@ -83,7 +89,7 @@ checks:
     title: Reviewed proposals record what was decided
     kind: builtin.frontmatter
     args:
-      dirs: ["{{ .Vars.proposals_dir }}"]
+      dirs: ['{{ index .Caps "maintainer.proposals" }}']
       exempt: [README.md]
       where:
         status: reviewed
@@ -94,7 +100,7 @@ checks:
     title: A verdict gives its reasons
     kind: builtin.section
     args:
-      dirs: ["{{ .Vars.proposals_dir }}"]
+      dirs: ['{{ index .Caps "maintainer.proposals" }}']
       exempt: [README.md]
       where:
         status: reviewed
@@ -106,7 +112,7 @@ checks:
     title: The proposal queue is short enough to be a promise
     kind: builtin.limit
     args:
-      dirs: ["{{ .Vars.proposals_dir }}"]
+      dirs: ['{{ index .Caps "maintainer.proposals" }}']
       exempt: [README.md]
       where:
         status: open
