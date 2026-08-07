@@ -35,6 +35,7 @@ var builtins = map[string]builtinFunc{
 	"builtin.references":  checkReferences,
 	"builtin.section":     checkSection,
 	"builtin.limit":       checkLimit,
+	"builtin.forbid":      checkForbid,
 }
 
 func builtinNames() []string {

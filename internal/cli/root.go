@@ -72,6 +72,7 @@ Start with ` + "`ilk init`" + `.`,
 		newBaselineCmd(),
 		newSearchCmd(),
 		newMirrorCmd(),
+		newContributeCmd(),
 	)
 
 	// Layer-provided subcommands are attached last, so a layer can never shadow a

@@ -1,0 +1,100 @@
+# Review a proposal
+
+Judge what a repository sent back about one of these layers, and record the verdict
+with reasons.
+
+## When
+
+A proposal arrives in `{{ .Vars.proposals_dir }}/`; somebody asks about the queue;
+`ilk check` reports `proposal.queue`. Run `ilk maintainer queue` for what is waiting.
+
+## Read it in this order
+
+**The contributor's two sections first.** "What this repository needed" and "Why this
+is not specific to this repository". They are the proposal. The evidence below them
+is support, and reading the diff first will anchor you on whether the patch is
+elegant — which is not the question.
+
+**Then the evidence table.** Three columns decide most of it:
+
+- *agreed* — somebody was shown both versions and kept theirs. ilk asked and the
+  answer was not the layer's. That is a considered rejection of the layer's opinion,
+  not an accident.
+- *history* — "changed once, just now" is somebody mid-thought. "Changed 4 times,
+  held for 190 commits" is a repository that has repeatedly repaired the same thing
+  and then lived with the repair. Weigh them very differently.
+- *replayable* — whether the patch applies to the layer's source unchanged. When it
+  does not, the diff carries the contributor's values and the change has to be made
+  by hand at this end. That is a note about mechanics, not about merit.
+
+**Then the friction signals.** These are the ones a patch could never have carried,
+and they are often more valuable than the diff: a default nobody keeps, a check that
+cannot run, an exemption never cleared. One report is a preference. The same
+override in three proposals is a wrong default, and you will only ever see that
+pattern if you record each one.
+
+## The rubric
+
+Four questions, in order. The first two decide most cases.
+
+1. **Would another adopter hit this?** The contributor has argued yes or admitted
+   no. If they admitted no, that is not a decline — read on, because a layer being
+   wrong for one repository in a nameable way is a real finding about the layer's
+   assumptions.
+2. **Is the layer's current behaviour defensible?** Sometimes it is, and the answer
+   is documentation rather than a change: the layer was right and failed to say why.
+   That is `needs-work` on the layer, not on the proposal.
+3. **Does it fit what this layer is for?** A layer that grows to satisfy every
+   proposal becomes a layer with no opinion, and the opinion is the product. Declining
+   for scope is legitimate and should say so plainly.
+4. **Can it be a variable instead?** Often the disagreement is about a default rather
+   than a behaviour. A new variable with the contributor's value as an option settles
+   it without anybody losing.
+
+## Record the decision
+
+Edit the proposal in place:
+
+```yaml
+---
+layer: ilk/gh-projects
+from: acme-api
+status: reviewed
+verdict: accepted        # accepted | declined | needs-work
+decided: @you
+---
+```
+
+and add a section:
+
+```markdown
+## Verdict
+
+- Accepted. The status-field error listed the options but not where to change them,
+  which is a gap for anybody whose board uses a custom field.
+- Shipped in 0.2.0, worded slightly differently — the fix now names both sides.
+```
+
+`ilk check` fails a proposal marked reviewed with no `verdict:` or no reasons. That
+is deliberate: a proposal that looks handled and is not is worse than an open one,
+because nobody looks at it again.
+
+## Accepting
+
+Change the layer, bump its version, and say in the verdict which version carries it.
+Run `ilk layer test` on the layer before you push — adopt-is-idempotent and
+drop-restores-the-repository still have to hold.
+
+Then it travels: adopters get it through `ilk upgrade`, which three-way merges it
+into repositories that had tuned the layer. Including, usually, the one that proposed
+it — their local edit and your version of it will meet, and if you shipped something
+close to theirs the merge is clean and they stop carrying it.
+
+## Declining
+
+Say why, in one or two sentences, in the verdict. Then stop — a decline does not need
+a paragraph of consolation, and the contributor is better served by a clear no than a
+soft maybe.
+
+The thing to avoid is not declining too much. It is leaving proposals open, which
+looks like consideration and works like a bin.

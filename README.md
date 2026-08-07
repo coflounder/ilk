@@ -196,7 +196,7 @@ ilk init --no-baseline                     # or be held to them from the start
 | `record` | The project record: what is true, what is intended, what happened, plus the checks that keep it honest |
 | `quality-gates` | Tests, lint and build wired into `ilk check`, git hooks and CI |
 
-Eight more ship alongside in [`layers/`](layers/):
+Nine more ship alongside in [`layers/`](layers/):
 
 | Layer | Enforces |
 |---|---|
@@ -208,6 +208,7 @@ Eight more ship alongside in [`layers/`](layers/):
 | `compound-lessons` | Every lesson names the durable change it produced, so "we will be more careful" cannot pass as an outcome |
 | `archive` | Superseded documents are archived rather than deleted, and nothing live may cite them |
 | `gh-projects` | A GitHub Project made to match the plan, with an ambiguous match refused rather than guessed |
+| `maintainer` | The receiving end: proposals from repositories using your layers, and a queue that fails when it stops being a promise |
 
 ```sh
 ilk search planning
@@ -295,6 +296,59 @@ see rather than an oversight.
 Tune it with `review_after_commits` per project, or per document when one is more
 volatile than the rest. `max_age_days` adds an absolute backstop, off by default, for
 documents that go stale because the world moved rather than the code.
+
+## The flywheel
+
+A layer that its adopters cannot improve decays. Somebody edits the managed file, the
+edit works, the repository moves on, and upstream never finds out its content was
+wrong — so the next hundred adopters make the same edit.
+
+ilk is well placed to close this, because it already knows exactly what it delivered
+and what the repository decided it should say instead. The difference is recorded, not
+guessed at.
+
+```sh
+ilk contribute status           every layer with something to send back
+ilk contribute gh-projects      draft the proposal
+ilk contribute gh-projects --submit
+```
+
+**The evidence is gathered; the argument is not.** The diff comes out against the
+layer's *own source path*, so a maintainer applies it without translating
+`.claude/skills/x/SKILL.md` back to `skills/x.md` in their head. Alongside it go the
+things a patch cannot carry: a default nobody kept, a check that could not run, an
+exemption never cleared, and — from git — how many times the repository has come back
+to the same file and how long the change has held. "Changed once, just now" and
+"changed four times, held for 190 commits" are very different claims.
+
+Two sections are left marked `TODO(you):` — what you needed, and why it is not
+specific to your repository — and submission refuses while they stand. A maintainer
+receiving diffs with no case attached learns to ignore the whole channel.
+
+**Nothing leaves that should not.** A credential in a diff blocks submission outright:
+a proposal is public and git history is permanent. Everything else is raised and not
+enforced, and nothing is ever stripped — editing evidence on the way out changes what
+upstream is being asked to judge.
+
+**A patch that carries local values says so.** When the artifact was templated, the
+diff would take this repository's directory names upstream with it. That is marked,
+and the proposal goes as evidence for a change somebody makes properly at the other
+end.
+
+Each layer ships its own [`CONTRIBUTING.md`](layers/gh-projects/CONTRIBUTING.md),
+printed when you draft, so you learn its standard before writing rather than in review.
+
+### The other half
+
+`ilk upgrade` is the return path. When a maintainer acts on a proposal, the improvement
+three-way merges into every repository that had tuned the layer — including the one
+that proposed it. That is the loop closing: a local fix stops being local, and stops
+being yours to maintain.
+
+The [`maintainer`](layers/maintainer/) layer is the receiving end. Proposals land as
+documents, `ilk check` fails one that has no case or a verdict with no reasons, and the
+open queue has a ceiling — because a queue is a promise, and past a certain length it
+stops being one.
 
 ## Working with any agent
 

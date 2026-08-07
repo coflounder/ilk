@@ -62,3 +62,8 @@ skills:
   - name: keep-the-plan-honest
     description: Review the plan for the failures that accumulate quietly — work in progress nobody is progressing, active items with no owner, finished items with no evidence. Use when hygiene checks fail, before a planning session, or when the plan has stopped describing what is actually happening.
     src: skills/keep-the-plan-honest.md
+
+contribution:
+  repo: coflounder/ilk
+  path: layers/plan-hygiene
+  guidelines: CONTRIBUTING.md

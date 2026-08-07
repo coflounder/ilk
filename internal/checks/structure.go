@@ -335,3 +335,105 @@ func describeWhere(where map[string]string) string {
 	sort.Strings(parts)
 	return strings.Join(parts, ", ")
 }
+
+// checkForbid fails documents containing text that should never survive into a
+// finished one.
+//
+// The general case is a placeholder: a template ships with a marker where a person
+// is supposed to write, and the marker is still there when the document is treated
+// as done. Nothing in the shape of the document says so — the heading is present,
+// the frontmatter is valid, and only the words give it away. A check that reads the
+// words is the only one that catches it.
+//
+// Each pattern carries its own reason, because "contains TODO(you):" is a finding
+// nobody can act on and "the case for this change has not been written" is.
+func checkForbid(p *engine.Project, args map[string]any) ([]Finding, error) {
+	dirs := stringSlice(args["dirs"])
+	exempt := stringSet(args["exempt"])
+
+	patterns, err := forbidPatterns(args["patterns"])
+	if err != nil {
+		return nil, err
+	}
+	if len(patterns) == 0 {
+		return nil, fmt.Errorf("builtin.forbid needs a `patterns:` list of {text, reason}")
+	}
+	match, err := compileMatch(args["match"])
+	if err != nil {
+		return nil, err
+	}
+	where, err := parseWhere(args["where"])
+	if err != nil {
+		return nil, err
+	}
+
+	baseline := p.Baseline()
+	var findings []Finding
+	for _, dir := range dirs {
+		files, err := markdownFiles(p.Repo.Path(dir))
+		if err != nil {
+			continue
+		}
+		for _, path := range files {
+			rel := repoRel(p.Repo.Root, path)
+			base := filepath.Base(path)
+			if exempt[base] || baseline[rel] || !match(base) {
+				continue
+			}
+			if len(where) > 0 {
+				meta, err := readFrontmatter(path)
+				if err != nil || !matchesWhere(meta, where) {
+					continue
+				}
+			}
+			content, err := readFile(path)
+			if err != nil {
+				continue
+			}
+			for i, line := range strings.Split(content, "\n") {
+				for _, pat := range patterns {
+					if !strings.Contains(line, pat.text) {
+						continue
+					}
+					findings = append(findings, Finding{
+						Path: rel, Line: i + 1,
+						Message: pat.reason,
+					})
+				}
+			}
+		}
+	}
+	return findings, nil
+}
+
+type forbidPattern struct {
+	text   string
+	reason string
+}
+
+func forbidPatterns(v any) ([]forbidPattern, error) {
+	items, ok := v.([]any)
+	if !ok {
+		return nil, nil
+	}
+	var out []forbidPattern
+	for i, item := range items {
+		m, ok := item.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("builtin.forbid patterns[%d] must be a mapping with `text` and `reason`", i)
+		}
+		text := asString(m["text"])
+		if text == "" {
+			return nil, fmt.Errorf("builtin.forbid patterns[%d] has no `text`", i)
+		}
+		reason := asString(m["reason"])
+		if reason == "" {
+			// A finding that only repeats the pattern tells a reader what matched
+			// and never what to do, which is the failure mode this whole check
+			// vocabulary exists to avoid.
+			return nil, fmt.Errorf("builtin.forbid patterns[%d] (%q) has no `reason` — a finding that cannot be acted on is a bug in the check", i, text)
+		}
+		out = append(out, forbidPattern{text: text, reason: reason})
+	}
+	return out, nil
+}

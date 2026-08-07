@@ -59,3 +59,8 @@ checks:
     fix: "Capture the screenshot and commit it, or fix the path. A link to a screenshot nobody took is worse than no link — it reads as evidence."
     args:
       dirs: ["{{ .Vars.plans_dir }}"]
+
+contribution:
+  repo: coflounder/ilk
+  path: layers/visual-qa
+  guidelines: CONTRIBUTING.md

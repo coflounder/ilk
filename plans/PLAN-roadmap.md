@@ -57,6 +57,11 @@ Three-way merge on upgrade, with `--merge-markers`, `--accept` and `--force` as 
 ways out of a genuine collision. Adoption baselines, so a repository with an existing
 `docs/` is not greeted by a wall of failures. ✓
 
+`ilk contribute` and the `maintainer` layer close the loop the other way: a repository
+that has tuned a layer can send back what it learned, with the divergence, its history
+and the friction all gathered from state ilk already keeps, and the receiving end has
+checks that fail a proposal nobody can judge. ✓
+
 Remaining:
 
 - `--pure` mode: adopt with a hard guarantee that nothing executes.

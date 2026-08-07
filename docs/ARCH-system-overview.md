@@ -51,6 +51,7 @@ Nothing is written until the whole blast radius has been shown.
 | `internal/engine` | Desired-state computation, planning, applying. |
 | `internal/checks` | The validator runner and the built-in checks. |
 | `internal/mirror` | Reconciling record documents with an external tracker. Owns identity, diffing and refusal; knows no provider. |
+| `internal/contrib` | Turning what a repository learned about a layer into a proposal its maintainer can judge. |
 | `internal/brief` | The session-start packet. |
 | `internal/cli` | Command surface. |
 | `internal/builtin` | Layers embedded in the binary, so `ilk init` needs no network. |
@@ -95,6 +96,17 @@ the provider and normalise it to `{id, title, status, url}`, which is why core h
 learned what a GitHub Project is. Nothing is ever deleted remotely; an item nobody claims
 is reported.
 
+**Improvement travels in both directions.** `ilk upgrade` carries a layer's changes
+down into repositories that have tuned it, three-way merging rather than overwriting.
+`ilk contribute` carries what those repositories learned back up. The second is only
+possible because the first already required knowing exactly what the layer delivered:
+the lockfile's `Delivered` hash and the base store behind it are the same machinery,
+read in the other direction. What ilk gathers is evidence — the divergence, how long
+it held, defaults overridden, checks that could not run — and never the argument.
+Whether a local edit is a fix everybody needs or a quirk of one repository is a
+judgement, and a generated paragraph guessing at it would read like an argument and
+carry none.
+
 ## Deliberate constraints
 
 - **Project-scoped and monorepo-only.** One repository, one root, one `.ilk/`. No
@@ -116,6 +128,10 @@ is reported.
   non-built-in source requires `--allow-exec`.
 - **Command execution is `sh -c`.** Windows is not supported for layer commands and
   hooks. The binary itself builds anywhere.
+- **A proposal refuses rather than being edited.** `ilk contribute` blocks on a
+  credential and on an unwritten case, and strips nothing. Editing evidence on the way
+  out would change what upstream is being asked to judge, and quietly sending
+  something other than what the repository found is worse than sending nothing.
 - **The record is the source of truth; a mirror is one-way.** `ilk mirror` makes the
   tracker match the markdown and never the reverse, so "which one is right" is never a
   question. A tracker that has drifted is a change to push, not an update to pull.

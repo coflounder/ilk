@@ -152,8 +152,13 @@ func (r *Repo) CommitsTouching(patterns []string, since int64, limit int) ([]Com
 		return nil, false
 	}
 
-	args := []string{"log", "--no-merges", fmt.Sprintf("--since=@%d", since),
-		"--format=%H%x1f%at%x1f%s"}
+	args := []string{"log", "--no-merges", "--format=%H%x1f%at%x1f%s"}
+	if since > 0 {
+		// git parses `--since=@0` as now rather than as the epoch, so passing it
+		// unconditionally would silently return no commits at all — which reads
+		// exactly like a path nothing has touched.
+		args = append(args, fmt.Sprintf("--since=@%d", since))
+	}
 	if limit > 0 {
 		args = append(args, fmt.Sprintf("-%d", limit))
 	}

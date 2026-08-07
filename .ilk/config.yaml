@@ -22,6 +22,10 @@ layers:
   - id: ilk/compound-lessons
     version: 0.1.0
     source: ./layers/compound-lessons
+  - id: ilk/maintainer
+    version: 0.1.0
+    source: ./layers/maintainer
+    allow_exec: true
   - id: ilk/quality-gates
     version: 0.1.0
   - id: ilk/record

@@ -21,6 +21,7 @@ the built-in layers only, so a fresh repository still needs no network.
 | [`compound-lessons`](compound-lessons/) | Every lesson names the durable change it produced, so "we will be more careful" cannot pass as an outcome |
 | [`archive`](archive/) | Superseded documents are archived rather than deleted, and nothing live may cite them |
 | [`gh-projects`](gh-projects/) | A GitHub Project made to match the plan — the record is the source of truth, and an ambiguous match refuses rather than guesses |
+| [`maintainer`](maintainer/) | Proposals from repositories using your layers arrive as reviewable documents; one nobody can judge fails the checks rather than sitting in a queue |
 
 The first three of these plus `compound-lessons` and `archive` come from the
 [MetaHarness essay](https://www.tenex.co/blog/building-an-ai-native-sdlc) — the project
@@ -32,8 +33,8 @@ the source of truth if the tracker everyone else reads agrees with it.
 
 ## Layers that run code
 
-`blueprint`, `archive`, `ask-human`, `dev-loops` and `gh-projects` ship shell commands,
-so adopting them requires consent:
+`blueprint`, `archive`, `ask-human`, `dev-loops`, `gh-projects` and `maintainer` ship
+shell commands, so adopting them requires consent:
 
 ```sh
 ilk info gh:coflounder/ilk/layers/dev-loops     # read it first
@@ -42,6 +43,27 @@ ilk adopt gh:coflounder/ilk/layers/dev-loops --allow-exec
 
 `plan-hygiene`, `visual-qa` and `compound-lessons` are entirely declarative and need no
 flag.
+
+---
+
+## Every layer here takes proposals
+
+Each declares a `contribution:` block and ships its own `CONTRIBUTING.md` saying what
+it wants to hear about. From a repository that has adopted one:
+
+```sh
+ilk contribute status                    what there is to send back, across every layer
+ilk contribute <layer>                   draft it, with the evidence gathered
+ilk contribute <layer> --submit          open it upstream
+```
+
+The guidelines are per-layer on purpose. What is useful to know about `dev-loops` (what
+the gate was, and why it was the right completion condition) has nothing in common with
+what is useful to know about `record` (which `covers:` globs measured the wrong thing).
+A single repository-wide CONTRIBUTING file would say neither.
+
+CI fails if a layer here has no `contribution:` block, or names guidelines that are not
+there. A layer its adopters cannot improve decays, and that is too easy to not notice.
 
 ---
 

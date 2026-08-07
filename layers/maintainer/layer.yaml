@@ -1,0 +1,119 @@
+id: ilk/maintainer
+version: 0.1.0
+summary: The receiving end of the flywheel — proposals from repositories using your layers arrive as reviewable documents, and a proposal nobody can judge fails the checks rather than sitting in a queue.
+facets:
+  arc: operations
+  kind: process
+ilk: ">=0.1.0"
+
+provides:
+  - contribution.inbox
+
+variables:
+  proposals_dir:
+    default: proposals
+    description: Where incoming proposals land.
+  open_max:
+    default: "12"
+    description: >-
+      How many proposals may be waiting for a decision at once. A queue is a
+      promise; past a certain length it stops being one, and contributors work out
+      that sending things here is not worth the effort. Raise it deliberately.
+
+dirs:
+  - path: "{{ .Vars.proposals_dir }}"
+    purpose: Proposals from repositories using these layers, each awaiting a verdict.
+    keep: true
+
+files:
+  - src: files/README.md
+    dest: "{{ .Vars.proposals_dir }}/README.md"
+    mode: create-only
+
+instructions:
+  - id: maintainer
+    src: instructions/maintainer.md.tmpl
+    budget: 110
+
+skills:
+  - name: review-a-proposal
+    description: Judge a proposal from a repository using one of your layers, and record the verdict with reasons. Use when a proposal arrives, when asked to review the queue, or when deciding whether a local fix somebody sent should become part of the layer.
+    src: skills/review-a-proposal.md
+
+commands:
+  - name: queue
+    summary: List proposals waiting for a decision, oldest first
+    run: |
+      dir='{{ .Vars.proposals_dir }}'
+      [ -d "$dir" ] || { echo "no $dir/ — nothing has been proposed here yet"; exit 0; }
+      found=0
+      for f in "$dir"/*.md; do
+        [ -f "$f" ] || continue
+        case "$(basename "$f")" in README.md) continue ;; esac
+        grep -qi '^status: *open' "$f" || continue
+        found=$((found + 1))
+        layer=$(sed -n 's/^layer: *//p' "$f" | head -1)
+        from=$(sed -n 's/^from: *//p' "$f" | head -1)
+        printf '  %-46s %s\n' "$f" "${layer:-?} — from ${from:-?}"
+      done
+      [ "$found" -gt 0 ] || echo "  nothing waiting for a decision"
+
+checks:
+  - id: proposal.frontmatter
+    title: Proposals say what they are about and where they came from
+    kind: builtin.frontmatter
+    args:
+      dirs: ["{{ .Vars.proposals_dir }}"]
+      require: [layer, from, status]
+      exempt: [README.md]
+    fix: "Add `layer:`, `from:` and `status:` to the proposal's frontmatter. `ilk contribute` writes all three; a proposal missing them was assembled by hand, and without `from:` nobody can tell whether three similar reports are one repository or three."
+
+  - id: proposal.judgeable
+    title: Proposals have had their case written
+    kind: builtin.forbid
+    args:
+      dirs: ["{{ .Vars.proposals_dir }}"]
+      exempt: [README.md]
+      patterns:
+        - text: "TODO(you):"
+          reason: "the contributor's own case is still unwritten here — this is a diff with a covering note, and there is nothing yet to judge"
+    fix: "Ask the contributor to say what they needed and why it is not specific to their repository, and to re-send. Do not fill it in for them: guessing at somebody else's reasoning and then approving your own guess is not review. `ilk contribute` refuses to submit while these markers stand, so a proposal reaching you with one was edited on the way."
+
+  - id: proposal.verdict
+    title: Reviewed proposals record what was decided
+    kind: builtin.frontmatter
+    args:
+      dirs: ["{{ .Vars.proposals_dir }}"]
+      exempt: [README.md]
+      where:
+        status: reviewed
+      require: [verdict, decided]
+    fix: "Set `verdict:` to accepted, declined or needs-work, and `decided:` to who decided. A proposal marked reviewed with no record of the decision is worse than an open one — it looks handled, so nobody looks at it again."
+
+  - id: proposal.reasons
+    title: A verdict gives its reasons
+    kind: builtin.section
+    args:
+      dirs: ["{{ .Vars.proposals_dir }}"]
+      exempt: [README.md]
+      where:
+        status: reviewed
+      heading: Verdict
+      min_items: 1
+    fix: "Add a `## Verdict` section with at least one bullet saying why. A decline with no reason teaches the contributor nothing, and they are the reason the next proposal is better than this one — or the reason there is not one."
+
+  - id: proposal.queue
+    title: The proposal queue is short enough to be a promise
+    kind: builtin.limit
+    args:
+      dirs: ["{{ .Vars.proposals_dir }}"]
+      exempt: [README.md]
+      where:
+        status: open
+      max: "{{ .Vars.open_max }}"
+    fix: "Decide some of them — `ilk maintainer queue` lists what is waiting, and the review-a-proposal skill has the rubric. Declining with a reason clears the queue as effectively as accepting, and a contributor would far rather be told no than be ignored. If the ceiling is genuinely wrong for this project, raise `open_max` deliberately rather than by ignoring the check."
+
+contribution:
+  repo: coflounder/ilk
+  path: layers/maintainer
+  guidelines: CONTRIBUTING.md

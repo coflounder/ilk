@@ -99,3 +99,9 @@ layers:
     arc: planning
     kind: integration
     requires: [record.plans]
+
+  - id: ilk/maintainer
+    source: gh:coflounder/ilk/layers/maintainer
+    summary: The receiving end of the flywheel — proposals from repositories using your layers arrive as reviewable documents, and a proposal nobody can judge fails the checks rather than sitting in a queue.
+    arc: operations
+    kind: process

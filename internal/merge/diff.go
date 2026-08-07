@@ -131,3 +131,41 @@ func min(a, b int) int {
 	}
 	return b
 }
+
+// Change is one contiguous difference between two line sequences, as half-open
+// ranges into each.
+type Change struct {
+	ALo, AHi int
+	BLo, BHi int
+}
+
+// Changes reports where two line sequences differ.
+//
+// It is exported so that anything rendering a diff — a proposal upstream, for
+// instance — uses the same alignment an upgrade uses. Two parts of ilk disagreeing
+// about which lines moved would be a small thing that is very annoying to debug.
+//
+// When alignment declines because the inputs are too large to compare line by
+// line, the honest answer is that everything changed, and that is what is
+// returned rather than a plausible subset.
+func Changes(a, b []string) []Change {
+	matches, ok := align(a, b)
+	if !ok {
+		if equal(a, b) {
+			return nil
+		}
+		return []Change{{ALo: 0, AHi: len(a), BLo: 0, BHi: len(b)}}
+	}
+	var out []Change
+	pa, pb := 0, 0
+	for _, m := range matches {
+		if m.a > pa || m.b > pb {
+			out = append(out, Change{ALo: pa, AHi: m.a, BLo: pb, BHi: m.b})
+		}
+		pa, pb = m.a+1, m.b+1
+	}
+	if pa < len(a) || pb < len(b) {
+		out = append(out, Change{ALo: pa, AHi: len(a), BLo: pb, BHi: len(b)})
+	}
+	return out
+}

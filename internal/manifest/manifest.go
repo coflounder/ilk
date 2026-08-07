@@ -59,6 +59,8 @@ type Layer struct {
 	Commands []Command `yaml:"commands,omitempty"`
 	// Mirrors keep record documents in agreement with an external tracker.
 	Mirrors []Mirror `yaml:"mirrors,omitempty"`
+	// Contribution declares how a repository sends back what it learned.
+	Contribution *Contribution `yaml:"contribution,omitempty"`
 
 	// Source records where this layer was loaded from. Set by the loader.
 	Source string `yaml:"-"`
@@ -187,12 +189,40 @@ type Mirror struct {
 	Update string `yaml:"update"`
 }
 
+// Contribution declares how a repository sends back what it learned about a layer.
+//
+// A layer that its adopters cannot improve decays quietly. Somebody edits the
+// managed file, the edit works, the repository moves on, and upstream never finds
+// out that its content was wrong — so the next hundred adopters make the same edit.
+// This block is what closes that loop, and its absence is a layer saying "do not
+// tell me".
+//
+// The direction back down already exists: `ilk upgrade` three-way merges an
+// improved layer into a repository that has tuned it. This is the direction up.
+type Contribution struct {
+	// Repo is where the layer's source lives, as `owner/name`.
+	Repo string `yaml:"repo"`
+	// Path locates the layer inside that repository. Empty means the root.
+	Path string `yaml:"path,omitempty"`
+	// Base is the branch proposals target. Defaults to main.
+	Base string `yaml:"base,omitempty"`
+	// Guidelines names a file in the layer's own tree stating what this layer
+	// wants from a proposal. It is shown to whoever is drafting one, so a
+	// contributor learns the standard before writing rather than in review.
+	Guidelines string `yaml:"guidelines,omitempty"`
+	// Submit opens the proposal upstream. Left empty, `ilk contribute` uses the
+	// default the toolkit layer ships, which drives `gh`. Overriding it is how a
+	// layer hosted somewhere other than GitHub stays contributable.
+	Submit string `yaml:"submit,omitempty"`
+}
+
 var (
 	idPattern      = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$`)
 	shortIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]*$`)
 	namePattern    = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
 	versionPattern = regexp.MustCompile(`^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$`)
 	capPattern     = regexp.MustCompile(`^[a-z0-9]+(\.[a-z0-9-]+)+$`)
+	repoPattern    = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$`)
 )
 
 // Parse decodes and validates a layer manifest.
@@ -394,6 +424,15 @@ func (l *Layer) Validate() error {
 			if strings.TrimSpace(value) == "" {
 				bad("%s (%s): %s is required", where, m.ID, name)
 			}
+		}
+	}
+
+	if c := l.Contribution; c != nil {
+		if !repoPattern.MatchString(c.Repo) {
+			bad("contribution: repo %q must be `owner/name` — a proposal has to know where to go", c.Repo)
+		}
+		if strings.HasPrefix(c.Path, "/") || strings.Contains(c.Path, "..") {
+			bad("contribution: path %q must be a relative path inside the repository", c.Path)
 		}
 	}
 

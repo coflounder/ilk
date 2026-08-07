@@ -111,3 +111,8 @@ commands:
   - name: next
     summary: "Show the specs that are ready to work on, grouped by milestone: ilk blueprint next"
     run: .ilk/bin/ilk-blueprint-next.sh
+
+contribution:
+  repo: coflounder/ilk
+  path: layers/blueprint
+  guidelines: CONTRIBUTING.md

@@ -63,3 +63,8 @@ commands:
   - name: it
     summary: "Move a superseded document into the archive, recording what replaced it: ilk archive it <file> [replacement-id]"
     run: .ilk/bin/ilk-archive.sh
+
+contribution:
+  repo: coflounder/ilk
+  path: layers/archive
+  guidelines: CONTRIBUTING.md

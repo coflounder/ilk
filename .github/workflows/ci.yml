@@ -63,7 +63,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           set -e
-          for suite in layers/*/test/run.sh; do
+          for suite in layers/*/test/run.sh internal/builtin/layers/*/test/run.sh; do
             [ -f "$suite" ] || continue
             echo "→ $suite"
             sh "$suite"
@@ -95,6 +95,29 @@ jobs:
               sys.exit("index entries that do not resolve:\n  " + "\n  ".join(missing))
           print(f"{len(entries)} indexed layers all resolve")
           PY
+
+      # A layer that cannot be improved by the repositories using it decays. This
+      # is cheap to check and impossible to notice by hand once there are a dozen
+      # layers, so it is checked.
+      - name: Every layer accepts contributions
+        shell: bash
+        run: |
+          set -e
+          missing=()
+          for layer in internal/builtin/layers/*/ layers/*/; do
+            [ -f "$layer/layer.yaml" ] || continue
+            grep -q '^contribution:' "$layer/layer.yaml" || missing+=("$layer (no contribution: block)")
+            guidelines=$(sed -n 's/^  guidelines: *//p' "$layer/layer.yaml" | head -1)
+            if [ -n "$guidelines" ] && [ ! -f "$layer/$guidelines" ]; then
+              missing+=("$layer (names $guidelines, which is not there)")
+            fi
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            printf 'layers that cannot receive what their adopters learn:\n'
+            printf '  %s\n' "${missing[@]}"
+            exit 1
+          fi
+          echo "every layer declares where proposals go"
 
       # Prove the thing the README claims: one command produces a repository that
       # validates, and the whole cycle is reversible.

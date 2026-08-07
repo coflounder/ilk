@@ -93,10 +93,14 @@ file when its situation applies — do not read them all up front.
   `.agent/skills/compound-a-lesson/SKILL.md`
 - **configure-ilk** — Change what ilk does in this repository — capabilities, agent targets, layer variables, budgets and check exemptions. Use when a check is skipped for want of a capability, when adding support for another coding agent, or when a layer's defaults do not fit.
   `.agent/skills/configure-ilk/SKILL.md`
+- **contribute-upstream** — Send a change or a complaint about a layer back to its maintainer, with the evidence attached. Use when a layer's output has been edited here and the edit is standing, when one of its checks cannot be satisfied, when a default was overridden and stayed overridden, or when asked whether a local fix should go upstream.
+  `.agent/skills/contribute-upstream/SKILL.md`
 - **prove-it** — Turn a claim that work is done into evidence a reviewer can check. Use before marking a task complete, opening a pull request, or reporting a result.
   `.agent/skills/prove-it/SKILL.md`
 - **resolve-an-ilk-conflict** — Decide what to do when ilk refuses to write a file because it was edited after ilk wrote it. Use when a plan shows CONFLICT, when a merge reports conflicting hunks, or when `ilk check` reports ilk.conflicts.
   `.agent/skills/resolve-an-ilk-conflict/SKILL.md`
+- **review-a-proposal** — Judge a proposal from a repository using one of your layers, and record the verdict with reasons. Use when a proposal arrives, when asked to review the queue, or when deciding whether a local fix somebody sent should become part of the layer.
+  `.agent/skills/review-a-proposal/SKILL.md`
 - **review-changes** — Review a change the way this repository expects, before it is proposed. Use when preparing a pull request or when asked to review a diff.
   `.agent/skills/review-changes/SKILL.md`
 - **update-record** — Bring the project record back in line with the code after a change. Use after shipping work that alters architecture, interfaces, or operational behaviour, or when `ilk check` reports a stale document.
@@ -116,3 +120,16 @@ not survive the next joiner or the next session.
 Record it as `docs/LESSON-*.md`, and say in its frontmatter what
 durable change it produced. `ilk check` will not accept a lesson that changed nothing.
 <!-- ilk:end layer=ilk/compound-lessons region=instructions -->
+
+<!-- ilk:begin layer=ilk/maintainer region=instructions — managed by ilk — edits inside this block are overwritten; run `ilk drop` to remove it -->
+Repositories using the layers published here send back what they learned, as
+documents in `proposals/`. Each carries machine-gathered evidence and
+the contributor's own case for why it is not specific to their repository.
+
+    ilk maintainer queue     what is waiting for a decision
+
+Every proposal gets a verdict — accepted, declined or needs-work — with reasons, and
+`ilk check` fails while one is marked reviewed without them. A decline that explains
+itself is a good outcome; silence is the only bad one, because it is what teaches
+people to stop sending.
+<!-- ilk:end layer=ilk/maintainer region=instructions -->

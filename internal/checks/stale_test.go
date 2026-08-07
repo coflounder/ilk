@@ -416,3 +416,25 @@ func TestMissingAndEmptyCoversAreDifferent(t *testing.T) {
 		t.Fatalf("only the document that never decided should be reported: %+v", findings)
 	}
 }
+
+// git parses `--since=@0` as now, not as the epoch, so a caller asking for "every
+// commit touching this path" used to get none — indistinguishable from a path
+// nothing has ever touched.
+func TestAnUnboundedSearchReturnsEveryCommitTouchingThePath(t *testing.T) {
+	root := gitRepo(t)
+	writeFile(t, root, "src/payments/pay.go", "package payments\n// one\n")
+	gitRun(t, root, "add", "-A")
+	gitRun(t, root, "commit", "-qm", "first change")
+	writeFile(t, root, "src/payments/pay.go", "package payments\n// two\n")
+	gitRun(t, root, "add", "-A")
+	gitRun(t, root, "commit", "-qm", "second change")
+
+	r := &repo.Repo{Root: root}
+	commits, ok := r.CommitsTouching([]string{"src/payments/pay.go"}, 0, 50)
+	if !ok {
+		t.Fatal("git refused the query")
+	}
+	if len(commits) != 3 {
+		t.Fatalf("got %d commits touching the path, want 3 (the initial commit and two changes)", len(commits))
+	}
+}

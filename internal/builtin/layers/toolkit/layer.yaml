@@ -30,3 +30,21 @@ skills:
   - name: write-a-layer
     description: Author a new ilk layer, or change an existing one. Use when a practice worth repeating should become installable — a directory contract, a check, a skill, a hook or a subcommand — or when asked to extend what ilk does.
     src: skills/write-a-layer.md
+  - name: contribute-upstream
+    description: Send a change or a complaint about a layer back to its maintainer, with the evidence attached. Use when a layer's output has been edited here and the edit is standing, when one of its checks cannot be satisfied, when a default was overridden and stayed overridden, or when asked whether a local fix should go upstream.
+    src: skills/contribute-upstream.md
+
+# The default way a proposal reaches a layer's repository. Every layer that names a
+# GitHub repository in its `contribution:` block is contributable with no further
+# setup, because this layer is adopted by `ilk init`. A layer hosted elsewhere sets
+# `contribution.submit` to a command of its own and nothing in ilk changes.
+files:
+  - src: bin/ilk-propose.sh
+    dest: .ilk/bin/ilk-propose.sh
+    mode: managed
+    exec: true
+
+contribution:
+  repo: coflounder/ilk
+  path: internal/builtin/layers/toolkit
+  guidelines: CONTRIBUTING.md

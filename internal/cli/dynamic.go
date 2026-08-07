@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/coflounder/ilk/internal/engine"
+	"github.com/coflounder/ilk/internal/render"
 	"github.com/coflounder/ilk/internal/version"
 	"github.com/spf13/cobra"
 )
@@ -63,7 +64,14 @@ func newLayerRunCmd(l *engine.ResolvedLayer, name, summary, run string) *cobra.C
 			if len(args) == 1 && (args[0] == "--help" || args[0] == "-h") {
 				return cmd.Help()
 			}
-			full := run
+			// Rendered like every other command a layer declares — a check's `run:`,
+			// a mirror's provider commands, a contribution's submit. Leaving this
+			// one literal meant a subcommand could not reach its own layer's
+			// variables, and the failure showed up as `{{ .Vars.x }}` in output.
+			full, err := render.String("command:"+l.ID()+":"+name, run, l.Ctx)
+			if err != nil {
+				return err
+			}
 			if len(args) > 0 {
 				full += " " + shellQuoteAll(args)
 			}

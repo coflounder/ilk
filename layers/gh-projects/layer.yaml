@@ -69,3 +69,8 @@ checks:
     title: The GitHub Project is configured
     run: '.ilk/bin/gh-projects.sh doctor'
     fix: "Set `owner` and `project_number` for this layer in .ilk/config.yaml — `ilk info gh-projects` lists them — and make sure `gh auth status` succeeds. Until then the mirror cannot run, and the board and the record will drift apart without anybody being told."
+
+contribution:
+  repo: coflounder/ilk
+  path: layers/gh-projects
+  guidelines: CONTRIBUTING.md

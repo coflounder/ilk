@@ -1,0 +1,52 @@
+#!/bin/sh
+# A fake `gh`, standing in for GitHub so ilk-propose.sh can be tested without a
+# network, an account, or a pull request somebody has to remember to close.
+#
+# Everything that reaches the network goes through gh, which is what makes the
+# script interceptable at all — the git operations underneath are real, run against
+# local bare repositories, so the commit and the push are genuinely exercised.
+set -eu
+
+echo "gh $*" >> "$GH_FAKE_LOG"
+
+case "$1 ${2:-}" in
+"auth status") exit 0 ;;
+"repo fork") exit 0 ;;
+"api user")
+	# The --jq expression decides which field is being asked for.
+	case "$*" in
+	*login*) echo "contributor" ;;
+	*email*) echo "contributor@example.com" ;;
+	*) echo "{}" ;;
+	esac
+	;;
+"repo view")
+	# The upstream URL. A local bare repository stands in for github.com.
+	echo "$GH_FAKE_UPSTREAM"
+	;;
+"repo clone")
+	# gh repo clone FORK DIR -- <git args>
+	dir=$4
+	shift 4
+	[ "${1:-}" = "--" ] && shift
+	git clone "$@" "$GH_FAKE_FORK" "$dir" >/dev/null 2>&1
+	;;
+"pr create")
+	# Record what would have been opened, so a test can assert on it.
+	prev=""
+	for arg in "$@"; do
+		case $prev in
+		--body) printf '%s' "$arg" > "$GH_FAKE_PR_BODY" ;;
+		--title) printf '%s' "$arg" > "$GH_FAKE_PR_TITLE" ;;
+		--head) printf '%s' "$arg" > "$GH_FAKE_PR_HEAD" ;;
+		--base) printf '%s' "$arg" > "$GH_FAKE_PR_BASE" ;;
+		esac
+		prev=$arg
+	done
+	echo "https://github.com/acme/layers/pull/7"
+	;;
+*)
+	echo "fake gh: unhandled call: $*" >&2
+	exit 1
+	;;
+esac

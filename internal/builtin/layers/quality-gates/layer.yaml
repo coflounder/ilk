@@ -62,3 +62,8 @@ hooks:
     name: ilk-gates
     blocking: true
     run: ilk check --only gates.tests,gates.lint,gates.build
+
+contribution:
+  repo: coflounder/ilk
+  path: internal/builtin/layers/quality-gates
+  guidelines: CONTRIBUTING.md

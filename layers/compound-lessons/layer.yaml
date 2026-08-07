@@ -42,3 +42,8 @@ checks:
       require: [encoded_as]
       exempt: [README.md]
       match: "^LESSON-"
+
+contribution:
+  repo: coflounder/ilk
+  path: layers/compound-lessons
+  guidelines: CONTRIBUTING.md

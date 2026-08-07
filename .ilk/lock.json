@@ -5,7 +5,7 @@
       "id": "ilk/compound-lessons",
       "version": "0.1.0",
       "source": "/home/user/ilk/layers/compound-lessons",
-      "digest": "sha256:68e1b012945b6e9f48da45366558d8e3ce162e6a12e0b26669b12df5b95eb531",
+      "digest": "sha256:a92266b79399a0c80fbab017ddb0a507e41c94286eaf6638738a5bac5044c86e",
       "vars": {
         "docs_dir": "docs"
       },
@@ -42,10 +42,48 @@
       ]
     },
     {
+      "id": "ilk/maintainer",
+      "version": "0.1.0",
+      "source": "/home/user/ilk/layers/maintainer",
+      "digest": "sha256:28fdc326dd258580efa6d3a259da7763486a9a86a1c6d8d8f5e8e350a6b5ecea",
+      "vars": {
+        "open_max": "12",
+        "proposals_dir": "proposals"
+      },
+      "files": [
+        {
+          "path": "AGENTS.md",
+          "mode": "region",
+          "region": "instructions",
+          "hash": "sha256:3f6a6f79a1da972c2768e48dc64cf3a3f83f6e21d58314919154a4b096181250",
+          "delivered": "sha256:3f6a6f79a1da972c2768e48dc64cf3a3f83f6e21d58314919154a4b096181250",
+          "owner": "ilk/maintainer"
+        },
+        {
+          "path": "proposals",
+          "mode": "dir",
+          "owner": "ilk/maintainer"
+        },
+        {
+          "path": "proposals/.gitkeep",
+          "mode": "managed",
+          "hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "created_file": true,
+          "owner": "ilk/maintainer"
+        },
+        {
+          "path": "proposals/README.md",
+          "mode": "create-only",
+          "created_file": true,
+          "owner": "ilk/maintainer"
+        }
+      ]
+    },
+    {
       "id": "ilk/quality-gates",
       "version": "0.1.0",
       "source": "builtin",
-      "digest": "sha256:b88c5eeaa936a9e147ef2e9fdee09406b45b4f589c1a8546d7052c39fc834985",
+      "digest": "sha256:9900d46120fc0a5d1f8b6e08f97ff93523bf9d4f2d747312922ee55ad270bd5a",
       "vars": {
         "ci": "github"
       },
@@ -70,7 +108,7 @@
       "id": "ilk/record",
       "version": "0.1.0",
       "source": "builtin",
-      "digest": "sha256:e1b41335e40fd4b1b89db0831a1d6c94349c7dd767b5ab01883f80db1ba461f6",
+      "digest": "sha256:ae5d46a80f443a12eba75948e46521457617e9b1b86e4589d0dfec790d14cdb8",
       "vars": {
         "docs_dir": "docs",
         "log_dir": "log",
@@ -189,6 +227,23 @@
       ]
     },
     {
+      "id": "ilk/toolkit",
+      "version": "0.1.0",
+      "source": "builtin",
+      "digest": "sha256:d0aad2264c9320ea48b000883920f65f3bdd10a0988294a52e600c5959eb3855",
+      "files": [
+        {
+          "path": ".ilk/bin/ilk-propose.sh",
+          "mode": "managed",
+          "hash": "sha256:676a31bc8311cf53cdce3c6268dd9c15dc0a1c06ee1c1bc324e91e1fa2ed8ae5",
+          "delivered": "sha256:676a31bc8311cf53cdce3c6268dd9c15dc0a1c06ee1c1bc324e91e1fa2ed8ae5",
+          "created_file": true,
+          "owner": "ilk/toolkit",
+          "exec": true
+        }
+      ]
+    },
+    {
       "id": "target:agents-md",
       "version": "",
       "source": "",
@@ -226,6 +281,14 @@
           "owner": "target:agents-md"
         },
         {
+          "path": ".agent/skills/contribute-upstream/SKILL.md",
+          "mode": "managed",
+          "hash": "sha256:3ea5f7e21642effa652a60425f347274ca10cea2fa33f6370baa1c0f632eb1f3",
+          "delivered": "sha256:3ea5f7e21642effa652a60425f347274ca10cea2fa33f6370baa1c0f632eb1f3",
+          "created_file": true,
+          "owner": "target:agents-md"
+        },
+        {
           "path": ".agent/skills/prove-it/SKILL.md",
           "mode": "managed",
           "hash": "sha256:8b22ac164726f9503b28780548ba554ecd05aa9094fca5076e80555eccd66aab",
@@ -238,6 +301,14 @@
           "mode": "managed",
           "hash": "sha256:c0e382f7b9510febc456de119843cbdc2a67f059a639cb6e9a1aa4d58ae43230",
           "delivered": "sha256:c0e382f7b9510febc456de119843cbdc2a67f059a639cb6e9a1aa4d58ae43230",
+          "created_file": true,
+          "owner": "target:agents-md"
+        },
+        {
+          "path": ".agent/skills/review-a-proposal/SKILL.md",
+          "mode": "managed",
+          "hash": "sha256:07413e45e1594e36a050b11c193b68827c590906f4226d29c243124a2eefe14e",
+          "delivered": "sha256:07413e45e1594e36a050b11c193b68827c590906f4226d29c243124a2eefe14e",
           "created_file": true,
           "owner": "target:agents-md"
         },
@@ -283,8 +354,8 @@
           "path": "AGENTS.md",
           "mode": "region",
           "region": "skills",
-          "hash": "sha256:8dff1d8b32d59cf383485e76f42f614be09513d6a23b5f62b19786a441cb6c1f",
-          "delivered": "sha256:8dff1d8b32d59cf383485e76f42f614be09513d6a23b5f62b19786a441cb6c1f",
+          "hash": "sha256:82713e2289be857c6a4ef709d4179f1e7252bb529348d13b27006bb1873d3d37",
+          "delivered": "sha256:82713e2289be857c6a4ef709d4179f1e7252bb529348d13b27006bb1873d3d37",
           "owner": "target:agents-md"
         }
       ]
@@ -294,6 +365,14 @@
       "version": "",
       "source": "",
       "files": [
+        {
+          "path": ".claude/commands/maintainer-queue.md",
+          "mode": "managed",
+          "hash": "sha256:5622273ade0773340e7f929595fd28a5f849d97e32e10ecc06223099df8ec5ec",
+          "delivered": "sha256:5622273ade0773340e7f929595fd28a5f849d97e32e10ecc06223099df8ec5ec",
+          "created_file": true,
+          "owner": "target:claude-code"
+        },
         {
           "path": ".claude/commands/record-log.md",
           "mode": "managed",
@@ -359,6 +438,14 @@
           "owner": "target:claude-code"
         },
         {
+          "path": ".claude/skills/contribute-upstream/SKILL.md",
+          "mode": "managed",
+          "hash": "sha256:3ea5f7e21642effa652a60425f347274ca10cea2fa33f6370baa1c0f632eb1f3",
+          "delivered": "sha256:3ea5f7e21642effa652a60425f347274ca10cea2fa33f6370baa1c0f632eb1f3",
+          "created_file": true,
+          "owner": "target:claude-code"
+        },
+        {
           "path": ".claude/skills/prove-it/SKILL.md",
           "mode": "managed",
           "hash": "sha256:8b22ac164726f9503b28780548ba554ecd05aa9094fca5076e80555eccd66aab",
@@ -371,6 +458,14 @@
           "mode": "managed",
           "hash": "sha256:c0e382f7b9510febc456de119843cbdc2a67f059a639cb6e9a1aa4d58ae43230",
           "delivered": "sha256:c0e382f7b9510febc456de119843cbdc2a67f059a639cb6e9a1aa4d58ae43230",
+          "created_file": true,
+          "owner": "target:claude-code"
+        },
+        {
+          "path": ".claude/skills/review-a-proposal/SKILL.md",
+          "mode": "managed",
+          "hash": "sha256:07413e45e1594e36a050b11c193b68827c590906f4226d29c243124a2eefe14e",
+          "delivered": "sha256:07413e45e1594e36a050b11c193b68827c590906f4226d29c243124a2eefe14e",
           "created_file": true,
           "owner": "target:claude-code"
         },

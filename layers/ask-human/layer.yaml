@@ -76,3 +76,8 @@ commands:
   - name: list
     summary: "Show open questions, blocking ones first: ilk ask-human list"
     run: .ilk/bin/ilk-ask-human.sh list
+
+contribution:
+  repo: coflounder/ilk
+  path: layers/ask-human
+  guidelines: CONTRIBUTING.md
