@@ -216,6 +216,17 @@ func runOne(p *engine.Project, r registered, caps map[string]string, opts Option
 		}
 	}
 
+	// A credential lives in the environment, so without this the command runs,
+	// fails to authenticate, and reports a broken repository. Skipping says what
+	// is actually wrong. The values are never read — only their presence.
+	if missing := missingEnv(r.check.RequiresEnv); len(missing) > 0 {
+		res.Status = StatusSkip
+		res.Reason = fmt.Sprintf("needs %s in the environment — this check cannot tell an absent credential from a failure, so it declines to guess",
+			strings.Join(missing, ", "))
+		res.Duration = time.Since(start)
+		return res
+	}
+
 	switch {
 	case r.check.Kind != "":
 		fn, ok := builtins[r.check.Kind]
@@ -276,6 +287,18 @@ func runOne(p *engine.Project, r registered, caps map[string]string, opts Option
 // Without this a check that shells out to a script the layer ships can only
 // receive its configuration by interpolating it into the command string, which
 // works right up to the first value containing a space.
+// missingEnv lists which of the named variables are absent or empty. Only their
+// presence is tested; ilk never reads a credential it was asked to notice.
+func missingEnv(names []string) []string {
+	var missing []string
+	for _, name := range names {
+		if strings.TrimSpace(os.Getenv(name)) == "" {
+			missing = append(missing, name)
+		}
+	}
+	return missing
+}
+
 func checkEnv(r registered) []string {
 	env := []string{"ILK_LAYER=" + r.layer}
 	for k, v := range r.ctx.Vars {

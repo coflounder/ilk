@@ -1,0 +1,5 @@
+# Every case states what it defends, so a failure here is actionable.
+- check: blueprint.epic
+  fixture: spec-with-missing-epic
+  expect: fail
+  why: A spec pointing at an epic nobody wrote is the drift this check exists to catch.

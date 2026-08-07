@@ -152,7 +152,7 @@ func stubCapability(name string) string {
 // contract a layer has to keep, and it is the one users cannot verify for
 // themselves without risking their own repository.
 func newLayerTestCmd() *cobra.Command {
-	var keep bool
+	var keep, strict bool
 	cmd := &cobra.Command{
 		Use:   "test <path>",
 		Short: "Prove that adding and removing this layer is lossless",
@@ -200,8 +200,31 @@ func newLayerTestCmd() *cobra.Command {
 			r := &repo.Repo{Root: sandbox}
 			cfg := config.Default()
 			cfg.Targets = []string{"claude-code"}
+			// Satisfy requirements with the real layer that provides them wherever
+			// one is built in, rather than with a stub.
+			//
+			// A stub is a lie that check assertions immediately trip over: a layer
+			// requiring `record.plans` would have it pointed at an invented
+			// directory, its checks would look there, find nothing, and pass —
+			// which is exactly the false green this harness exists to catch. Adding
+			// the provider also tests the layer in the composition it will actually
+			// be used in.
+			providers, err := providersFor(loaded.Manifest.Requires)
+			if err != nil {
+				return err
+			}
 			for _, req := range loaded.Manifest.Requires {
+				if _, satisfied := providers[req]; satisfied {
+					continue
+				}
 				cfg.Capabilities[req] = stubCapability(req)
+			}
+			for _, id := range sortedValues(providers) {
+				provider, err := layer.Resolve(id, ".ilk/cache")
+				if err != nil {
+					return err
+				}
+				cfg.Set(config.LayerRef{ID: provider.Manifest.ID, Version: provider.Manifest.Version})
 			}
 			cfg.Set(config.LayerRef{ID: loaded.Manifest.ID, Version: loaded.Manifest.Version, Source: src})
 			if err := cfg.Save(sandbox); err != nil {
@@ -241,12 +264,29 @@ func newLayerTestCmd() *cobra.Command {
 			}
 			idempotent := again.Empty()
 
+			// Check assertions run before the layer is taken back out, because a
+			// check only exists while its layer is present.
+			cases, err := loadAssertions(loaded)
+			if err != nil {
+				return err
+			}
+			assertions, err := runAssertions(sandbox, loaded, cases)
+			if err != nil {
+				return err
+			}
+			unchecked := uncheckedChecks(loaded, cases)
+
 			// Now remove it and compare against the fixture.
 			cfg2, err := config.Load(sandbox)
 			if err != nil {
 				return err
 			}
-			cfg2.Remove(loaded.Manifest.ID)
+			// Remove every layer, not only the one under test. Any provider added
+			// above to satisfy a requirement has artifacts of its own, and leaving
+			// them behind would report another layer's files as this one's residue.
+			for _, ref := range append([]config.LayerRef(nil), cfg2.Layers...) {
+				cfg2.Remove(ref.ID)
+			}
 			// Agent projections are ilk's output, not the layer's. Removing them
 			// too keeps this measuring the thing it claims to measure: whether
 			// *this layer* comes out cleanly.
@@ -280,23 +320,43 @@ func newLayerTestCmd() *cobra.Command {
 				"handed_over": handed,
 				"lossless":    len(residue) == 0,
 				"conflicts":   len(addPlan.Conflicts()),
+				"assertions":  assertions,
+				"unchecked":   unchecked,
+			}
+			bad := len(residue) > 0 || !idempotent || assertionsFailed(assertions)
+			if strict && len(unchecked) > 0 {
+				bad = true
 			}
 			if flagJSON {
-				if len(residue) > 0 || !idempotent {
+				if bad {
 					exitCode = 1
 				}
 				return emitJSON(result)
 			}
 
 			printf("%s %s\n\n", sty.bold(loaded.Manifest.ID), sty.dim(loaded.Manifest.Version))
+			if len(providers) > 0 {
+				printf("  %s %s\n", sty.dim("composed with:"), sty.dim(strings.Join(sortedValues(providers), ", ")))
+			}
 			printf("  %s %d artifact(s)\n", pass(true), len(addPlan.Changes()))
 			printf("  %s add is idempotent\n", pass(idempotent))
 			printf("  %s rm restores the repository\n", pass(len(residue) == 0))
 			for _, r := range residue {
 				printf("      %s %s\n", sty.red("left behind:"), r)
 			}
+			printAssertions(assertions)
 			for _, h := range handed {
 				printf("  %s %s %s\n", sty.dim("·"), sty.dim("handed over:"), sty.dim(h))
+			}
+			if len(unchecked) > 0 {
+				printf("\n  %s %s\n", sty.yellow("untested:"), strings.Join(unchecked, ", "))
+				printf("  %s\n", sty.dim("a check with no case is indistinguishable from one that matches nothing"))
+				if strict {
+					printf("\n%s\n", sty.red(strictComplaint(unchecked)))
+				}
+			}
+			if bad {
+				exitCode = 1
 			}
 			if len(residue) > 0 || !idempotent {
 				exitCode = 1
@@ -305,6 +365,7 @@ func newLayerTestCmd() *cobra.Command {
 			return nil
 		},
 	}
+	addStrictFlag(cmd, &strict)
 	cmd.Flags().BoolVar(&keep, "keep", false, "keep the sandbox directory for inspection")
 	return cmd
 }
