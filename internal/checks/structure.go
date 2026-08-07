@@ -145,6 +145,10 @@ func checkSection(p *engine.Project, args map[string]any) ([]Finding, error) {
 	if err != nil {
 		return nil, err
 	}
+	where, err := parseWhere(args["where"])
+	if err != nil {
+		return nil, err
+	}
 
 	headingPattern := regexp.MustCompile(`(?i)^#{1,6}\s+` + regexp.QuoteMeta(heading) + `\s*$`)
 	itemPattern := regexp.MustCompile(`^\s*([-*+]|\d+\.)\s+\S`)
@@ -161,6 +165,12 @@ func checkSection(p *engine.Project, args map[string]any) ([]Finding, error) {
 			base := filepath.Base(path)
 			if exempt[base] || baseline[rel] || !match(base) {
 				continue
+			}
+			if len(where) > 0 {
+				meta, err := readFrontmatter(path)
+				if err != nil || !matchesWhere(meta, where) {
+					continue
+				}
 			}
 			content, err := readFile(path)
 			if err != nil {
@@ -221,4 +231,107 @@ func compileMatch(v any) (func(string) bool, error) {
 		return nil, fmt.Errorf("match: %w", err)
 	}
 	return re.MatchString, nil
+}
+
+// --------------------------------------------------------------------- limit
+
+// checkLimit caps how many documents may be in a given state.
+//
+// With no `max:` it forbids the state outright, which is how a layer says "an
+// open blocking question is not an acceptable resting place". With a `max:` it is
+// a work-in-progress limit — the one planning constraint that is both genuinely
+// useful and actually checkable from files.
+func checkLimit(p *engine.Project, args map[string]any) ([]Finding, error) {
+	dirs := stringSlice(args["dirs"])
+	exempt := stringSet(args["exempt"])
+	max := intArg(args["max"], 0)
+
+	where, err := parseWhere(args["where"])
+	if err != nil {
+		return nil, err
+	}
+	if len(where) == 0 {
+		return nil, fmt.Errorf("builtin.limit needs a `where:` describing the state to count")
+	}
+	match, err := compileMatch(args["match"])
+	if err != nil {
+		return nil, err
+	}
+
+	baseline := p.Baseline()
+	var matched []string
+	for _, dir := range dirs {
+		files, err := markdownFiles(p.Repo.Path(dir))
+		if err != nil {
+			continue
+		}
+		for _, path := range files {
+			rel := repoRel(p.Repo.Root, path)
+			if exempt[filepath.Base(path)] || baseline[rel] || !match(filepath.Base(path)) {
+				continue
+			}
+			meta, err := readFrontmatter(path)
+			if err != nil {
+				continue
+			}
+			if matchesWhere(meta, where) {
+				matched = append(matched, rel)
+			}
+		}
+	}
+	sort.Strings(matched)
+
+	if len(matched) <= max {
+		return nil, nil
+	}
+
+	// Below the limit nothing is wrong; above it, name every document, because
+	// which ones they are is the whole question the reader now has.
+	state := describeWhere(where)
+	var findings []Finding
+	for _, rel := range matched {
+		message := fmt.Sprintf("is %s", state)
+		if max > 0 {
+			message = fmt.Sprintf("is %s — %d documents are, and the limit is %d", state, len(matched), max)
+		}
+		findings = append(findings, Finding{Path: rel, Line: 1, Message: message})
+	}
+	return findings, nil
+}
+
+// parseWhere reads a frontmatter condition: every key must equal its value.
+func parseWhere(v any) (map[string]string, error) {
+	raw, ok := v.(map[string]any)
+	if v == nil {
+		return nil, nil
+	}
+	if !ok {
+		return nil, fmt.Errorf("`where:` must be a mapping of frontmatter keys to values")
+	}
+	out := map[string]string{}
+	for key, value := range raw {
+		out[key] = strings.TrimSpace(asString(value))
+	}
+	return out, nil
+}
+
+// matchesWhere reports whether a document's frontmatter satisfies every condition.
+func matchesWhere(meta map[string]any, where map[string]string) bool {
+	for key, want := range where {
+		got := strings.TrimSpace(asString(meta[key]))
+		if !strings.EqualFold(got, want) {
+			return false
+		}
+	}
+	return true
+}
+
+// describeWhere renders a condition the way a person would say it.
+func describeWhere(where map[string]string) string {
+	parts := make([]string, 0, len(where))
+	for key, value := range where {
+		parts = append(parts, fmt.Sprintf("%s: %s", key, value))
+	}
+	sort.Strings(parts)
+	return strings.Join(parts, ", ")
 }

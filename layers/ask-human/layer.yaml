@@ -1,0 +1,78 @@
+id: ilk/ask-human
+version: 0.1.0
+summary: A written escalation path — an agent records a blocking question where a human will see it, and the repository refuses to pretend the answer is known.
+facets:
+  arc: operations
+  kind: process
+ilk: ">=0.1.0"
+
+provides:
+  - ask.questions
+
+variables:
+  questions_dir:
+    default: questions
+    description: Where open questions live. Visible at the repository root on purpose.
+  max_open_blocking:
+    default: "0"
+    description: >-
+      How many blocking questions may sit open before `ilk check` fails. Zero means
+      any open blocking question is a failure, which is the point: it is a stop
+      sign, not a queue.
+
+dirs:
+  - path: "{{ .Vars.questions_dir }}"
+    purpose: Questions an agent could not answer for itself, and their answers.
+    keep: true
+
+files:
+  - src: templates/README.md.tmpl
+    dest: "{{ .Vars.questions_dir }}/README.md"
+    mode: create-only
+  - src: bin/ilk-ask-human.sh
+    dest: .ilk/bin/ilk-ask-human.sh
+    mode: managed
+    exec: true
+
+instructions:
+  - id: ask
+    src: instructions/ask.md.tmpl
+    budget: 130
+
+skills:
+  - name: ask-a-human
+    description: Escalate a decision you cannot make for yourself, without stalling or guessing. Use when a choice would be expensive to reverse, when the requirements genuinely contradict each other, when you need access or authority you do not have, or when you notice you are about to invent an assumption.
+    src: skills/ask-a-human.md
+
+checks:
+  - id: ask.blocking
+    kind: builtin.limit
+    title: No blocking question is sitting unanswered
+    fix: "Answer the question named above: edit the file, write the `## Answer`, and set `status: answered`. If it turns out not to be blocking after all, set `blocking: false` and say why in the document — a question that stops nothing should not stop everything."
+    args:
+      dirs: ["{{ .Vars.questions_dir }}"]
+      max: "{{ .Vars.max_open_blocking }}"
+      where:
+        status: open
+        blocking: "true"
+      exempt: [README.md]
+
+  - id: ask.answered
+    kind: builtin.section
+    title: Answered questions record the answer
+    fix: "Add an `## Answer` section saying what was decided and by whom. An answer that lives only in a conversation is one the next session cannot inherit, which is the whole reason the question was written down."
+    args:
+      dirs: ["{{ .Vars.questions_dir }}"]
+      heading: Answer
+      min_items: 1
+      where:
+        status: answered
+      exempt: [README.md]
+
+commands:
+  - name: open
+    summary: "Record a question that blocks you: ilk ask-human open \"Should retries live in the gateway?\""
+    run: .ilk/bin/ilk-ask-human.sh open
+  - name: list
+    summary: "Show open questions, blocking ones first: ilk ask-human list"
+    run: .ilk/bin/ilk-ask-human.sh list

@@ -65,3 +65,30 @@ layers:
     arc: context
     kind: record
     requires: [record.docs]
+
+  - id: ilk/ask-human
+    source: gh:coflounder/ilk/layers/ask-human
+    summary: A written escalation path — an agent records a blocking question where a human will see it, and the repository refuses to pretend the answer is known.
+    arc: operations
+    kind: process
+
+  - id: ilk/dev-loops
+    source: gh:coflounder/ilk/layers/dev-loops
+    summary: Run an agent until a gate passes, not until it says it is finished — a bounded loop whose completion condition lives outside the model.
+    arc: execution
+    kind: harness
+    requires: [test.command]
+
+  - id: ilk/plan-hygiene
+    source: gh:coflounder/ilk/layers/plan-hygiene
+    summary: Backlog hygiene as failing checks rather than a meeting — a work-in-progress limit, active work that has an owner, and finished work that has evidence.
+    arc: planning
+    kind: gate
+    requires: [record.plans]
+
+  - id: ilk/visual-qa
+    source: gh:coflounder/ilk/layers/visual-qa
+    summary: An agent that changes the interface has to show you what it looks like — screenshots captured against the acceptance criteria, kept with the work.
+    arc: quality
+    kind: gate
+    requires: [record.plans]

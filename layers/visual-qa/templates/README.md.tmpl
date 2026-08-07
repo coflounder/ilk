@@ -1,0 +1,46 @@
+# {{ .Vars.evidence_dir }}/ — what the interface actually looks like
+
+Screenshots captured as proof that an interface change does what its spec said.
+
+## Why this exists
+
+An agent can make an interface change, run the tests, and report success while the
+result is unusable — overlapping text, a button off-screen, a modal behind its
+backdrop. Nothing in a diff or a test suite catches that, and the person reviewing has
+no way to see it without checking out the branch and running the app.
+
+So: if a spec sets `ui: true`, it must link screenshots here, one per acceptance
+criterion that describes something visible.
+
+## What this is not
+
+There are no baseline images and no pixel diffing. That was a deliberate choice:
+
+- A pixel-diff suite fails on every intentional change, so it needs a blessing
+  workflow, and blessing becomes reflexive within about two weeks. At that point it
+  catches nothing and costs everybody time.
+- Binary baselines make the repository heavy and the diffs unreadable.
+- The interesting failures — this is confusing, this is the wrong emphasis, this
+  breaks at 320px — are not pixel differences at all.
+
+A person looks at the screenshots. That is the whole mechanism, and it works because
+looking at four images is fast while checking out a branch is not.
+
+## Naming
+
+```
+{{ .Vars.evidence_dir }}/<spec-id>/<state>.png
+```
+
+For example `evidence/spec-checkout-redesign/empty-cart.png`. The state name should say
+what a reader is looking at, not what component produced it.
+
+## What to capture
+
+The states a user will actually be in, including the ones that are easy to skip:
+
+- Empty, loading, error, and permission-denied states.
+- The narrowest supported viewport, if the project supports more than one.
+- Anything the spec's acceptance criteria describe in visual terms.
+
+The happy path alone is not evidence. It is the state that was easiest to reach.

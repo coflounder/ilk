@@ -196,12 +196,15 @@ ilk init --no-baseline                     # or be held to them from the start
 | `record` | The project record: what is true, what is intended, what happened, plus the checks that keep it honest |
 | `quality-gates` | Tests, lint and build wired into `ilk check`, git hooks and CI |
 
-Three more ship alongside in [`layers/`](layers/), each taking one idea from the
-MetaHarness essay and reducing it to something that works on plain markdown and git:
+Seven more ship alongside in [`layers/`](layers/):
 
 | Layer | Enforces |
 |---|---|
 | `blueprint` | Every spec belongs to an epic and a milestone that exist, and says what "done" means |
+| `plan-hygiene` | A work-in-progress limit, active work with a named owner, finished work with evidence |
+| `ask-human` | A blocking question an agent could not answer stops the checks until a person answers it |
+| `dev-loops` | An agent runs until an objective gate passes, bounded by a ceiling — never until it says it is finished |
+| `visual-qa` | Interface work shows what it looks like: screenshots against the acceptance criteria, no baselines |
 | `compound-lessons` | Every lesson names the durable change it produced, so "we will be more careful" cannot pass as an outcome |
 | `archive` | Superseded documents are archived rather than deleted, and nothing live may cite them |
 

@@ -1,0 +1,61 @@
+id: ilk/visual-qa
+version: 0.1.0
+summary: An agent that changes the interface has to show you what it looks like — screenshots captured against the acceptance criteria, kept with the work.
+facets:
+  arc: quality
+  kind: gate
+ilk: ">=0.1.0"
+
+requires:
+  - record.plans
+
+provides:
+  - visual.evidence
+
+variables:
+  plans_dir:
+    default: plans
+    description: Where the plan documents live.
+  evidence_dir:
+    default: evidence
+    description: Where captured screenshots are kept, alongside the record rather than in a build artefact nobody keeps.
+
+dirs:
+  - path: "{{ .Vars.evidence_dir }}"
+    purpose: Screenshots captured as proof that an interface change does what its spec said.
+    keep: true
+
+files:
+  - src: templates/README.md.tmpl
+    dest: "{{ .Vars.evidence_dir }}/README.md"
+    mode: create-only
+
+instructions:
+  - id: visual
+    src: instructions/visual.md.tmpl
+    budget: 110
+
+skills:
+  - name: capture-ui-evidence
+    description: Show what an interface change actually looks like, rather than asserting it works. Use when a spec touches the UI, before marking interface work done, or when a reviewer cannot tell from a diff what the user will see.
+    src: skills/capture-ui-evidence.md
+
+checks:
+  - id: visual.evidence
+    kind: builtin.section
+    title: Interface work shows what it looks like
+    fix: "Add an `## Evidence` section linking the screenshots you captured, one per acceptance criterion that describes something visible. `ilk check` verifies the files exist; a person still has to look at them, which is the point — nobody can automate whether a layout is right."
+    args:
+      dirs: ["{{ .Vars.plans_dir }}"]
+      heading: Evidence
+      min_items: 1
+      where:
+        ui: "true"
+      exempt: [README.md]
+
+  - id: visual.evidence-exists
+    kind: builtin.links
+    title: Linked screenshots actually exist
+    fix: "Capture the screenshot and commit it, or fix the path. A link to a screenshot nobody took is worse than no link — it reads as evidence."
+    args:
+      dirs: ["{{ .Vars.plans_dir }}"]

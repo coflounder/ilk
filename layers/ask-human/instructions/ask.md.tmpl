@@ -1,0 +1,11 @@
+When a decision is genuinely not yours — expensive to reverse, requirements that
+contradict each other, access you do not have — do not guess and do not stall.
+Record it:
+
+    ilk ask-human open "Should retries live in the gateway or the client?"
+
+Write the question in `{{ .Vars.questions_dir }}/`, say what you would do absent an
+answer, then carry on with everything the answer does not block. A blocking question
+left open fails `ilk check`, so it cannot quietly become a decision nobody made.
+
+Escalating is cheap; a wrong assumption compounding for three days is not.

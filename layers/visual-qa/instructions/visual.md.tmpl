@@ -1,0 +1,11 @@
+A spec that changes the interface sets `ui: true` in its frontmatter, and must show
+what the change looks like before it is done: screenshots in `{{ .Vars.evidence_dir }}/`,
+linked from an `## Evidence` section, one per acceptance criterion that describes
+something visible.
+
+There are no baseline images and no pixel diffing. A person looks. Nothing can
+automate whether a layout is right, and pretending otherwise produces a suite that
+fails on every intentional change and gets ignored within a week.
+
+"The component renders" is not evidence. A screenshot of the state a user will
+actually be in is.

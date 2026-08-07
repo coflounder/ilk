@@ -1,0 +1,51 @@
+id: ilk/dev-loops
+version: 0.1.0
+summary: Run an agent until a gate passes, not until it says it is finished — a bounded loop whose completion condition lives outside the model.
+facets:
+  arc: execution
+  kind: harness
+ilk: ">=0.1.0"
+
+requires:
+  - test.command
+
+provides:
+  - loops.bounded
+
+variables:
+  gate:
+    default: ilk check
+    description: >-
+      The command that decides completion. It must be something that cannot lie —
+      a test suite, a linter, a type checker, `ilk check`. Never the model's own
+      assessment of its work.
+  max_iterations:
+    default: "10"
+    description: >-
+      How many attempts before the loop gives up and reports. A loop with no
+      ceiling is a way to spend a weekend's tokens on a problem that needed a
+      person after the second attempt.
+  log_dir:
+    default: scratch/loops
+    description: Where each iteration's output is written, so a failed run is inspectable.
+
+files:
+  - src: bin/ilk-loop.sh
+    dest: .ilk/bin/ilk-loop.sh
+    mode: managed
+    exec: true
+
+instructions:
+  - id: loops
+    src: instructions/loops.md.tmpl
+    budget: 120
+
+skills:
+  - name: run-a-bounded-loop
+    description: Drive an agent repeatedly at one task until an objective gate passes. Use for mechanical convergent work — making a failing suite green, migrating call sites, fixing lint across a codebase — and to recognise the tasks where looping is the wrong tool.
+    src: skills/run-a-bounded-loop.md
+
+commands:
+  - name: run
+    summary: "Loop a command until the gate passes: ilk dev-loops run '<command>' [--gate '<command>'] [--max N]"
+    run: .ilk/bin/ilk-loop.sh

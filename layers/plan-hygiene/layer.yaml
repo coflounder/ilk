@@ -1,0 +1,64 @@
+id: ilk/plan-hygiene
+version: 0.1.0
+summary: Backlog hygiene as failing checks rather than a meeting — a work-in-progress limit, active work that has an owner, and finished work that has evidence.
+facets:
+  arc: planning
+  kind: gate
+ilk: ">=0.1.0"
+
+requires:
+  - record.plans
+
+provides:
+  - hygiene.flow
+
+variables:
+  plans_dir:
+    default: plans
+    description: Where the plan documents live.
+  wip_limit:
+    default: "3"
+    description: >-
+      How many pieces of work may be `status: active` at once. The limit is the
+      point: work in progress that nobody is progressing is the most expensive
+      kind, and it is invisible until somebody counts.
+
+checks:
+  - id: hygiene.wip
+    kind: builtin.limit
+    title: Work in progress is within the limit
+    fix: "Finish something before starting something else, or move one of these back to `status: proposed`. If the limit is genuinely wrong for this team, raise `wip_limit` deliberately — but a limit you raise whenever you hit it is not a limit."
+    args:
+      dirs: ["{{ .Vars.plans_dir }}"]
+      max: "{{ .Vars.wip_limit }}"
+      where:
+        status: active
+      exempt: [README.md]
+
+  - id: hygiene.owner
+    kind: builtin.frontmatter
+    title: Active work has somebody accountable for it
+    fix: "Add `owner:` to the frontmatter naming a person or a team. Work that is in progress with nobody named is work that stalls without anybody noticing."
+    args:
+      dirs: ["{{ .Vars.plans_dir }}"]
+      require: [owner]
+      where:
+        status: active
+      exempt: [README.md]
+
+  - id: hygiene.evidence
+    kind: builtin.section
+    title: Finished work says how it was verified
+    fix: "Add an `## Evidence` section to the completed document: the commands that were run and what they said, the pull request, the acceptance criteria and what settles each. \"Done\" is a claim; this is what makes it checkable by somebody who was not there."
+    args:
+      dirs: ["{{ .Vars.plans_dir }}"]
+      heading: Evidence
+      min_items: 1
+      where:
+        status: done
+      exempt: [README.md]
+
+skills:
+  - name: keep-the-plan-honest
+    description: Review the plan for the failures that accumulate quietly — work in progress nobody is progressing, active items with no owner, finished items with no evidence. Use when hygiene checks fail, before a planning session, or when the plan has stopped describing what is actually happening.
+    src: skills/keep-the-plan-honest.md

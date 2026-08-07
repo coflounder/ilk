@@ -73,9 +73,12 @@ Remaining:
   it to warrant its own.
 - More adapters, with conformance fixtures so "works with any agent" stops being a
   claim that decays silently as agents change their formats.
-- More layers. Candidates, in rough order of demand: `ralph` (a bounded agent loop
-  whose completion condition is a check rather than the model's opinion), `llm-wiki`
-  (a maintained knowledge layer over the codebase), `pr-prep`, `incident`.
+- An `mcp:` neutral artifact, so a repository can declare the MCP servers it expects
+  once and have each agent's config projected from it. The clearest remaining core
+  gap — see [layers/README.md](../layers/README.md) for why it cannot be a layer.
+- A network and secrets story, which `linear-mirror` needs and nothing else does yet.
+- More layers: `pr-prep`, `codegraph`, `html-wireframe`, `incident`. The backlog with
+  decided shapes is in [layers/README.md](../layers/README.md).
 
 *Accepted when:* the registry has enough layers that `ilk search` returns something
 useful for a common need, and none of them required a core change.

@@ -1,0 +1,48 @@
+# {{ .Vars.questions_dir }}/ — questions for a person
+
+Decisions an agent could not make for itself, and their answers.
+
+The goal is not to reduce autonomy. It is to make **the moments that genuinely need a
+person easier to spot** — and to stop the alternative, which is an agent inventing an
+assumption, building three days of work on it, and nobody finding out until review.
+
+## Opening one
+
+```
+ilk ask-human open "Should retries live in the gateway or the client?"
+ilk ask-human list
+```
+
+Each question is a file with frontmatter:
+
+```yaml
+---
+id: q-retry-ownership
+title: Should retries live in the gateway or the client?
+status: open        # open | answered | withdrawn
+blocking: true      # is work actually stopped?
+asked: 2026-08-07
+---
+```
+
+`blocking: true` means work is stopped. `ilk check` fails while any blocking question
+is open, so it appears in every `ilk brief` until somebody deals with it. That is
+deliberate — a stop sign, not a queue.
+
+If work can continue around it, say `blocking: false`. Marking everything blocking is
+how the signal stops meaning anything.
+
+## Answering one
+
+Edit the file: write the `## Answer`, set `status: answered`. That is all — the answer
+is checked for existence, not for shape.
+
+An answer that lives only in a conversation is one the next session cannot inherit,
+which is the entire reason the question was written down. If the answer is a decision
+with lasting consequences, promote it to a `DEC-*.md` and link it from here.
+
+## Questions that stop mattering
+
+Set `status: withdrawn` and say why in a sentence. Do not delete them: "we asked this
+and it stopped being relevant" is information, and the next person to wonder the same
+thing deserves to find it.

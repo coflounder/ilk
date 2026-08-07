@@ -34,6 +34,7 @@ var builtins = map[string]builtinFunc{
 	"builtin.conflicts":   checkConflicts,
 	"builtin.references":  checkReferences,
 	"builtin.section":     checkSection,
+	"builtin.limit":       checkLimit,
 }
 
 func builtinNames() []string {
@@ -78,8 +79,13 @@ func checkFrontmatter(p *engine.Project, args map[string]any) ([]Finding, error)
 	exempt := stringSet(args["exempt"])
 
 	// A layer may require keys of one kind of document without imposing them on
-	// every document in the directory.
+	// every document in the directory — by filename, or by the state the document
+	// declares it is in.
 	match, err := compileMatch(args["match"])
+	if err != nil {
+		return nil, err
+	}
+	where, err := parseWhere(args["where"])
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +114,9 @@ func checkFrontmatter(p *engine.Project, args map[string]any) ([]Finding, error)
 					Line:    1,
 					Message: fmt.Sprintf("%s; needs %s", err, strings.Join(required, ", ")),
 				})
+				continue
+			}
+			if !matchesWhere(meta, where) {
 				continue
 			}
 			var missing []string

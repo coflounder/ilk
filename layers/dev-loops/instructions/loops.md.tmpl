@@ -1,0 +1,13 @@
+For mechanical convergent work — making a failing suite green, migrating call sites —
+use a bounded loop rather than one long attempt:
+
+    ilk dev-loops run 'your-agent-command'
+
+Two rules make it safe. **State lives in the repository**, so progress survives a
+context window ending; nothing important may live only in the conversation. And
+**completion is decided by `{{ .Vars.gate }}`, never by the model's own assessment** —
+the loop stops when the gate passes or after {{ .Vars.max_iterations }} attempts,
+whichever comes first.
+
+A loop that hits its ceiling is a finding, not a failure to try harder. Report what it
+converged on and what it did not.
