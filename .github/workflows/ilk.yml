@@ -1,9 +1,15 @@
 # Seeded by ilk and yours to edit — ilk will not touch this file again.
+#
+# Edited, because this repository is ilk. The version the gates layer seeds
+# installs a published release, which is right for a repository that merely uses
+# ilk and wrong here twice over: it would check a pull request with whatever was
+# released rather than with the code under review, and there is no release to
+# install until the first tag exists.
 name: ilk
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, origin/main]
   pull_request:
 
 jobs:
@@ -17,8 +23,19 @@ jobs:
           # describe, so it needs more than a shallow clone.
           fetch-depth: 0
 
-      - name: Install ilk
-        run: curl -fsSL https://raw.githubusercontent.com/coflounder/ilk/main/install.sh | sh
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: true
+
+      # Build the ilk under review and check this repository with it. The
+      # built-in layers are embedded in the binary, so this is also the only way
+      # the checks a change makes to `record` or `gates` are exercised against
+      # the repository that ships them.
+      - name: Build ilk from this checkout
+        run: |
+          go build -o "$RUNNER_TEMP/ilk" ./cmd/ilk
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
 
       # Gates that matter run here, not only in an agent's hooks. An agent that
       # ignores its instructions still cannot push past this job.

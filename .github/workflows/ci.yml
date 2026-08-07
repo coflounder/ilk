@@ -231,7 +231,10 @@ jobs:
           fi
 
           # A covers: pattern matching nothing is a silent exemption, not a pass.
-          sed -i 's|src/frozen/\*\*|src/frozn/**|' docs/reference/ARCH-frozen.md
+          # `sed -i` without a suffix is GNU-only; BSD sed on macOS reads the
+          # next argument as the backup extension and then chokes on the script.
+          sed -i.bak 's|src/frozen/\*\*|src/frozn/**|' docs/reference/ARCH-frozen.md
+          rm -f docs/reference/ARCH-frozen.md.bak
           if "$bin" check --only record.coverage; then
             echo "a covers: pattern matching nothing should be reported"
             exit 1
