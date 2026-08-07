@@ -1,0 +1,71 @@
+id: ilk/gh-projects
+version: 0.1.0
+summary: Keep a GitHub Project in agreement with the record — the plan is the source of truth, the board is a view of it, and a write is either correct or it does not happen.
+facets:
+  arc: planning
+  kind: integration
+ilk: ">=0.1.0"
+
+requires:
+  - record.plans
+
+provides:
+  - tracker.github
+
+variables:
+  plans_dir:
+    default: plans
+    description: Where the plan documents live.
+  match:
+    default: "^SPEC-"
+    description: Which documents in that directory are mirrored.
+  owner:
+    default: ""
+    description: >-
+      The GitHub user or organisation owning the project, e.g. `acme` or
+      `@me`. Required — there is no sensible default, and guessing would write
+      to somebody else's board.
+  project_number:
+    default: ""
+    description: The project's number, as it appears in its URL. Required.
+  repo:
+    default: ""
+    description: >-
+      The repository new issues are created in, as `owner/name`. Leave empty to
+      create draft items in the project instead, which need no repository but
+      cannot be referenced from a commit.
+  status_field:
+    default: Status
+    description: The project's single-select field holding workflow state.
+
+mirrors:
+  - id: gh-projects
+    summary: the GitHub Project
+    dir: "{{ .Vars.plans_dir }}"
+    match: "{{ .Vars.match }}"
+    key: github
+    list: .ilk/bin/gh-projects.sh list
+    create: .ilk/bin/gh-projects.sh create
+    update: .ilk/bin/gh-projects.sh update
+
+files:
+  - src: bin/gh-projects.sh
+    dest: .ilk/bin/gh-projects.sh
+    mode: managed
+    exec: true
+
+instructions:
+  - id: gh
+    src: instructions/gh.md.tmpl
+    budget: 120
+
+skills:
+  - name: sync-the-github-project
+    description: Reconcile the plan with a GitHub Project, or adopt a board that already has items. Use when the board and the record disagree, when a new spec needs to appear on the board, or when setting this up for the first time.
+    src: skills/sync-the-github-project.md
+
+checks:
+  - id: gh.configured
+    title: The GitHub Project is configured
+    run: '.ilk/bin/gh-projects.sh doctor'
+    fix: "Set `owner` and `project_number` for this layer in .ilk/config.yaml — `ilk info gh-projects` lists them — and make sure `gh auth status` succeeds. Until then the mirror cannot run, and the board and the record will drift apart without anybody being told."

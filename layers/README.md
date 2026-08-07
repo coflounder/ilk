@@ -20,18 +20,20 @@ the built-in layers only, so a fresh repository still needs no network.
 | [`visual-qa`](visual-qa/) | Interface work shows what it looks like: screenshots against the acceptance criteria, no baselines |
 | [`compound-lessons`](compound-lessons/) | Every lesson names the durable change it produced, so "we will be more careful" cannot pass as an outcome |
 | [`archive`](archive/) | Superseded documents are archived rather than deleted, and nothing live may cite them |
+| [`gh-projects`](gh-projects/) | A GitHub Project made to match the plan — the record is the source of truth, and an ambiguous match refuses rather than guesses |
 
 The first three of these plus `compound-lessons` and `archive` come from the
 [MetaHarness essay](https://www.tenex.co/blog/building-an-ai-native-sdlc) — the project
 record, the connected plan, the escalation path, lessons that compound, and an archive
 the tooling refuses to write into. `dev-loops` and `visual-qa` are the two failure modes
 that essay does not cover: an agent that stops because it believes it is finished, and
-an agent that cannot see what it built.
+an agent that cannot see what it built. `gh-projects` is the third — the record is only
+the source of truth if the tracker everyone else reads agrees with it.
 
 ## Layers that run code
 
-`blueprint`, `archive`, `ask-human` and `dev-loops` ship shell commands, so adopting
-them requires consent:
+`blueprint`, `archive`, `ask-human`, `dev-loops` and `gh-projects` ship shell commands,
+so adopting them requires consent:
 
 ```sh
 ilk info gh:coflounder/ilk/layers/dev-loops     # read it first
@@ -64,21 +66,20 @@ teach each target to render it. Then a layer can say "this project talks to Line
 Postgres" once. Perhaps 150 lines of core plus per-target rendering. It is the most
 clearly correct item on this list.
 
-### `linear-mirror` — needs a secrets and network story
+### `linear-mirror` — unblocked; needs a credential story
 
 Keep the record and Linear in agreement: derive issues from specs, report where the two
 disagree, and refuse to write when a spec could plausibly match two issues.
 
-**Blocked on:** ilk has never made a network call or read a credential, and both are
-consequential enough to design rather than bolt on. The essay is emphatic about the
-shape — you see the full plan before anything executes, applying is a separate
-deliberate step, and an ambiguous match refuses and names both candidates. That is
-`ilk plan` / `ilk apply` pointed at somebody else's system, which is a good sign the
-model fits.
+**No longer blocked on design.** `ilk mirror` is the generalised surface, and
+`gh-projects` proves it against a real tracker. A Linear layer is now three shell
+commands normalising to `{id, title, status, url}` — identity, diffing, ambiguity
+refusal and plan-then-apply are already core and already tested.
 
-**Shape:** a layer providing `ilk linear plan` and `ilk linear apply`, reading a token
-from the environment, never from the repository. The same design generalises to Jira and
-GitHub Projects, so the first one should be built as though the second exists.
+**What is left** is the part `gh-projects` sidestepped by leaning on `gh`: reading an API
+token. It must come from the environment, never from the repository, and the failure when
+it is absent must say so rather than looking like an empty board. Until that is decided,
+copy `layers/gh-projects/` and point it at Linear's API — nothing in core needs to change.
 
 ### `codegraph` — pick the indexer, wrap it
 

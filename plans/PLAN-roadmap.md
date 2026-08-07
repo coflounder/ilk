@@ -2,7 +2,7 @@
 id: plan-roadmap
 title: Roadmap
 status: active
-updated: 2026-08-06
+updated: 2026-08-07
 ---
 
 # Roadmap
@@ -15,9 +15,14 @@ box.
 
 ## Boundaries
 
-Not in scope: project tracking (Linear, Jira, GitHub Projects sync), org-level
-configuration across repositories, an MCP server, Windows support for layer commands
-and hooks. Integrations belong in layers, not in the core.
+Not in scope: org-level configuration across repositories, an MCP server, Windows
+support for layer commands and hooks. Integrations belong in layers, not in the core.
+
+Tracker sync was on this list and came off it deliberately. What core gained is
+`ilk mirror` — identity, diffing, refusing on ambiguity, plan-then-apply — and no
+knowledge of any provider; a layer supplies three commands that normalise a tracker to
+`{id, title, status, url}`. The boundary held where it mattered: `gh-projects` knows what
+a GitHub Project is, and nothing in the binary does.
 
 ## Decisions already made
 
@@ -76,7 +81,10 @@ Remaining:
 - An `mcp:` neutral artifact, so a repository can declare the MCP servers it expects
   once and have each agent's config projected from it. The clearest remaining core
   gap — see [layers/README.md](../layers/README.md) for why it cannot be a layer.
-- A network and secrets story, which `linear-mirror` needs and nothing else does yet.
+- A credential story. `ilk mirror` covers the tracker-integration shape and
+  `gh-projects` proves it, but it leans on `gh` for authentication. A provider with its
+  own API token — Linear, Jira — needs a decided answer for where the token comes from
+  and what the failure looks like when it is absent.
 - More layers: `pr-prep`, `codegraph`, `html-wireframe`, `incident`. The backlog with
   decided shapes is in [layers/README.md](../layers/README.md).
 

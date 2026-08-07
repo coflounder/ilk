@@ -196,7 +196,7 @@ ilk init --no-baseline                     # or be held to them from the start
 | `record` | The project record: what is true, what is intended, what happened, plus the checks that keep it honest |
 | `quality-gates` | Tests, lint and build wired into `ilk check`, git hooks and CI |
 
-Seven more ship alongside in [`layers/`](layers/):
+Eight more ship alongside in [`layers/`](layers/):
 
 | Layer | Enforces |
 |---|---|
@@ -207,6 +207,7 @@ Seven more ship alongside in [`layers/`](layers/):
 | `visual-qa` | Interface work shows what it looks like: screenshots against the acceptance criteria, no baselines |
 | `compound-lessons` | Every lesson names the durable change it produced, so "we will be more careful" cannot pass as an outcome |
 | `archive` | Superseded documents are archived rather than deleted, and nothing live may cite them |
+| `gh-projects` | A GitHub Project made to match the plan, with an ambiguous match refused rather than guessed |
 
 ```sh
 ilk search planning
@@ -217,6 +218,35 @@ ilk adopt gh:coflounder/ilk/layers/blueprint --allow-exec
 The index is embedded, so `ilk search` works offline. It lists what somebody
 registered; it endorses nothing. `ilk info` shows what a layer writes, what it costs
 in always-on context, and whether it runs code — read it before adopting.
+
+## Keeping a tracker in agreement with the record
+
+Most teams have a board somebody else reads. If it disagrees with the plan in the
+repository, the plan stops being the source of truth no matter what a document claims.
+
+```sh
+ilk mirror plan gh-projects     # what would change on the board
+ilk mirror apply gh-projects    # make the board match
+```
+
+It is `plan` and `apply` again, pointed at somebody else's system: nothing is written
+until the whole plan has been seen. Three rules make that safe to run unattended.
+
+**The record wins.** The tracker is made to match the markdown, never the reverse, so
+"which one is right" is never a question. A board that has drifted is a change to push.
+
+**An ambiguous match is refused, not guessed.** When a document's title could mean two
+items, ilk names both and writes neither. A wrong link is silent and permanent — every
+later sync writes to the wrong item, and nobody finds out until somebody reads the board
+and does not recognise it. Adopting a board that already has items goes through
+`ilk mirror link`, which records the identity once so titles stop mattering.
+
+**Nothing is deleted remotely.** An item no document claims is reported. Deciding it is
+dead is a person's call.
+
+ilk itself knows nothing about GitHub. A layer supplies three commands that normalise
+the provider to `{id, title, status, url}`, which is the whole integration surface —
+[`gh-projects`](layers/gh-projects/) is under 200 lines of shell, most of it error messages.
 
 ## Staleness is measured by coupling, not by a timer
 

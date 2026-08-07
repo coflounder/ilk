@@ -8,6 +8,7 @@ package checks
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"sort"
 	"strings"
@@ -248,7 +249,7 @@ func runOne(p *engine.Project, r registered, caps map[string]string, opts Option
 			res.Reason = err.Error()
 			break
 		}
-		out, code, err := runCommand(p.Repo.Root, cmd, opts.Timeout)
+		out, code, err := runCommand(p.Repo.Root, cmd, opts.Timeout, checkEnv(r))
 		res.Output = strings.TrimRight(out, "\n")
 		switch {
 		case err != nil:
@@ -270,12 +271,28 @@ func runOne(p *engine.Project, r registered, caps map[string]string, opts Option
 	return res
 }
 
-func runCommand(dir, command string, timeout time.Duration) (string, int, error) {
+// checkEnv gives a check script the same environment a layer's commands get.
+//
+// Without this a check that shells out to a script the layer ships can only
+// receive its configuration by interpolating it into the command string, which
+// works right up to the first value containing a space.
+func checkEnv(r registered) []string {
+	env := []string{"ILK_LAYER=" + r.layer}
+	for k, v := range r.ctx.Vars {
+		env = append(env, "ILK_VAR_"+strings.ToUpper(k)+"="+v)
+	}
+	return env
+}
+
+func runCommand(dir, command string, timeout time.Duration, env []string) (string, int, error) {
 	if timeout <= 0 {
 		timeout = 10 * time.Minute
 	}
 	cmd := exec.Command("sh", "-c", command)
 	cmd.Dir = dir
+	if len(env) > 0 {
+		cmd.Env = append(os.Environ(), env...)
+	}
 
 	done := make(chan struct{})
 	var out []byte

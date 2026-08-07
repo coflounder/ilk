@@ -1,0 +1,35 @@
+#!/bin/sh
+# A fake `gh`, standing in for GitHub so gh-projects.sh can be tested without a
+# network, an account, or a project somebody has to remember to clean up.
+#
+# It honours --jq the way the real gh does — by filtering its own response — which
+# is the part of gh's behaviour the provider script actually depends on.
+set -eu
+
+echo "gh $*" >> "$GH_FAKE_LOG"
+
+filter=""
+prev=""
+for arg in "$@"; do
+	if [ "$prev" = "--jq" ]; then filter=$arg; fi
+	prev=$arg
+done
+
+emit() {
+	if [ -n "$filter" ]; then printf '%s' "$1" | jq -r "$filter"; else printf '%s\n' "$1"; fi
+}
+
+case "$1 ${2:-}" in
+"auth status") exit 0 ;;
+"project view") emit '{"id":"PROJECT_ID","title":"API Roadmap"}' ;;
+"project item-list") emit "$(cat "$GH_FAKE_ITEMS")" ;;
+"project item-create") emit '{"id":"ITEM_NEW"}' ;;
+"project field-list") emit "$(cat "$GH_FAKE_FIELDS")" ;;
+"project item-edit") exit 0 ;;
+"issue create") echo "https://github.com/acme/api/issues/9" ;;
+"project item-add") emit '{"id":"ITEM_FROM_ISSUE"}' ;;
+*)
+	echo "fake gh: unhandled call: $*" >&2
+	exit 1
+	;;
+esac

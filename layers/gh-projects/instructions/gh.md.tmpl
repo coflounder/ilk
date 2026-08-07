@@ -1,0 +1,9 @@
+The plan in `{{ .Vars.plans_dir }}/` is the source of truth; the GitHub Project is a
+view of it. Never edit the board to record a decision — edit the spec and run:
+
+    ilk mirror plan gh-projects     # what would change on the board
+    ilk mirror apply gh-projects    # make the board match
+
+Nothing is written until you have seen the plan, and nothing on the board is ever
+deleted. A document that could mean more than one board item is refused rather than
+guessed at, because a wrong link is silent and every later sync compounds it.

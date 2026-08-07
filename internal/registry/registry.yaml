@@ -92,3 +92,10 @@ layers:
     arc: quality
     kind: gate
     requires: [record.plans]
+
+  - id: ilk/gh-projects
+    source: gh:coflounder/ilk/layers/gh-projects
+    summary: Keep a GitHub Project in agreement with the record — the plan is the source of truth, the board is a view of it, and a write is either correct or it does not happen.
+    arc: planning
+    kind: integration
+    requires: [record.plans]

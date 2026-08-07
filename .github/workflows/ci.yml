@@ -55,6 +55,20 @@ jobs:
             ./ilk layer test "$layer"
           done
 
+      # A layer that talks to somebody else's system carries its own provider tests,
+      # run against a fake so CI needs no network, no account, and nothing to clean up.
+      # It cannot prove the real API calls are right — only that the contract with ilk
+      # holds and that every refusal still refuses.
+      - name: Layer provider tests
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          set -e
+          for suite in layers/*/test/run.sh; do
+            [ -f "$suite" ] || continue
+            echo "→ $suite"
+            sh "$suite"
+          done
+
       # Every layer in the index must actually resolve, or `ilk search` is
       # advertising things nobody can adopt.
       - name: Registry index

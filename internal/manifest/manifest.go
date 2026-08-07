@@ -57,6 +57,8 @@ type Layer struct {
 	Checks []Check `yaml:"checks,omitempty"`
 	// Commands extend the CLI as `ilk <layer> <command>`.
 	Commands []Command `yaml:"commands,omitempty"`
+	// Mirrors keep record documents in agreement with an external tracker.
+	Mirrors []Mirror `yaml:"mirrors,omitempty"`
 
 	// Source records where this layer was loaded from. Set by the loader.
 	Source string `yaml:"-"`
@@ -153,6 +155,36 @@ type Command struct {
 	Name    string `yaml:"name"`
 	Summary string `yaml:"summary"`
 	Run     string `yaml:"run"`
+}
+
+// Mirror declares that a set of record documents has a counterpart in an
+// external system — a GitHub Project, a Linear team, a Jira board.
+//
+// ilk supplies the part that is the same everywhere: identity, diffing, refusing
+// on ambiguity, and the plan-then-apply discipline that makes a write to somebody
+// else's system either correct or absent. The layer supplies three commands that
+// know the provider, and normalises it to a shape ilk can reason about — so ilk
+// never learns what a GitHub Project is, exactly as it never learns what pytest is.
+type Mirror struct {
+	ID      string `yaml:"id"`
+	Summary string `yaml:"summary"`
+	// Dir holds the record documents to mirror.
+	Dir string `yaml:"dir"`
+	// Match filters those documents by filename.
+	Match string `yaml:"match,omitempty"`
+	// Key is the frontmatter key ilk owns on each document, holding the remote
+	// identity. Everything else in the document belongs to whoever wrote it —
+	// the mutex between human prose and machine output, expressed as a key.
+	Key string `yaml:"key"`
+
+	// List prints the remote items as a JSON array of
+	// {id, title, status, url}. Normalising in the layer is what keeps every
+	// provider's peculiarities out of ilk.
+	List string `yaml:"list"`
+	// Create receives one item as JSON on stdin and prints the new remote id.
+	Create string `yaml:"create"`
+	// Update receives {id, title, status} as JSON on stdin.
+	Update string `yaml:"update"`
 }
 
 var (
@@ -339,6 +371,32 @@ func (l *Layer) Validate() error {
 		}
 	}
 
+	seenMirror := map[string]bool{}
+	for i, m := range l.Mirrors {
+		where := fmt.Sprintf("mirrors[%d]", i)
+		if !namePattern.MatchString(m.ID) {
+			bad("%s: id %q must be lowercase-with-dashes", where, m.ID)
+		}
+		if seenMirror[m.ID] {
+			bad("%s: duplicate id %q", where, m.ID)
+		}
+		seenMirror[m.ID] = true
+		if strings.TrimSpace(m.Summary) == "" {
+			bad("%s (%s): summary is required — it names the system being mirrored", where, m.ID)
+		}
+		if m.Dir == "" {
+			bad("%s (%s): dir is required", where, m.ID)
+		}
+		if !shortIDPattern.MatchString(m.Key) {
+			bad("%s (%s): key %q must be a lowercase frontmatter key that ilk will own on every mirrored document", where, m.ID, m.Key)
+		}
+		for name, value := range map[string]string{"list": m.List, "create": m.Create, "update": m.Update} {
+			if strings.TrimSpace(value) == "" {
+				bad("%s (%s): %s is required", where, m.ID, name)
+			}
+		}
+	}
+
 	if len(errs) == 0 {
 		return nil
 	}
@@ -349,7 +407,7 @@ func (l *Layer) Validate() error {
 // NeedsExec reports whether adopting this layer runs code beyond rendering
 // files. Adopting such a layer requires explicit consent.
 func (l *Layer) NeedsExec() bool {
-	if len(l.Commands) > 0 {
+	if len(l.Commands) > 0 || len(l.Mirrors) > 0 {
 		return true
 	}
 	for _, c := range l.Checks {

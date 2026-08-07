@@ -2,7 +2,7 @@
 id: arch-system-overview
 title: System overview
 status: current
-updated: 2026-08-06
+updated: 2026-08-07
 covers:
   - internal/**
   - cmd/**
@@ -50,6 +50,7 @@ Nothing is written until the whole blast radius has been shown.
 | `internal/targets` | Agent adapters. Project neutral artifacts into what each agent reads. |
 | `internal/engine` | Desired-state computation, planning, applying. |
 | `internal/checks` | The validator runner and the built-in checks. |
+| `internal/mirror` | Reconciling record documents with an external tracker. Owns identity, diffing and refusal; knows no provider. |
 | `internal/brief` | The session-start packet. |
 | `internal/cli` | Command surface. |
 | `internal/builtin` | Layers embedded in the binary, so `ilk init` needs no network. |
@@ -58,7 +59,7 @@ Nothing is written until the whole blast radius has been shown.
 Dependencies run one way: `cli → engine → {targets, layer, config, lock, render} →
 {manifest, fence, repo}`. `checks` and `brief` sit beside `cli` and depend on `engine`.
 
-## The two ideas that carry the design
+## The ideas that carry the design
 
 **Ownership modes plus two recorded hashes.** Every artifact ilk writes is `managed`,
 `region`, `create-only`, `append-once`, or (for targets only) `merge`. The lockfile
@@ -84,6 +85,16 @@ skills, hooks and commands in a neutral form. Targets turn those into `AGENTS.md
 `ilk hook run <event>`, adding a hook to a layer never rewrites an agent's config, and
 adding an agent never touches a layer.
 
+**Writing to somebody else's system reuses the same discipline.** `ilk mirror`
+reconciles record documents with a tracker, and the shape is `plan` then `apply`
+again: nothing is written until the whole plan has been seen. Core owns identity (a
+frontmatter key it owns on each document), diffing, and the refusals — a document whose
+title could mean two tracker items is named rather than guessed at, because a wrong link
+is silent and every later sync compounds it. A layer supplies three commands that know
+the provider and normalise it to `{id, title, status, url}`, which is why core has never
+learned what a GitHub Project is. Nothing is ever deleted remotely; an item nobody claims
+is reported.
+
 ## Deliberate constraints
 
 - **Project-scoped and monorepo-only.** One repository, one root, one `.ilk/`. No
@@ -105,6 +116,9 @@ adding an agent never touches a layer.
   non-built-in source requires `--allow-exec`.
 - **Command execution is `sh -c`.** Windows is not supported for layer commands and
   hooks. The binary itself builds anywhere.
+- **The record is the source of truth; a mirror is one-way.** `ilk mirror` makes the
+  tracker match the markdown and never the reverse, so "which one is right" is never a
+  question. A tracker that has drifted is a change to push, not an update to pull.
 
 ## Testing
 
@@ -112,5 +126,8 @@ adding an agent never touches a layer.
 drop must leave a repository exactly as it was, apart from files ilk deliberately
 seeded and handed over. `internal/merge/merge_test.go` holds the other half — that a
 clean merge preserves both sides' edits and an ambiguous one is reported rather than
-resolved. `ilk layer test` applies the same standard to any layer,
-including the built-in ones, and CI runs it against both on every push.
+resolved. `internal/mirror/mirror_test.go` holds the third — a fake provider stands in
+for a tracker, so identity, diffing and every refusal are verified with no network and no
+account, which is also the only way they can be verified in CI. `ilk layer test` applies
+the same standard to any layer, including the built-in ones, and CI runs it against both
+on every push.
