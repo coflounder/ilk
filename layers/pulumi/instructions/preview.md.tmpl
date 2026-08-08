@@ -1,0 +1,9 @@
+Infrastructure lives in `{{ .Vars.group }}/`, one Pulumi stack per directory.
+
+**Preview is your work. Apply is not.** Preview a change, read the diff, and put it in
+front of a person — `{{ default "pulumi up" (index .Caps "infra.up.command") }}` is
+theirs to run, and nothing here runs it for you. An agent that can apply
+infrastructure can destroy a production database while reasoning about a typo.
+
+Secrets reach a stack through `pulumi config set --secret`; a plaintext credential in a
+`Pulumi.*.yaml` is a failing check, not a style note.

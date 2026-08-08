@@ -1,0 +1,122 @@
+id: ilk/pulumi
+version: 0.1.0
+summary: Infrastructure as code with the one discipline that matters when an agent holds the keys — preview is agent work, apply is human work.
+facets:
+  arc: operations
+  kind: gate
+ilk: ">=0.2.0"
+
+# Two capabilities, and they are deliberately not symmetrical.
+#
+# `infra.preview.command` is wired into `ilk check` as a gate, because reading
+# what a change would do is exactly the work an agent should be doing.
+#
+# `infra.up.command` is wired into nothing at all. It is declared so a skill can
+# name it and a person can run it, and a hook that invoked it would be a bug
+# rather than a feature. An agent that can apply infrastructure changes is an
+# agent that can delete a production database while reasoning about a typo.
+requires:
+  - infra.preview.command
+  - infra.up.command
+
+# The capability carries the path, so a layer that needs to find the stacks does
+# not have to redeclare `group: infra` and hope it still matches.
+provides:
+  infra.stacks: "{{ .Vars.group }}"
+
+variables:
+  group:
+    default: infra
+    description: >-
+      The top-level grouping infrastructure lives under. One of ilk's canonical
+      groups, so two unrelated layers naming it agree about what it is.
+  stack:
+    default: dns
+    description: >-
+      The one stack this layer creates, to establish the shape. A layer cannot
+      know what a project deploys, so it seeds a single directory and holds every
+      sibling to the same contract — rename it, or add `auth`, `cms` and the rest
+      beside it, and the checks pick them up with no configuration.
+  runtime:
+    default: yaml
+    enum: [yaml, nodejs, python, go, dotnet, java]
+    description: >-
+      The Pulumi runtime written into the seeded `Pulumi.yaml`. The default is
+      `yaml` because it is the only runtime whose seeded stack is valid with no
+      further files — a stack that cannot be previewed on the day it lands
+      teaches people to ignore the gate.
+  base_ref:
+    default: origin/main
+    description: >-
+      What "the stacks this change touched" is measured against. A ref that does
+      not resolve is not an error: the preview falls back to the working tree, so
+      a fresh clone with no remote still previews what you have edited.
+
+dirs:
+  - group: "{{ .Vars.group }}"
+    name: "{{ .Vars.stack }}"
+    order: 10
+    purpose: One Pulumi stack — its own project file, its own state, its own blast radius.
+
+files:
+  - src: templates/Pulumi.yaml.tmpl
+    dest: "{{ .Vars.group }}/{{ .Vars.stack }}/Pulumi.yaml"
+    mode: create-only
+  - src: bin/ilk-pulumi-stacks.sh
+    dest: .ilk/bin/ilk-pulumi-stacks.sh
+    mode: managed
+    exec: true
+  - src: bin/ilk-pulumi-secrets.sh
+    dest: .ilk/bin/ilk-pulumi-secrets.sh
+    mode: managed
+    exec: true
+  - src: bin/ilk-pulumi-preview.sh
+    dest: .ilk/bin/ilk-pulumi-preview.sh
+    mode: managed
+    exec: true
+
+instructions:
+  - id: preview
+    src: instructions/preview.md.tmpl
+    budget: 130
+
+skills:
+  - name: preview-an-infrastructure-change
+    description: Work out what an infrastructure change would actually do before anybody applies it. Use when editing anything under the infrastructure directories, when `ilk check` reports `infra.preview`, or when asked whether a change is safe to apply.
+    src: skills/preview-an-infrastructure-change.md
+  - name: hand-off-an-infrastructure-apply
+    description: Hand a previewed infrastructure change to a person to apply. Use when a preview is clean and the change now needs `pulumi up`, or when asked to deploy, apply, roll out or ship infrastructure — none of which are agent work.
+    src: skills/hand-off-an-infrastructure-apply.md
+
+checks:
+  - id: infra.stack-shape
+    title: Every stack directory has a Pulumi.yaml
+    run: .ilk/bin/ilk-pulumi-stacks.sh
+    fix: "Add a `Pulumi.yaml` to the directory named above — `name:`, `runtime:` and a `description:` saying what the stack owns. If it is not a stack, move it out of the group: a directory here without a project file is invisible to `pulumi preview`, so nothing will ever tell you it drifted."
+  - id: infra.no-plaintext-secrets
+    title: No stack config carries an unencrypted secret
+    run: .ilk/bin/ilk-pulumi-secrets.sh
+    fix: "Encrypt it: `pulumi config set --secret <key> <value>` in that stack's directory rewrites the entry as `secure:`, which is safe to commit. Then rotate the value that was in plaintext — it is in the git history whatever you do to the working tree now. If the key is not actually a credential, rename it so it does not read as one."
+  - id: infra.preview
+    title: Preview is clean for the stacks this change touched
+    requires: infra.preview.command
+    requires_env: [PULUMI_ACCESS_TOKEN]
+    run: '.ilk/bin/ilk-pulumi-preview.sh {{ index .Caps "infra.preview.command" | quote }}'
+    fix: "Read the diff above. If it is what you meant, the change is ready for a person to apply — say what it will do and stop there; do not run the apply command yourself. If it is not what you meant, fix the program until the preview says what you intended. If the preview did not run at all, the fault is the credentials or the stack selection in `infra.preview.command`, not the program."
+
+# Only the two file-shape checks are wired to a hook. The preview needs a network
+# and a backend, and a blocking hook that waits on someone else's API teaches
+# people to reach for --no-verify, which costs you every gate you have.
+#
+# There is deliberately no hook, no command and no check anywhere in this layer
+# that runs `infra.up.command`.
+hooks:
+  - event: pre-commit
+    name: ilk-pulumi-shape
+    blocking: true
+    run: ilk check --only infra.stack-shape,infra.no-plaintext-secrets
+
+contribution:
+  repo: coflounder/ilk
+  path: layers/pulumi
+  guidelines: CONTRIBUTING.md

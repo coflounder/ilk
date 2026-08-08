@@ -1,0 +1,98 @@
+---
+id: research-readme
+title: What belongs in {{ .Vars.research_dir }}/
+status: current
+updated: 2026-01-01
+covers: []
+---
+
+# {{ .Vars.research_dir }}/ — what is true about the world outside this repository
+
+One question per file, answered from sources, with a date after which nobody may
+trust the answer without looking again.
+
+This is not the place for how *this* system works — that is
+`{{ .Vars.group }}/reference/`. It is the place for the things a session spends its
+first twenty minutes rediscovering: which API version actually works, what the
+vendor's rate limit really is, why the obvious library was rejected.
+
+## Frontmatter
+
+```yaml
+---
+id: res-stripe-rate-limits           # stable; other documents link by it
+title: Stripe's real rate limit on the Payment Intents API
+status: current
+question: How many Payment Intents requests can we make per second before 429s, and what does Stripe do at the limit?
+sources:                             # the pages you actually opened
+  - https://docs.stripe.com/rate-limits
+  - https://github.com/stripe/stripe-node/issues/1234
+confidence: high                     # high | medium | low
+expires: 2026-11-05                  # after this date, re-read before trusting
+updated: 2026-08-07
+---
+```
+
+`confidence:` means something specific:
+
+| Value | Means |
+|---|---|
+| `high` | Read from the vendor's own documentation, or observed directly against the real thing, and the sources agree. |
+| `medium` | One source, or several that agree but none authoritative. |
+| `low` | Inferred, or the sources disagree. A `low` finding is a lead, not an answer — say so wherever you use it. |
+
+## Body
+
+Two sections carry weight. The rest is context.
+
+```markdown
+## Finding
+
+The answer, in the fewest words that are still precise. Numbers, versions and
+error codes, not impressions.
+
+## What would change this
+
+- Stripe publishes a different number on the rate-limits page.
+- We see a 429 below the stated rate in production.
+- The Payment Intents API reaches a new major version.
+```
+
+`## What would change this` is required, and it is the section that does the work. A
+conclusion nothing could overturn is an opinion wearing a citation, and this directory
+is read as though everything in it had been checked.
+
+## Why these expire, when the rest of the record does not
+
+Everywhere else, ilk measures staleness by **coupling**: a document goes stale when
+the code it describes changes, so a stable subsystem never expires and a churning one
+expires immediately. The project's own pace sets the pace of review.
+
+That signal does not exist here. A vendor halving a rate limit, a library shipping a
+major version, a deprecation reaching its date — none of them touch a file in this
+repository, so no amount of watching it will ever notice. A date the author chose is
+the only handle there is, and `expires:` is that date.
+
+Choose it from how fast the source moves, not from habit:
+
+| Subject | A reasonable first guess |
+|---|---|
+| Vendor pricing, quotas, rate limits | 90 days |
+| A library's API within a pinned major version | 180 days |
+| Anything in beta or preview | 30 days |
+| An announced deprecation | the announced date |
+
+```
+ilk autoresearch due          # what expires within {{ .Vars.warn_before_days }} days
+ilk autoresearch due 60       # or any window
+```
+
+A finding past its date fails `ilk check`. Renewing that date is a claim that you
+opened a source again — the one habit a timer must not train is bumping a number to
+get a build green.
+
+## When a finding turns out to be wrong
+
+Correct it in place and say what was believed, so the next reader can calibrate how
+much this directory is worth. A finding that was quietly rewritten looks exactly like
+one that was right all along, and the difference is the whole value of the record.

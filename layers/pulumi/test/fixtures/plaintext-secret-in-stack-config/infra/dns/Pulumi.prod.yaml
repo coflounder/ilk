@@ -1,0 +1,7 @@
+# Every value here is an obviously fake placeholder. Nothing in this file is, or
+# has ever been, a credential for anything.
+config:
+  fixture-dns:region: eu-west-1
+  fixture-dns:apiToken: EXAMPLE-NOT-A-REAL-TOKEN-fixture-placeholder
+  fixture-dns:dbPassword:
+    value: EXAMPLE-NOT-A-REAL-PASSWORD-fixture-placeholder

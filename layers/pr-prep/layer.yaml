@@ -1,0 +1,83 @@
+id: ilk/pr-prep
+version: 0.1.0
+summary: Pull request descriptions derived from the plan document rather than written from memory — the outcome, the acceptance criteria and the evidence, assembled by a command instead of recalled.
+facets:
+  arc: release
+  kind: process
+ilk: ">=0.2.0"
+
+# The document a description is derived from lives in the record's plans
+# directory. Requiring the capability rather than the layer means anything that
+# supplies a plans directory satisfies it.
+requires:
+  - record.plans
+
+provides:
+  - pr.description
+
+variables:
+  ship_status:
+    default: done
+    description: >-
+      The status a plan document reaches when its work is ready to ship. The
+      checks below apply only at that status, so nothing about drafting or
+      planning is disturbed — a criterion may be open for as long as the work is.
+
+files:
+  - src: bin/ilk-prprep-draft.sh
+    dest: .ilk/bin/ilk-prprep-draft.sh
+    mode: managed
+    exec: true
+  - src: bin/ilk-prprep-evidence.sh
+    dest: .ilk/bin/ilk-prprep-evidence.sh
+    mode: managed
+    exec: true
+
+instructions:
+  - id: pr-prep
+    src: instructions/pr-prep.md.tmpl
+    budget: 120
+
+skills:
+  - name: draft-a-pull-request
+    description: Write the description for a change that has a plan document behind it. Use before opening a pull request, when asked to summarise a branch, or when a pr-prep check fails.
+    src: skills/draft-a-pull-request.md
+
+checks:
+  - id: prprep.criteria-settled
+    kind: builtin.forbid
+    title: Finished work leaves no acceptance criterion unticked
+    requires: record.plans
+    fix: "Tick the criterion once it is genuinely settled, and say in `## Evidence` what settles it. If it is not settled, the document is not `{{ .Vars.ship_status }}` — set it back to `active`, or move the criterion into a follow-up document and link it. The description drafted from this file copies these criteria verbatim, so an open box here becomes a claim in the pull request that nobody met."
+    args:
+      dirs: ['{{ index .Caps "record.plans" }}']
+      where:
+        status: "{{ .Vars.ship_status }}"
+      exempt: [README.md]
+      patterns:
+        - text: "- [ ]"
+          reason: "an acceptance criterion is still unticked on work marked {{ .Vars.ship_status }}"
+        - text: "* [ ]"
+          reason: "an acceptance criterion is still unticked on work marked {{ .Vars.ship_status }}"
+
+  - id: prprep.evidence-checkable
+    title: Finished work cites evidence somebody else can open
+    requires: record.plans
+    run: 'ILK_PLANS_DIR="{{ index .Caps "record.plans" }}" .ilk/bin/ilk-prprep-evidence.sh'
+    fix: "Put something openable in the `## Evidence` section of each document named above: the command you ran in backticks and what it printed, a link to the CI run, the pull request as `#123`, or the path to the test that covers it. \"Tested locally\" reads as evidence and is not — it goes into the pull request description word for word, where the reviewer can do nothing with it."
+
+hooks:
+  - event: pre-push
+    name: pr-prep
+    blocking: false
+    run: ilk check --only prprep.criteria-settled,prprep.evidence-checkable
+
+commands:
+  - name: draft
+    summary: "Assemble a pull request description from a plan document: ilk pr-prep draft <document> [--title]"
+    run: 'ILK_PLANS_DIR="{{ index .Caps "record.plans" }}" .ilk/bin/ilk-prprep-draft.sh'
+
+contribution:
+  repo: coflounder/ilk
+  path: layers/pr-prep
+  guidelines: CONTRIBUTING.md

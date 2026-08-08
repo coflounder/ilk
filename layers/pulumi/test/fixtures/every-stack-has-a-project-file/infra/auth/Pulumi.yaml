@@ -1,0 +1,3 @@
+name: fixture-auth
+runtime: yaml
+description: The identity provider.

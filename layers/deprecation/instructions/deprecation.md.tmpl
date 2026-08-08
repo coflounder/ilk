@@ -1,0 +1,10 @@
+Code that is going away gets a document, not a comment. `{{ .Vars.prefix }}*.md` in
+`{{ index .Caps "record.docs" }}/` carries `announced:`, `remove_after:` (an ISO date)
+and `covers:` — the paths the deprecation applies to.
+
+`ilk check` fails once that date has passed while the covered paths are still there,
+and tells you a deprecation is finished once they are gone. `ilk deprecation list`
+shows where each one stands.
+
+A `// remove after v3` comment is invisible to everything that could act on it. Write
+the document instead.

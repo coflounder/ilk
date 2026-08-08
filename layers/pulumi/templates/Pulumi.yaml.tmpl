@@ -1,0 +1,11 @@
+name: {{ .Repo.Name }}-{{ .Vars.stack }}
+runtime: {{ .Vars.runtime }}
+description: >-
+  What this stack owns. One stack per directory, so its state and its blast
+  radius are its own, and a preview names only what this change touched.
+
+# Seeded once by the ilk/pulumi layer and yours from here — ilk never rewrites it.
+#
+# Secrets do not go in this file or in Pulumi.<stack>.yaml as plain values. Run
+# `pulumi config set --secret <key> <value>` and commit the `secure:` form it
+# writes; `ilk check` fails on anything else.

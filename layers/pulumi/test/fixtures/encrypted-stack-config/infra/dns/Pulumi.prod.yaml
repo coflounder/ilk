@@ -1,0 +1,9 @@
+# The shape `pulumi config set --secret` writes. The ciphertext below is not
+# ciphertext — it is a fixture placeholder that decrypts to nothing anywhere.
+secretsprovider: awskms://alias/fixture-not-a-real-key
+config:
+  fixture-dns:region: eu-west-1
+  fixture-dns:apiToken:
+    secure: v1:EXAMPLE-NOT-REAL-CIPHERTEXT-fixture-placeholder
+  fixture-dns:dbPassword:
+    secure: v1:EXAMPLE-NOT-REAL-CIPHERTEXT-fixture-placeholder

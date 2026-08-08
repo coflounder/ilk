@@ -22,6 +22,11 @@ the built-in layers only, so a fresh repository still needs no network.
 | [`archive`](archive/) | Superseded documents are archived rather than deleted, and nothing live may cite them |
 | [`gh-projects`](gh-projects/) | A GitHub Project made to match the plan — the record is the source of truth, and an ambiguous match refuses rather than guesses |
 | [`maintainer`](maintainer/) | Proposals from repositories using your layers arrive as reviewable documents; one nobody can judge fails the checks rather than sitting in a queue |
+| [`autoresearch`](autoresearch/) | A finding about the world outside the repository cites its sources, says what would change its conclusion, and expires on a date |
+| [`deprecation`](deprecation/) | A deprecation carries a removal date the checks hold you to, and says when the removal is actually finished |
+| [`pr-prep`](pr-prep/) | A pull request description is derived from the plan — outcome, criteria, evidence — rather than written from memory |
+| [`secrets`](secrets/) | A credential is caught while the fix is still cheap, and there is a written answer for the day one leaks anyway |
+| [`pulumi`](pulumi/) | `preview` is agent work and `up` is human work; every stack has a project file and none carries a plaintext secret |
 
 ### Built in
 
@@ -49,8 +54,9 @@ the source of truth if the tracker everyone else reads agrees with it.
 
 ## Layers that run code
 
-`blueprint`, `archive`, `ask-human`, `dev-loops`, `gh-projects` and `maintainer` ship
-shell commands, so adding them requires consent:
+`blueprint`, `archive`, `ask-human`, `dev-loops`, `gh-projects`, `maintainer`,
+`autoresearch`, `deprecation`, `pr-prep`, `secrets` and `pulumi` ship shell commands, so
+adding them requires consent:
 
 ```sh
 ilk info gh:coflounder/ilk/layers/dev-loops     # read it first
@@ -87,68 +93,6 @@ there. A layer its adopters cannot improve decays, and that is too easy to not n
 
 These are specified rather than vague — each has a decided shape, and what is missing is
 the work, not the design. Contributions welcome; so is disagreement with the shape.
-
-### `pulumi` — the first layer in the `infra` group
-
-Infrastructure as code, with the one discipline that matters when an agent is holding
-the keys: **`preview` is agent work, `up` is human work.**
-
-**Decided.** Two capabilities, `infra.preview.command` (`pulumi preview --diff`) and
-`infra.up.command`, and they are not symmetrical. The preview command is wired into
-`ilk check` as a gate. The up command is deliberately *not* wired into anything — it is
-declared so that a skill can name it and a human can run it, and a hook that invoked it
-would be a bug, not a feature. An agent that can apply infrastructure changes is an
-agent that can delete a production database while reasoning about a typo.
-
-A stack per directory under the `infra` group — `infra/dns`, `infra/auth`, `infra/cms` —
-each with its own `Pulumi.yaml`. This is the layer that makes the `infra` group carry
-something, and the reason the group exists as a canonical name rather than one a layer
-invents.
-
-**Checks:** every stack directory has a `Pulumi.yaml`; no `Pulumi.*.yaml` contains an
-unencrypted `secret:` value; `preview` is clean for the stacks the change touched.
-The last one only runs where credentials exist, which is exactly what `requires:` is
-for — no credentials, check skipped, and `ilk doctor` says why.
-
-**Blocked on the same credential story as `linear-mirror`.** `preview` needs a
-backend and a passphrase. They must come from the environment, never the repository,
-and the failure when they are absent has to say so rather than looking like an empty
-diff. That answer is worth deciding once for both layers.
-
-**Not started because** the credential question is genuinely undecided, and shipping a
-layer whose main check silently no-ops without credentials would be worse than not
-shipping it.
-
-### `autoresearch` — findings with provenance, so nobody re-derives them
-
-A place for what was learned about the world *outside* the repository: which API version
-actually works, what the vendor's rate limit really is, why the obvious library was
-rejected. Agents re-derive this every session, at full cost, and throw it away.
-
-**Decided.** A `research` directory in the `docs` group, with documents carrying
-`question:`, `sources:` (URLs, dated), `confidence:` and — the load-bearing field —
-`expires:`.
-
-**Why `expires:` rather than `covers:`.** The record layer measures staleness by coupling:
-a document goes stale when the code it describes changes. That is exactly right for
-architecture and exactly wrong here. Research goes stale because *the world* moved — a
-vendor changed a limit, a library shipped a major version — and watching this repository
-can never detect that. `record` already has `max_age_days` for this case and turns it
-off by default; a research layer is where it earns its keep, per document rather than
-per directory.
-
-**Checks:** every finding cites at least one source; every finding states what would
-change its conclusion (a finding that cannot be falsified is an opinion); nothing is
-past its `expires:` date without being re-read.
-
-**The honest risk:** this is one confident wrong answer away from being worse than no
-layer at all, because a written finding carries more authority than a fresh guess. The
-`confidence:` field and the mandatory falsification clause are there to make a shaky
-finding legible as shaky. Whether that is enough is the open question, and it is the
-part worth arguing about before building it.
-
-**Pairs with** `codegraph`: that one indexes what is inside the repository, this one
-records what is outside it.
 
 ### `brainstorm` — probably should not be its own layer
 
@@ -194,7 +138,7 @@ teach each target to render it. Then a layer can say "this project talks to Line
 Postgres" once. Perhaps 150 lines of core plus per-target rendering. It is the most
 clearly correct item on this list.
 
-### `linear-mirror` — unblocked; needs a credential story
+### `linear-mirror` — unblocked, and nothing is left but the work
 
 Keep the record and Linear in agreement: derive issues from specs, report where the two
 disagree, and refuse to write when a spec could plausibly match two issues.
@@ -204,10 +148,14 @@ disagree, and refuse to write when a spec could plausibly match two issues.
 commands normalising to `{id, title, status, url}` — identity, diffing, ambiguity
 refusal and plan-then-apply are already core and already tested.
 
-**What is left** is the part `gh-projects` sidestepped by leaning on `gh`: reading an API
-token. It must come from the environment, never from the repository, and the failure when
-it is absent must say so rather than looking like an empty board. Until that is decided,
-copy `layers/gh-projects/` and point it at Linear's API — nothing in core needs to change.
+**No longer blocked on credentials either.** The part `gh-projects` sidestepped by
+leaning on `gh` — reading an API token — is answered by `requires_env:` on a check: the
+variables that carry a credential are named, their presence is tested and their values
+are never read, and a check whose credential is absent skips with a reason rather than
+failing as if the board were empty. `pulumi` is the first layer to use it.
+
+**What is left is the work.** Copy `layers/gh-projects/`, point it at Linear's API, and
+name the token variable in `requires_env:` — nothing in core needs to change.
 
 ### `codegraph` — pick the indexer, wrap it
 
@@ -269,9 +217,6 @@ reasonable layer for a team that wants it; it just should not be the default.
 
 ### Also considered
 
-- **`pr-prep`** — assemble a pull request description from the spec, the acceptance
-  criteria and the evidence, so the description is derived rather than written from
-  memory. Small, useful, no blockers. Probably next.
 - **`incident`** — a runbook contract and a post-incident path that feeds
   `compound-lessons`. Only meaningful for a project with production, which most adopters
   will not have on day one.

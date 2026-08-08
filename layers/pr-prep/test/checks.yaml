@@ -1,0 +1,30 @@
+# Every case states what it defends, so a failure here is actionable.
+- check: prprep.criteria-settled
+  fixture: done-with-open-criteria
+  expect: fail
+  why: Work marked done with a box still unticked would put a criterion nobody met into the pull request description verbatim.
+- check: prprep.criteria-settled
+  fixture: done-with-open-criteria-alt-bullets
+  expect: fail
+  why: Markdown accepts `*` for a list as readily as `-`, and a pattern that only knows one of them is a check that quietly matches nothing in half the repositories using it.
+- check: prprep.criteria-settled
+  fixture: done-with-settled-criteria
+  expect: pass
+  why: Criteria that are all ticked are the ordinary case, and a check that fires on it would be turned off within a week.
+- check: prprep.criteria-settled
+  fixture: active-with-open-criteria
+  expect: pass
+  why: An open criterion on work still in progress is not a fault — the check must apply only at the status where the claim is made.
+
+- check: prprep.evidence-checkable
+  fixture: done-with-vague-evidence
+  expect: fail
+  why: "\"Tested locally, works fine\" reads as evidence, satisfies any check that only counts bullets, and leaves the reviewer nothing to open."
+- check: prprep.evidence-checkable
+  fixture: done-with-checkable-evidence
+  expect: pass
+  why: A command in backticks and a link are what evidence looks like when it survives being copied into a description.
+- check: prprep.evidence-checkable
+  fixture: done-with-no-evidence
+  expect: fail
+  why: A finished document with no Evidence section at all leaves the drafted description citing nothing.

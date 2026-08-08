@@ -105,3 +105,36 @@ layers:
     summary: The receiving end of the flywheel — proposals from repositories using your layers arrive as reviewable documents, and a proposal nobody can judge fails the checks rather than sitting in a queue.
     arc: operations
     kind: process
+
+  - id: ilk/autoresearch
+    source: gh:coflounder/ilk/layers/autoresearch
+    summary: Findings about the world outside the repository — sourced, falsifiable and dated — so no session pays to derive them twice.
+    arc: context
+    kind: record
+
+  - id: ilk/deprecation
+    source: gh:coflounder/ilk/layers/deprecation
+    summary: A removal date the code is held to — deprecations that expire, and that tell you when the removal is finished.
+    arc: quality
+    kind: process
+    requires: [record.docs]
+
+  - id: ilk/pr-prep
+    source: gh:coflounder/ilk/layers/pr-prep
+    summary: Pull request descriptions derived from the plan document rather than written from memory — the outcome, the acceptance criteria and the evidence, assembled by a command instead of recalled.
+    arc: release
+    kind: process
+    requires: [record.plans]
+
+  - id: ilk/secrets
+    source: gh:coflounder/ilk/layers/secrets
+    summary: A credential caught before it is committed, and the part nobody writes down — what to do once one has leaked.
+    arc: quality
+    kind: gate
+
+  - id: ilk/pulumi
+    source: gh:coflounder/ilk/layers/pulumi
+    summary: Infrastructure as code with the one discipline that matters when an agent holds the keys — preview is agent work, apply is human work.
+    arc: operations
+    kind: gate
+    requires: [infra.preview.command, infra.up.command]

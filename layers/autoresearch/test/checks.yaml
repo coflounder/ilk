@@ -1,0 +1,49 @@
+# Every case states what it defends, so a failure here is actionable.
+#
+# One good document is the passing case for all four checks. That is deliberate:
+# it proves the shape this layer asks for satisfies everything this layer asks,
+# which is the thing an adopter finds out the hard way otherwise.
+
+- check: research.frontmatter
+  fixture: finding-without-question
+  expect: fail
+  why: A finding with no `question:` is an answer to nothing, and nobody can tell later whether it addressed what they need.
+- check: research.frontmatter
+  fixture: finding-complete
+  expect: pass
+  why: The shape the README and the skill both teach must satisfy the check that enforces it.
+
+- check: research.sources
+  fixture: finding-without-sources
+  expect: fail
+  why: "`sources: [a previous session established this]` is provenance nobody can re-open — the exact circularity this layer would otherwise manufacture."
+- check: research.sources
+  fixture: finding-nested-without-sources
+  expect: fail
+  why: The script reads the directory recursively, as the built-in checks do; a finding filed one level down that only half the checks can see is the worst of both.
+- check: research.sources
+  fixture: finding-complete
+  expect: pass
+  why: A finding citing a real URL in `sources:` is what the check is asking for, and must not be rejected for the shape of the list.
+
+- check: research.falsifiable
+  fixture: finding-without-falsification
+  expect: fail
+  why: A conclusion with nothing that could overturn it is an opinion wearing a citation, and it will be read as a checked fact.
+- check: research.falsifiable
+  fixture: finding-complete
+  expect: pass
+  why: A `## What would change this` section with entries is the whole requirement, and the check must accept it where it exists.
+
+- check: research.fresh
+  fixture: finding-past-expiry
+  expect: fail
+  why: A finding whose own date has passed is still being read as current, which is the failure no coupling-based staleness check can ever see.
+- check: research.fresh
+  fixture: finding-without-expiry
+  expect: fail
+  why: A missing `expires:` would otherwise be permanently fresh — indistinguishable from a finding that is permanently right.
+- check: research.fresh
+  fixture: finding-complete
+  expect: pass
+  why: A date still in the future must pass, or the check is a clock that only ever says no.
