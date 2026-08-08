@@ -132,6 +132,13 @@ layers:
     arc: quality
     kind: gate
 
+  - id: ilk/gauntlet
+    source: gh:coflounder/ilk/layers/gauntlet
+    summary: The builder does not grade its own homework — work is not done until somebody who did not do it has compared it against something inspectable and named the largest remaining gap.
+    arc: quality
+    kind: gate
+    requires: [record.plans]
+
   - id: ilk/routine
     source: gh:coflounder/ilk/layers/routine
     summary: Scheduled work as a document rather than a cron line — owned, budgeted, and re-read on a date instead of running unwatched for ever.

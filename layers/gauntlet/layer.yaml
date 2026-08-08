@@ -1,0 +1,130 @@
+id: ilk/gauntlet
+version: 0.1.0
+summary: The builder does not grade its own homework — work is not done until somebody who did not do it has compared it against something inspectable and named the largest remaining gap.
+facets:
+  arc: quality
+  kind: gate
+ilk: ">=0.2.0"
+
+# Entirely declarative: no scripts, no capability to configure, nothing to consent
+# to. Running the critic is the skill's business, because what a critic is differs
+# per repository and per agent, and a layer that shelled out to one would work for
+# exactly the setup its author had.
+#
+# The verdict lives in the plan document rather than in an artifact of its own. A
+# separate verdict file would look more independent and would not be — neither
+# arrangement can tell who actually wrote it — so the honest version is the one
+# with fewer moving parts, and the independence is carried by `critic:` and by the
+# skill, where it is a claim either way.
+requires:
+  - record.plans
+
+provides:
+  - gauntlet.verdict
+
+variables:
+  ship_status:
+    default: done
+    description: >-
+      The status a document reaches when its work is finished. Everything here
+      applies at that moment and not before — a document still being written has
+      nothing to judge.
+
+instructions:
+  - id: gauntlet
+    src: instructions/gauntlet.md.tmpl
+    budget: 110
+
+skills:
+  - name: judge-against-a-bar
+    description: Judge finished work against something inspectable, or set up the judging. Use before marking work done, when asked to review a change, when a builder is about to approve its own output, and when the only evidence offered is a description of what was done rather than the thing itself.
+    src: skills/judge-against-a-bar.md
+
+checks:
+  # `verdict:` is deliberately not required. On a document that reached the ship
+  # status the only value it could hold is "passed", so requiring it would check
+  # nothing. What is worth requiring is who did the judging.
+  - id: gauntlet.critic
+    kind: builtin.frontmatter
+    title: Finished work says who judged it
+    fix: >-
+      Add `critic:` to the frontmatter naming who compared this against the bar — a
+      person, or the model and the session it ran in. If the honest answer is the
+      same session that built it, the work is not judged yet: start a fresh one,
+      give it the bar and not your reasoning, and let it read the artifact.
+    args:
+      dirs: ['{{ index .Caps "record.plans" }}']
+      require: [critic]
+      where:
+        status: "{{ .Vars.ship_status }}"
+      exempt: [README.md]
+
+  - id: gauntlet.bar
+    kind: builtin.section
+    title: Finished work names what it was compared against
+    fix: >-
+      Add a `## Bar` section naming the inspectable thing this was held to — the
+      acceptance criteria, the passing suite and what it covers, the screenshot of
+      what it was meant to look like, the performance budget and the number it hit.
+      "It looks right" is not a bar; a bar is something a second person can open
+      and disagree with.
+    args:
+      dirs: ['{{ index .Caps "record.plans" }}']
+      heading: Bar
+      min_items: 1
+      where:
+        status: "{{ .Vars.ship_status }}"
+      exempt: [README.md]
+
+  - id: gauntlet.verdict
+    kind: builtin.section
+    title: Finished work carries a verdict from somebody who did not build it
+    fix: >-
+      Add a `## Verdict` section saying what the critic found when it compared the
+      artifact against the bar — what it opened, and what it concluded. A verdict
+      that only says "looks good" is a signature, not a judgement, and this check
+      cannot tell them apart, which is why the largest-gap section exists.
+    args:
+      dirs: ['{{ index .Caps "record.plans" }}']
+      heading: Verdict
+      min_items: 1
+      where:
+        status: "{{ .Vars.ship_status }}"
+      exempt: [README.md]
+
+  # This is the check the layer rests on. Every other one here can be satisfied by
+  # typing a plausible sentence, which is the failure mode the `brainstorm` layer
+  # was argued out of existing over: a check satisfiable without doing the thing
+  # teaches people not to do the thing. Naming the single largest shortfall,
+  # specifically enough for somebody to argue with, is the one thing a critic
+  # cannot produce without having looked at the artifact.
+  - id: gauntlet.gap
+    kind: builtin.section
+    title: A verdict names the largest thing still wrong
+    fix: >-
+      Add a `## Largest gap` section naming the biggest remaining difference between
+      what was built and the bar — specifically enough that somebody could argue
+      about it. Passing work has one too: the gap that was not worth fixing, and why.
+      A critic that can find nothing to say has not compared anything, and this is
+      where that becomes visible.
+    args:
+      dirs: ['{{ index .Caps "record.plans" }}']
+      heading: Largest gap
+      min_items: 1
+      where:
+        status: "{{ .Vars.ship_status }}"
+      exempt: [README.md]
+
+hooks:
+  # Not blocking, and not on pre-commit. Judging happens once, at the end, and a
+  # hook that demanded a verdict on every commit toward the work would be asking
+  # for it before there was anything to judge.
+  - event: pre-push
+    name: ilk-gauntlet
+    blocking: true
+    run: ilk check --only gauntlet.critic,gauntlet.bar,gauntlet.verdict,gauntlet.gap
+
+contribution:
+  repo: coflounder/ilk
+  path: layers/gauntlet
+  guidelines: CONTRIBUTING.md

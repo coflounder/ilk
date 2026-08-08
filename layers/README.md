@@ -28,6 +28,7 @@ the built-in layers only, so a fresh repository still needs no network.
 | [`secrets`](secrets/) | A credential is caught while the fix is still cheap, and there is a written answer for the day one leaks anyway |
 | [`pulumi`](pulumi/) | `preview` is agent work and `up` is human work; every stack has a project file and none carries a plaintext secret |
 | [`routine`](routine/) | Scheduled work is a document with an owner, a budget and a review date, and what actually runs it is generated from that document |
+| [`gauntlet`](gauntlet/) | Finished work names who judged it, what it was compared against, and the largest thing still wrong — the builder does not grade its own homework |
 
 ### Built in
 
@@ -64,8 +65,8 @@ ilk info gh:coflounder/ilk/layers/dev-loops     # read it first
 ilk add gh:coflounder/ilk/layers/dev-loops --allow-exec
 ```
 
-`plan-hygiene`, `visual-qa` and `compound-lessons` are entirely declarative and need no
-flag.
+`plan-hygiene`, `visual-qa`, `compound-lessons` and `gauntlet` are entirely declarative
+and need no flag.
 
 ---
 

@@ -1,0 +1,12 @@
+Work is not `{{ .Vars.ship_status }}` until somebody who did not build it has compared
+it against something inspectable. Before setting that status, the plan document needs
+`critic:` in its frontmatter and three sections: `## Bar` (the thing it was held to),
+`## Verdict` (what the critic found), `## Largest gap` (the biggest remaining
+difference, even when it passed).
+
+**Do not judge your own work.** If you built it, the judging is a fresh session that
+gets the bar and the artifact — never your reasoning for the choices you made, which is
+the part that makes an output look inevitable.
+
+A verdict is one check among the gates, so it can never carry work past a failing
+suite; it can only find what a passing suite does not.

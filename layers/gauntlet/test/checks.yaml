@@ -1,0 +1,66 @@
+# Every case states what it defends, so a failure here says what was lost.
+#
+# `work-still-in-progress` is asserted against all four. A gate that fires before
+# there is anything to judge is worse than no gate: it teaches people to set the
+# ship status last and fill the sections in from memory, which is the opposite of
+# what the layer is for.
+
+- check: gauntlet.critic
+  fixture: done-without-a-critic
+  why: Work whose critic is nobody is work that graded its own homework, and it reads in the repository exactly like work that did not.
+  expect: fail
+
+- check: gauntlet.critic
+  fixture: judged-work
+  expect: pass
+  why: Judged work must not be reported, or the check is noise and the next person turns it off.
+
+- check: gauntlet.critic
+  fixture: work-still-in-progress
+  expect: pass
+  why: A document still being written has nothing to judge, and demanding a critic before there is an artifact makes the critic imaginary.
+
+- check: gauntlet.bar
+  fixture: done-without-a-bar
+  why: A verdict with no bar is an opinion — "it is good work" cannot be disagreed with, which is the only thing that would make it worth recording.
+  expect: fail
+
+- check: gauntlet.bar
+  fixture: judged-work
+  expect: pass
+  why: Naming the criteria and the wireframe is what a bar looks like; if that does not pass, nothing will.
+
+- check: gauntlet.bar
+  fixture: work-still-in-progress
+  expect: pass
+  why: The bar is what finished work is held to, and unfinished work is not held to it yet.
+
+- check: gauntlet.verdict
+  fixture: done-without-a-verdict
+  why: Everything else can be present and the judging never done — the bar and the gap describe the work, only the verdict says somebody looked.
+  expect: fail
+
+- check: gauntlet.verdict
+  fixture: judged-work
+  expect: pass
+  why: A verdict saying what was opened and what was concluded is the whole artifact.
+
+- check: gauntlet.verdict
+  fixture: work-still-in-progress
+  expect: pass
+  why: Judging happens once, at the end; a verdict demanded mid-flight is a verdict on nothing.
+
+- check: gauntlet.gap
+  fixture: verdict-with-no-gap
+  why: This is the one check that cannot be satisfied without looking at the artifact — "no significant gaps" as prose must fail, or every other check here degenerates into a form.
+  expect: fail
+
+- check: gauntlet.gap
+  fixture: judged-work
+  expect: pass
+  why: A named gap that was not worth fixing is what distinguishes a judgement from a signature, and passing work has one.
+
+- check: gauntlet.gap
+  fixture: work-still-in-progress
+  expect: pass
+  why: There is no gap to name until there is something built to compare.
