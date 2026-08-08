@@ -33,7 +33,7 @@ variables:
 instructions:
   - id: gauntlet
     src: instructions/gauntlet.md.tmpl
-    budget: 110
+    budget: 175
 
 skills:
   - name: judge-against-a-bar

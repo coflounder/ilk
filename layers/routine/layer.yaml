@@ -62,7 +62,7 @@ files:
 instructions:
   - id: routine
     src: instructions/routine.md.tmpl
-    budget: 120
+    budget: 190
 
 skills:
   - name: write-a-routine
