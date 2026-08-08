@@ -2,7 +2,7 @@
 id: plan-roadmap
 title: Roadmap
 status: active
-updated: 2026-08-07
+updated: 2026-08-08
 ---
 
 # Roadmap
@@ -102,16 +102,22 @@ Remaining:
 - An `mcp:` neutral artifact, so a repository can declare the MCP servers it expects
   once and have each agent's config projected from it. The clearest remaining core
   gap — see [layers/README.md](../../layers/README.md) for why it cannot be a layer.
-- A credential story. `ilk mirror` covers the tracker-integration shape and
-  `gh-projects` proves it, but it leans on `gh` for authentication. A provider with its
-  own API token — Linear, Jira — needs a decided answer for where the token comes from
-  and what the failure looks like when it is absent.
-- More layers: `pr-prep`, `codegraph`, `pulumi`, `autoresearch`, `html-wireframe`,
-  `incident`. The backlog with decided shapes is in
-  [layers/README.md](../../layers/README.md). `pulumi` is the first tenant of the `infra`
-  group and shares `linear-mirror`'s credential blocker; `brainstorm` was specified and
-  then argued out of existing, on the grounds that a check counting alternatives is
-  cheapest to satisfy with strawmen.
+- More layers: `codegraph`, `html-wireframe`, `incident`, `linear-mirror`. The backlog
+  with decided shapes is in [layers/README.md](../../layers/README.md). `brainstorm` was
+  specified and then argued out of existing, on the grounds that a check counting
+  alternatives is cheapest to satisfy with strawmen.
+
+The credential story is decided: `requires_env:` on a command check names the variables
+that carry a credential, tests them for presence without ever reading them, and skips
+with a reason rather than failing as though the thing it checks were empty. `pulumi` is
+its first tenant. That was `linear-mirror`'s last blocker as well as its own.
+
+Seven layers landed against that: `secrets`, `pulumi`, `deprecation`, `pr-prep`,
+`autoresearch`, and then the two that make a repository able to run while nobody is
+watching it — `routine`, which holds scheduled work as documents and projects them into
+whatever actually runs them, and `gauntlet`, which refuses to call work done until
+somebody who did not build it has compared it against something inspectable. Neither
+needed a core change, which was the point of the milestone.
 
 *Accepted when:* the registry has enough layers that `ilk search` returns something
 useful for a common need, and none of them required a core change.
