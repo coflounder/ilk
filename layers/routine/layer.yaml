@@ -1,0 +1,138 @@
+id: ilk/routine
+version: 0.1.0
+summary: Scheduled work as a document rather than a cron line — owned, budgeted, and re-read on a date instead of running unwatched for ever.
+facets:
+  arc: operations
+  kind: process
+ilk: ">=0.2.0"
+
+# No scheduler. The platform already has one — GitHub's `schedule:` trigger, cron,
+# a systemd timer — and a layer that reimplemented it would need somewhere to keep
+# last-run state, which on an ephemeral runner means either committing from CI or
+# being wrong. So the documents are the source and the runner file is a projection
+# of them, `ilk routine sync` writes it, and `routine.current` fails when the two
+# have drifted apart. Nothing here remembers anything between runs.
+provides:
+  routine.schedule: "{{ .Vars.group }}/{{ .Vars.routines_dir }}"
+
+variables:
+  group:
+    default: docs
+    description: The grouping scheduled work sits in, alongside the rest of the record.
+  routines_dir:
+    default: routines
+    description: >-
+      Where routines live. One document per thing that runs on a schedule, holding
+      what it runs, what it may spend, who owns it, and the date somebody has to
+      look at it again.
+  runner:
+    default: github
+    enum: [github, cron, none]
+    description: >-
+      What `ilk routine sync` writes the schedule into. `github` emits a workflow
+      whose triggers are your routines; `cron` emits a crontab you install with
+      `crontab .ilk/routines.crontab`; `none` emits nothing, for a repository whose
+      schedule is held somewhere ilk does not know about.
+  workflow:
+    default: .github/workflows/ilk-routines.yml
+    description: >-
+      Where the generated GitHub workflow goes. Its own file on purpose — sharing
+      one with `gates` would mean a routine's schedule and a pull request's gates
+      fighting over the same triggers.
+  crontab:
+    default: .ilk/routines.crontab
+    description: Where the generated crontab goes, when `runner` is `cron`.
+
+dirs:
+  - group: "{{ .Vars.group }}"
+    name: "{{ .Vars.routines_dir }}"
+    order: 50
+    purpose: Work that runs on a schedule — what it runs, what it may spend, and who owns it.
+    keep: true
+
+files:
+  - src: templates/README.md.tmpl
+    dest: '{{ index .Caps "routine.schedule" }}/README.md'
+    mode: create-only
+  - src: bin/ilk-routine.sh
+    dest: .ilk/bin/ilk-routine.sh
+    mode: managed
+    exec: true
+
+instructions:
+  - id: routine
+    src: instructions/routine.md.tmpl
+    budget: 120
+
+skills:
+  - name: write-a-routine
+    description: Decide whether work should run on a schedule, and write the routine if it should. Use when something is being done by hand repeatedly, when you are tempted to add a cron entry, or when a scheduled job needs its budget, owner or schedule changed.
+    src: skills/write-a-routine.md
+
+checks:
+  - id: routine.frontmatter
+    kind: builtin.frontmatter
+    title: Routines say what they run, what it may cost, and who owns it
+    fix: 'Add the missing keys to the frontmatter. `command:` is what actually runs; `budget:` is a whole number of minutes after which it is killed; `owner:` is a person or team, never "the team"; `review_by:` is the date somebody has to decide this is still worth running (YYYY-MM-DD). `{{ index .Caps "routine.schedule" }}/README.md` shows the whole shape, or run `ilk routine new "..."`.'
+    args:
+      dirs:
+        - '{{ index .Caps "routine.schedule" }}'
+      require: [id, title, status, schedule, command, budget, owner, review_by]
+      exempt: [README.md]
+
+  - id: routine.shape
+    title: A routine's schedule, budget and status are ones a runner can act on
+    run: .ilk/bin/ilk-routine.sh check-shape
+    fix: >-
+      Fix the field named above. `schedule:` is five space-separated cron fields in
+      UTC — `@daily` and named months are not accepted, because the runners this is
+      projected into do not accept them either. `budget:` is a whole number of
+      minutes greater than zero; a routine with no ceiling is a way to discover on
+      Monday what it spent over the weekend. `status:` is `active` or `paused`. Two
+      routines may not share an `id:`, because that is what `ilk routine run` is
+      given.
+
+  - id: routine.current
+    title: The generated schedule matches the routines it came from
+    run: .ilk/bin/ilk-routine.sh check-current
+    fix: >-
+      Run `ilk routine sync` and commit the result. The runner file is a projection
+      of {{ index .Caps "routine.schedule" }}/, so editing it by hand is edited away
+      — change the routine and sync. If the difference is one you meant to make in
+      the generated file, it belongs in this layer instead; say so in a proposal.
+
+  - id: routine.reviewed
+    title: No routine is running past the date somebody was meant to look at it
+    run: .ilk/bin/ilk-routine.sh check-reviewed
+    fix: >-
+      Decide whether the routine still earns what it costs, then either move
+      `review_by:` forward or delete it. A scheduled job that fails is noticed and
+      fixed; the one this check exists for is the job that has succeeded pointlessly
+      every night for a year, which nothing else in a repository will ever report.
+
+hooks:
+  # check-reviewed is deliberately absent: it fails because a date passed, which has
+  # nothing to do with the commit in front of you. `ilk check` and CI still hold it.
+  - event: pre-commit
+    name: ilk-routine
+    blocking: true
+    run: ilk check --only routine.frontmatter,routine.shape,routine.current
+
+commands:
+  - name: new
+    summary: 'Write a routine: ilk routine new "Refresh the dependency audit"'
+    run: '.ilk/bin/ilk-routine.sh new'
+  - name: list
+    summary: "Show every routine, its schedule and when it must be reviewed: ilk routine list"
+    run: '.ilk/bin/ilk-routine.sh list'
+  - name: sync
+    summary: "Write the runner file from the routines: ilk routine sync [--remove]"
+    run: '.ilk/bin/ilk-routine.sh sync'
+  - name: run
+    summary: "Run a routine under its budget: ilk routine run <id> | --schedule '<cron>'"
+    run: '.ilk/bin/ilk-routine.sh run'
+
+contribution:
+  repo: coflounder/ilk
+  path: layers/routine
+  guidelines: CONTRIBUTING.md

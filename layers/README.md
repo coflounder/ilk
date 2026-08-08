@@ -27,6 +27,7 @@ the built-in layers only, so a fresh repository still needs no network.
 | [`pr-prep`](pr-prep/) | A pull request description is derived from the plan — outcome, criteria, evidence — rather than written from memory |
 | [`secrets`](secrets/) | A credential is caught while the fix is still cheap, and there is a written answer for the day one leaks anyway |
 | [`pulumi`](pulumi/) | `preview` is agent work and `up` is human work; every stack has a project file and none carries a plaintext secret |
+| [`routine`](routine/) | Scheduled work is a document with an owner, a budget and a review date, and what actually runs it is generated from that document |
 
 ### Built in
 
@@ -55,8 +56,8 @@ the source of truth if the tracker everyone else reads agrees with it.
 ## Layers that run code
 
 `blueprint`, `archive`, `ask-human`, `dev-loops`, `gh-projects`, `maintainer`,
-`autoresearch`, `deprecation`, `pr-prep`, `secrets` and `pulumi` ship shell commands, so
-adding them requires consent:
+`autoresearch`, `deprecation`, `pr-prep`, `secrets`, `pulumi` and `routine` ship shell
+commands, so adding them requires consent:
 
 ```sh
 ilk info gh:coflounder/ilk/layers/dev-loops     # read it first

@@ -1,0 +1,57 @@
+---
+id: routines-readme
+title: What belongs in {{ .Vars.routines_dir }}/
+status: current
+updated: 2026-01-01
+covers: []
+---
+
+# {{ .Vars.routines_dir }}/ — work that runs on a schedule
+
+One document per scheduled thing. What it runs, what it may spend, who hears about it
+when it breaks, and the date somebody has to decide it is still worth running.
+
+This directory is the source. What actually runs it — a workflow, a crontab — is
+generated from here by `ilk routine sync`, and `ilk check` reports the two disagreeing.
+
+## Frontmatter
+
+```yaml
+---
+id: dependency-audit          # what `ilk routine run` is given; unique here
+title: Audit dependencies for published advisories
+status: active                # active | paused
+schedule: "0 4 * * 1"         # five cron fields, UTC
+command: npm audit --audit-level=high
+budget: 15                    # minutes, then it is killed
+owner: platform               # a person or a team
+review_by: 2027-02-08         # when somebody decides this still earns its keep
+---
+```
+
+`@daily` and named months are not accepted, because the runners this is projected into
+do not accept them either — a schedule that validates here and is ignored there is the
+worst of both.
+
+## Before adding one
+
+Scheduled work is work nobody is watching. If a check, a hook or a gate could catch the
+same problem when somebody causes it, that is strictly better — it fires while the fix
+is cheap and the author still has the context. A schedule earns its place when the
+trigger lives outside the repository and outside anybody's session: a vendor's
+advisories, an expiring certificate, a report due on Monday.
+
+The `write-a-routine` skill has the rest, including what GitHub's scheduler does and
+does not promise.
+
+## Commands
+
+```sh
+ilk routine list                      what runs, and what is overdue for review
+ilk routine new "Audit dependencies"  write one
+ilk routine run dependency-audit      run it here, under its budget
+ilk routine sync                      project them into what actually runs them
+```
+
+Run a new routine by hand before committing it. One whose first real run is unattended
+at 4am is one nobody has tested.

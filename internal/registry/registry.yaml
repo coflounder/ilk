@@ -132,6 +132,12 @@ layers:
     arc: quality
     kind: gate
 
+  - id: ilk/routine
+    source: gh:coflounder/ilk/layers/routine
+    summary: Scheduled work as a document rather than a cron line — owned, budgeted, and re-read on a date instead of running unwatched for ever.
+    arc: operations
+    kind: process
+
   - id: ilk/pulumi
     source: gh:coflounder/ilk/layers/pulumi
     summary: Infrastructure as code with the one discipline that matters when an agent holds the keys — preview is agent work, apply is human work.
