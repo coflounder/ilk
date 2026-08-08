@@ -14,7 +14,11 @@ set -eu
 # planted a fixture where the capability actually points.
 dir=${ILK_VAR_GROUP:-docs}/${ILK_VAR_QUESTIONS_DIR:-questions}
 mode=${1:-}
-[ $# -gt 0 ] && shift
+# Not `[ $# -gt 0 ] && shift`: under `set -e` that exits 1 when there are no
+# arguments, which is the one case that should print the usage.
+if [ $# -gt 0 ]; then
+	shift
+fi
 
 case "$mode" in
 open)
@@ -108,8 +112,12 @@ EOF
 check-options)
 	# Only open decisions. An answered one is history, and a question written
 	# before this layer knew about options is not a defect anybody can repair.
-	report=$(
-		[ -d "$dir" ] || exit 0
+	#
+	# A function rather than an inline command substitution: bash 3.2 — which is
+	# /bin/sh on macOS — cannot parse a `case` pattern's `)` inside `$( )`, and
+	# reports it as a syntax error at a line nowhere near the cause.
+	options_report() {
+		[ -d "$dir" ] || return 0
 		find "$dir" -type f -name '*.md' | LC_ALL=C sort | while IFS= read -r file; do
 			case "${file##*/}" in README.md) continue ;; esac
 			awk -v f="$file" '
@@ -154,7 +162,8 @@ check-options)
 			}
 			' "$file"
 		done
-	)
+	}
+	report=$(options_report)
 	[ -n "$report" ] || exit 0
 	printf '%s\n' "$report"
 	exit 1
@@ -189,7 +198,9 @@ list)
 			fi
 
 			marker="  "
-			[ "$want_blocking" = "true" ] && marker="! "
+			if [ "$want_blocking" = "true" ]; then
+				marker="! "
+			fi
 			printf '%s%-9s %-10s %s\n' "$marker" "$status" "$asked" "$title"
 			printf '            %s\n' "$file"
 			found=$((found + 1))

@@ -26,7 +26,11 @@ crontab_file=${ILK_VAR_CRONTAB:-.ilk/routines.crontab}
 root=${ILK_REPO_ROOT:-$(pwd)}
 
 mode=${1:-}
-[ $# -gt 0 ] && shift
+# Not `[ $# -gt 0 ] && shift`: under `set -e` that exits 1 when there are no
+# arguments, which is the one case that should print the usage.
+if [ $# -gt 0 ]; then
+	shift
+fi
 
 # ---------------------------------------------------------------- reading
 
@@ -264,7 +268,9 @@ list)
 		case "$review" in
 		[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9])
 			left=$(($(day_number "$review") - today))
-			[ "$left" -lt 0 ] && note="review overdue by $((0 - left))d"
+			if [ "$left" -lt 0 ]; then
+				note="review overdue by $((0 - left))d"
+			fi
 			;;
 		esac
 		printf '%-8s %-16s %-24s %s\n' "$status" "$schedule" "$id" "$note"
@@ -275,7 +281,11 @@ list)
 
 sync)
 	if [ "${1:-}" = --remove ]; then
-		[ "$runner" = none ] && exit 0
+		# Not `[ ... ] && exit 0`: under `set -e` a false test is a failed command,
+		# so the every-other-runner case would exit 1 having done nothing.
+		if [ "$runner" = none ]; then
+			exit 0
+		fi
 		f=$(target)
 		[ -e "$f" ] || { echo "nothing to remove"; exit 0; }
 		rm -f "$f"
@@ -293,7 +303,10 @@ sync)
 	;;
 
 check-shape)
-	report=$(
+	# A function rather than an inline command substitution: bash 3.2 — which is
+	# /bin/sh on macOS — cannot parse a `case` pattern's `)` inside `$( )`, and
+	# reports it as a syntax error at a line nowhere near the cause.
+	shape_report() {
 		ids=""
 		for file in $(routines); do
 			id=$(fm "$file" id)
@@ -330,20 +343,25 @@ check-shape)
 					}
 			}'
 		done
-	)
+	}
+	report=$(shape_report)
 	[ -n "$report" ] || exit 0
 	printf '%s\n' "$report"
 	exit 1
 	;;
 
 check-current)
-	[ "$runner" = none ] && exit 0
+	if [ "$runner" = none ]; then
+		exit 0
+	fi
 	f=$(target)
 	want=$(generated)
 	if [ ! -e "$f" ]; then
 		# No routines and no file is a repository that has not started, not one
 		# that has drifted.
-		[ -z "$(routines)" ] && exit 0
+		if [ -z "$(routines)" ]; then
+			exit 0
+		fi
 		echo "$f: does not exist, but $dir/ has routines in it"
 		exit 1
 	fi
@@ -356,7 +374,7 @@ check-current)
 
 check-reviewed)
 	today=$(day_number "$(date +%Y-%m-%d)")
-	report=$(
+	reviewed_report() {
 		for file in $(routines); do
 			review=$(fm "$file" review_by)
 			case "$review" in
@@ -374,7 +392,8 @@ check-reviewed)
 			[ "$left" -lt 0 ] || continue
 			echo "$file: was due to be reviewed $((0 - left)) day(s) ago ($review), and has been running unexamined since"
 		done
-	)
+	}
+	report=$(reviewed_report)
 	[ -n "$report" ] || exit 0
 	printf '%s\n' "$report"
 	exit 1

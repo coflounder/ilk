@@ -9,7 +9,11 @@ set -eu
 
 dir="${ILK_VAR_GROUP:-docs}/${ILK_VAR_WIREFRAMES_DIR:-wireframes}"
 mode=${1:-}
-[ $# -gt 0 ] && shift
+# Not `[ $# -gt 0 ] && shift`: under `set -e` that exits 1 when there are no
+# arguments, which is the one case that should print the usage.
+if [ $# -gt 0 ]; then
+	shift
+fi
 
 case "$mode" in
 new)
