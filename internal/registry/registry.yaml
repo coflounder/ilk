@@ -132,6 +132,13 @@ layers:
     arc: quality
     kind: gate
 
+  - id: ilk/html-wireframe
+    source: gh:coflounder/ilk/layers/html-wireframe
+    summary: Interface work is agreed as a wireframe before it is built — a plain HTML sketch anybody can open, cheap enough to throw away while disagreeing is still cheap.
+    arc: planning
+    kind: process
+    requires: [record.plans]
+
   - id: ilk/gauntlet
     source: gh:coflounder/ilk/layers/gauntlet
     summary: The builder does not grade its own homework — work is not done until somebody who did not do it has compared it against something inspectable and named the largest remaining gap.

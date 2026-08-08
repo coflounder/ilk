@@ -102,7 +102,7 @@ Remaining:
 - An `mcp:` neutral artifact, so a repository can declare the MCP servers it expects
   once and have each agent's config projected from it. The clearest remaining core
   gap — see [layers/README.md](../../layers/README.md) for why it cannot be a layer.
-- More layers: `codegraph`, `html-wireframe`, `incident`, `linear-mirror`. The backlog
+- More layers: `codegraph`, `incident`, `linear-mirror`. The backlog
   with decided shapes is in [layers/README.md](../../layers/README.md). `brainstorm` was
   specified and then argued out of existing, on the grounds that a check counting
   alternatives is cheapest to satisfy with strawmen.
@@ -112,12 +112,14 @@ that carry a credential, tests them for presence without ever reading them, and 
 with a reason rather than failing as though the thing it checks were empty. `pulumi` is
 its first tenant. That was `linear-mirror`'s last blocker as well as its own.
 
-Seven layers landed against that: `secrets`, `pulumi`, `deprecation`, `pr-prep`,
-`autoresearch`, and then the two that make a repository able to run while nobody is
+Eight layers landed against that: `secrets`, `pulumi`, `deprecation`, `pr-prep`,
+`autoresearch`, and then the three that make a repository able to run while nobody is
 watching it — `routine`, which holds scheduled work as documents and projects them into
-whatever actually runs them, and `gauntlet`, which refuses to call work done until
-somebody who did not build it has compared it against something inspectable. Neither
-needed a core change, which was the point of the milestone.
+whatever actually runs them; `gauntlet`, which refuses to call work done until somebody
+who did not build it has compared it against something inspectable; and
+`html-wireframe`, which moves the argument about an interface to the day it costs an
+afternoon rather than a build. None needed a core change, which was the point of the
+milestone.
 
 *Accepted when:* the registry has enough layers that `ilk search` returns something
 useful for a common need, and none of them required a core change.

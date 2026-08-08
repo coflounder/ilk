@@ -29,6 +29,7 @@ the built-in layers only, so a fresh repository still needs no network.
 | [`pulumi`](pulumi/) | `preview` is agent work and `up` is human work; every stack has a project file and none carries a plaintext secret |
 | [`routine`](routine/) | Scheduled work is a document with an owner, a budget and a review date, and what actually runs it is generated from that document |
 | [`gauntlet`](gauntlet/) | Finished work names who judged it, what it was compared against, and the largest thing still wrong — the builder does not grade its own homework |
+| [`html-wireframe`](html-wireframe/) | Interface work is sketched and agreed before it is built, as one HTML file that opens from disk with no network and no build |
 
 ### Built in
 
@@ -57,8 +58,8 @@ the source of truth if the tracker everyone else reads agrees with it.
 ## Layers that run code
 
 `blueprint`, `archive`, `ask-human`, `dev-loops`, `gh-projects`, `maintainer`,
-`autoresearch`, `deprecation`, `pr-prep`, `secrets`, `pulumi` and `routine` ship shell
-commands, so adding them requires consent:
+`autoresearch`, `deprecation`, `pr-prep`, `secrets`, `pulumi`, `routine` and
+`html-wireframe` ship shell commands, so adding them requires consent:
 
 ```sh
 ilk info gh:coflounder/ilk/layers/dev-loops     # read it first
@@ -177,21 +178,6 @@ map exists and how to ask it things. Depends on `mcp-servers` for the good versi
 The open question this closes is the one in the roadmap: how a layer ships a check
 needing a real parser without every layer shipping a binary. The answer is that it does
 not — it requires a capability and lets the project supply the parser.
-
-### `html-wireframe` — a design-before-code artifact
-
-A static HTML wireframe produced and agreed *before* implementation, linked from the
-spec, so disagreement is cheap while it is still only a wireframe.
-
-**Shape:** a `wireframes/` directory contract; a check that a spec with `ui: true` and
-`status: proposed` links a wireframe; a skill on writing one that provokes useful
-disagreement rather than approval. Pairs with `visual-qa` — the wireframe is what the
-spec agreed to, the evidence is what was built, and having both makes the comparison
-somebody's job rather than nobody's.
-
-**Not started because** `visual-qa` covers the more expensive failure. Building the
-wrong thing beautifully is worse than building the right thing and checking it late, but
-only just.
 
 ### `kanban` — deliberately deferred
 

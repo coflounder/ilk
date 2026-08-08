@@ -1,0 +1,107 @@
+id: ilk/html-wireframe
+version: 0.1.0
+summary: Interface work is agreed as a wireframe before it is built — a plain HTML sketch anybody can open, cheap enough to throw away while disagreeing is still cheap.
+facets:
+  arc: planning
+  kind: process
+ilk: ">=0.2.0"
+
+# The pair with `visual-qa` is the point. Same trigger — `ui: true` — and two
+# artifacts either side of the work: the wireframe is what was agreed, the
+# evidence is what was built. Having both makes the comparison somebody's job
+# rather than nobody's; having only the second means the first disagreement
+# arrives after the work is done.
+#
+# HTML rather than an image, because a sketch you can open in a browser is one
+# anybody can open in five years without a licence, and one a diff can show
+# changed.
+requires:
+  - record.plans
+
+provides:
+  wireframe.sketches: "{{ .Vars.group }}/{{ .Vars.wireframes_dir }}"
+
+variables:
+  group:
+    default: docs
+    description: The grouping wireframes sit in, alongside the plans they were agreed against.
+  wireframes_dir:
+    default: wireframes
+    description: >-
+      Where sketches live. Kept in the repository rather than in a design tool,
+      so the thing that was agreed is still openable by whoever inherits the code.
+
+dirs:
+  - group: "{{ .Vars.group }}"
+    name: "{{ .Vars.wireframes_dir }}"
+    order: 45
+    purpose: Sketches of interface work, agreed before it is built.
+    keep: true
+
+files:
+  - src: templates/README.md.tmpl
+    dest: '{{ index .Caps "wireframe.sketches" }}/README.md'
+    mode: create-only
+  - src: bin/ilk-wireframe.sh
+    dest: .ilk/bin/ilk-wireframe.sh
+    mode: managed
+    exec: true
+
+instructions:
+  - id: wireframe
+    src: instructions/wireframe.md.tmpl
+    budget: 175
+
+skills:
+  - name: sketch-before-building
+    description: "Draw what an interface will look like before building it, in a form that provokes disagreement rather than approval. Use when a spec sets `ui: true`, when a change adds a screen or a flow, and when you notice you are about to implement a layout nobody has seen."
+    src: skills/sketch-before-building.md
+
+checks:
+  - id: wireframe.agreed
+    kind: builtin.section
+    title: Interface work is sketched before it is built
+    fix: >-
+      Run `ilk html-wireframe new "..."`, draw the screen, and link it from a
+      `## Wireframe` section — one per screen or state the spec introduces. If the
+      change touches nothing anybody looks at, `ui: true` is wrong and removing it
+      is the fix. Disagreement about a wireframe costs an afternoon; the same
+      disagreement about a built screen costs the build.
+    args:
+      dirs: ['{{ index .Caps "record.plans" }}']
+      heading: Wireframe
+      min_items: 1
+      where:
+        ui: "true"
+      exempt: [README.md]
+
+  - id: wireframe.exists
+    kind: builtin.links
+    title: Linked wireframes actually exist
+    fix: "Draw the wireframe and commit it, or fix the path. A link to a sketch nobody drew reads as agreement that never happened, which is worse than no link at all."
+    args:
+      dirs: ['{{ index .Caps "record.plans" }}']
+
+  # A wireframe that needs the network is one that stops rendering exactly when it
+  # is wanted: offline, in a year, in a clone of a repository whose CDN moved. And
+  # a wireframe that runs code is a prototype — people react to a prototype as
+  # though it were the product, which is the disagreement this layer exists to
+  # provoke early, arriving late and about the wrong thing.
+  - id: wireframe.self-contained
+    title: A wireframe opens on its own
+    run: .ilk/bin/ilk-wireframe.sh check-self-contained
+    fix: >-
+      Inline it. A wireframe is one file that opens from disk with no network and
+      no build: styles in a `<style>` block, no `<script>`, no fonts or images
+      fetched from anywhere. If it genuinely needs behaviour to make its point, it
+      is not a wireframe any more — build the thing and use `visual-qa` on it.
+
+commands:
+  - name: new
+    summary: 'Start a wireframe: ilk html-wireframe new "Checkout — payment step"'
+    run: '.ilk/bin/ilk-wireframe.sh new'
+
+contribution:
+  repo: coflounder/ilk
+  path: layers/html-wireframe
+  guidelines: CONTRIBUTING.md

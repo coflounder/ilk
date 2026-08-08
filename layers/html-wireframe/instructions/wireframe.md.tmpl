@@ -1,0 +1,15 @@
+A spec that sets `ui: true` needs a sketch of the interface before the interface is
+built:
+
+    ilk html-wireframe new "Checkout — payment step"
+
+Draw it in `{{ index .Caps "wireframe.sketches" }}/` and link it from a `## Wireframe`
+section, one per screen or state the spec introduces. Layout and flow only — no colour,
+no final copy, no behaviour. A sketch that looks finished gets reactions about the shade
+of a button; one that looks like a sketch gets reactions about the flow.
+
+Each wireframe is one HTML file that opens from disk with no network and no build, so
+whoever inherits this can still see what was agreed.
+
+Say what you want disagreed with. A wireframe with no question attached gets "looks
+good" and settles nothing.
