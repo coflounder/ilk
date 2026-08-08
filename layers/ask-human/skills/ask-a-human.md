@@ -34,7 +34,7 @@ of them, disagree about the answer?** If not, decide.
 ## How
 
 ```
-ilk ask-human open "Should retries live in the gateway or the client?"
+ilk ask-human open --decision "Should retries live in the gateway or the client?"
 ```
 
 Then fill in the sections, and put real effort into this one:
@@ -49,6 +49,48 @@ Set `blocking:` honestly. `true` means work is actually stopped; `ilk check` wil
 while it is open, so it appears in every session's brief until somebody deals with it.
 If you can work around it, say `false`. **Marking everything blocking is how the signal
 stops meaning anything.**
+
+## Offer options wherever you can
+
+An open question hands the whole problem back. A question that names the two or three
+things it could be, and what each would mean, can be answered from a phone between
+meetings — and how answerable your questions are is most of whether this repository can
+make progress while nobody is watching it.
+
+```yaml
+kind: decision
+options:
+  - id: gateway
+    label: One retry policy, in the gateway
+    consequence: One place to reason about and tune, and every caller inherits the gateway's outages as well as its policy.
+  - id: client
+    label: Each client owns its retries
+    consequence: Callers tune for their own tolerance; four codebases now hold a retry policy and three of them will drift.
+recommended: gateway
+```
+
+Three things make these worth reading:
+
+- **The consequence carries the weight.** Two options with no stated difference are one
+  option asked twice. Say what picking it would mean *here*, in this repository — not
+  what the approach means in general, which the reader already knows.
+- **No strawmen.** If an option exists to make another look obvious, you have not
+  offered a choice, you have asked for a rubber stamp, and you will get one. Every
+  option must be one you would be willing to go and implement.
+- **Recommend one, and defend it** under "What I would do without an answer". A
+  recommendation is not a bias to be apologised for; it is what lets somebody agree in
+  four seconds. Two to four options — more than four is a survey, and answering a
+  survey is work.
+
+If you cannot name any options, it is not a decision yet. Leave `kind: question` and
+say what you would need in order to name some.
+
+### When the choice is about an interface
+
+The option is what it would look like, not a description of what it would look like.
+Link a wireframe or a screenshot per option and keep the labels short. Nobody can pick
+between two paragraphs describing layouts, and asking them to is how you get whichever
+one was listed first.
 
 ## Then keep going
 

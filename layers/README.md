@@ -15,7 +15,7 @@ the built-in layers only, so a fresh repository still needs no network.
 |---|---|
 | [`blueprint`](blueprint/) | Every spec belongs to an epic and a milestone that exist; every spec says what "done" means; every epic states an outcome |
 | [`plan-hygiene`](plan-hygiene/) | A work-in-progress limit, active work with a named owner, finished work with evidence |
-| [`ask-human`](ask-human/) | A blocking question an agent could not answer stops the checks until a person answers it |
+| [`ask-human`](ask-human/) | A blocking question an agent could not answer stops the checks until a person answers it — and where it can name the options, it offers them with what each would mean |
 | [`dev-loops`](dev-loops/) | An agent runs until an objective gate passes, bounded by a ceiling — never until it says it is finished |
 | [`visual-qa`](visual-qa/) | Interface work shows what it looks like: screenshots against the acceptance criteria, no baselines |
 | [`compound-lessons`](compound-lessons/) | Every lesson names the durable change it produced, so "we will be more careful" cannot pass as an outcome |

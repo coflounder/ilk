@@ -68,7 +68,7 @@ layers:
 
   - id: ilk/ask-human
     source: gh:coflounder/ilk/layers/ask-human
-    summary: A written escalation path — an agent records a blocking question where a human will see it, and the repository refuses to pretend the answer is known.
+    summary: A written escalation path — an agent records a blocking question where a human will see it, with the options and what each would mean, and the repository refuses to pretend the answer is known.
     arc: operations
     kind: process
 

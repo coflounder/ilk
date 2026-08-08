@@ -9,7 +9,7 @@ assumption, building three days of work on it, and nobody finding out until revi
 ## Opening one
 
 ```
-ilk ask-human open "Should retries live in the gateway or the client?"
+ilk ask-human open --decision "Should retries live in the gateway or the client?"
 ilk ask-human list
 ```
 
@@ -21,9 +21,23 @@ id: q-retry-ownership
 title: Should retries live in the gateway or the client?
 status: open        # open | answered | withdrawn
 blocking: true      # is work actually stopped?
+kind: decision      # decision | question
 asked: 2026-08-07
+options:            # for a decision: two to four, each with what it would mean
+  - id: gateway
+    label: One retry policy, in the gateway
+    consequence: One place to tune, and every caller inherits the gateway's outages as well as its policy.
+  - id: client
+    label: Each client owns its retries
+    consequence: Callers tune for their own tolerance; four codebases now hold a policy and three will drift.
+recommended: gateway
 ---
 ```
+
+Use `kind: decision` whenever you can name what the answer could be. A question that
+offers two or three options and recommends one is answerable from a phone; an open
+question is a working session somebody has to find. The consequences are what make it
+worth reading — two options with no stated difference are one option asked twice.
 
 `blocking: true` means work is stopped. `ilk check` fails while any blocking question
 is open, so it appears in every `ilk brief` until somebody deals with it. That is
