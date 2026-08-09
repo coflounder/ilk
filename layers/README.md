@@ -97,6 +97,45 @@ there. A layer its adopters cannot improve decays, and that is too easy to not n
 These are specified rather than vague — each has a decided shape, and what is missing is
 the work, not the design. Contributions welcome; so is disagreement with the shape.
 
+The order these get built in is
+[docs/plans/PLAN-layer-queue.md](../docs/plans/PLAN-layer-queue.md), along with the
+reasoning behind it. Its first two items — check assertions, and the credential story —
+are done, which is why the entries below are the ones that are left.
+
+### `migrations` — an applied migration is immutable
+
+Hash every migration ilk has seen applied, and fail when one of them changes. Require
+either a down migration or an explicit, written statement that this one is
+irreversible.
+
+**Decided.** Editing an already-applied migration is the kind of mistake that works
+perfectly on the machine that made it and corrupts every other environment, which is
+exactly the shape of error an agent makes and no test catches.
+
+**Blocked on a question rather than on work.** The immutability rule is universal;
+where migrations live and what "applied" means is not. It likely needs a capability
+supplying both the directory and the applied set, which is a wider interface than any
+current layer asks for. Worth settling before writing it, because a layer that only
+fits one ORM is a layer that should have been a script.
+
+**First consumer** would be a drizzle project, which is a reasonable place to find out
+whether the interface generalises.
+
+### `release-notes` — assembled from the record, not from memory
+
+Derive a changelog from `docs/log/` entries and the plans marked accepted since the
+last release, rather than having somebody reconstruct it from commit messages.
+
+**Decided.** The record already holds what happened and what was accepted; a release
+note written by hand is that same information typed a second time, less accurately.
+Pairs with `pr-prep`, which does the same derivation one scope down.
+
+**Shape:** a command that assembles the notes for a version range, a check that a
+tagged release has notes, and a convention for the one thing derivation cannot supply
+— which changes a reader actually needs to act on.
+
+**Not before `pr-prep`**, which is smaller and establishes whether deriving prose
+from the record produces something anybody wants to read.
 ### `brainstorm` — probably should not be its own layer
 
 The idea: force divergent thinking before convergent — several genuinely different

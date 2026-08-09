@@ -102,15 +102,18 @@ Remaining:
 - An `mcp:` neutral artifact, so a repository can declare the MCP servers it expects
   once and have each agent's config projected from it. The clearest remaining core
   gap — see [layers/README.md](../../layers/README.md) for why it cannot be a layer.
-- More layers: `codegraph`, `incident`, `linear-mirror`. The backlog
-  with decided shapes is in [layers/README.md](../../layers/README.md). `brainstorm` was
+- More layers: `codegraph`, `migrations`, `release-notes`, `incident`, `linear-mirror`,
+  in the order set out in [PLAN-layer-queue](PLAN-layer-queue.md). The backlog with
+  decided shapes is in [layers/README.md](../../layers/README.md). `brainstorm` was
   specified and then argued out of existing, on the grounds that a check counting
   alternatives is cheapest to satisfy with strawmen.
 
-The credential story is decided: `requires_env:` on a command check names the variables
-that carry a credential, tests them for presence without ever reading them, and skips
-with a reason rather than failing as though the thing it checks were empty. `pulumi` is
-its first tenant. That was `linear-mirror`'s last blocker as well as its own.
+The queue's first two items are done. Check assertions closed the gap it was written
+about — ten of twelve layers had no evidence their checks rejected anything — and the
+credential story is decided: `requires_env:` on a command check names the variables that
+carry a credential, tests them for presence without ever reading them, and skips with a
+reason rather than failing as though the thing it checks were empty. `pulumi` is its
+first tenant. That was `linear-mirror`'s last blocker as well as its own.
 
 Eight layers landed against that: `secrets`, `pulumi`, `deprecation`, `pr-prep`,
 `autoresearch`, and then the three that make a repository able to run while nobody is
