@@ -1,0 +1,46 @@
+# Every case states what it defends, so a failure here says what was lost.
+
+- check: ask.blocking
+  fixture: open-blocking-question
+  why: A blocking question that does not stop the checks is a queue, and the whole point of this layer is that it is a stop sign.
+  expect: fail
+
+- check: ask.blocking
+  fixture: answered-question
+  why: An answered question must release the brake, or the only way to get a green tree is to stop asking.
+  expect: pass
+
+- check: ask.answered
+  fixture: answered-without-an-answer
+  why: A status set to answered with the answer left in somebody's memory is worse than an open question — it looks resolved and the next session inherits nothing.
+  expect: fail
+
+- check: ask.answered
+  fixture: answered-question
+  why: An answer written down, with who decided it, is the artifact this layer exists to produce.
+  expect: pass
+
+- check: ask.options
+  fixture: decision-with-one-option
+  why: One option is not a decision, it is a request for approval, and the answer it gets back is worth nothing.
+  expect: fail
+
+- check: ask.options
+  fixture: options-without-consequences
+  why: Two labels with no stated difference are one option asked twice — the consequence is the entire content of an option.
+  expect: fail
+
+- check: ask.options
+  fixture: recommendation-not-on-the-list
+  why: A recommendation naming something not offered leaves the reader working out whether the list or the recommendation is the mistake, which is more work than the question saved.
+  expect: fail
+
+- check: ask.options
+  fixture: decision-with-real-options
+  why: A decision with two real options, their consequences and a defended recommendation is answerable in fifteen seconds, which is the whole objective.
+  expect: pass
+
+- check: ask.options
+  fixture: open-blocking-question
+  why: A question that is genuinely open must not be forced into options it does not have — inventing two would be inventing the strawman this check exists to discourage.
+  expect: pass

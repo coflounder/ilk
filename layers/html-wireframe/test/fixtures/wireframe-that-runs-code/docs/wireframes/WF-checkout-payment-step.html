@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Checkout — payment step — wireframe</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; margin: 2rem; }
+  .box { border: 1px solid #bbb; padding: .75rem; margin: .5rem 0; }
+</style>
+
+<h1>Checkout — payment step</h1>
+
+<div class="box" id="card">Card number</div>
+<button onclick="pay()">Pay</button>
+
+<script>
+  // Once it validates a card number, people stop reviewing the flow and start
+  // reviewing the validation.
+  function pay() { document.getElementById('card').textContent = 'Declined' }
+</script>

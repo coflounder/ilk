@@ -1,0 +1,14 @@
+Work that runs on a schedule is a document in `{{ index .Caps "routine.schedule" }}/`,
+not a cron entry somebody added once:
+
+    ilk routine list                 what runs, and what is overdue for review
+    ilk routine new "..."            write one
+    ilk routine sync                 project them into what actually runs them
+
+Reach for a routine last. A check, a hook or a gate that fires when somebody causes the
+problem is better than a job that finds it at 4am, because it fires while the fix is
+still cheap and the author still has the context.
+
+Every routine carries a budget and an owner, and `ilk routine sync` must be run and
+committed after any change to one — the schedule that runs is a projection, and `ilk
+check` reports the two disagreeing.

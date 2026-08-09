@@ -1,0 +1,34 @@
+# Every case states what it defends, so a failure here is actionable.
+#
+# The dates in the fixtures are hardcoded — 2020-01-01 for the past, 2999-01-01 for
+# the future — rather than computed. A fixture that expires is a test that rots.
+- check: deprecation.frontmatter
+  fixture: notice-without-a-date
+  expect: fail
+  why: A deprecation with no remove_after is a wish, and this is the check that says so.
+- check: deprecation.frontmatter
+  fixture: complete-notice
+  expect: pass
+  why: A notice carrying announced, remove_after and covers is exactly what the layer asks for, and must not be complained about.
+
+- check: deprecation.overdue
+  fixture: overdue-deprecation
+  expect: fail
+  why: The date passed and the code it covers is still here — the failure the whole layer exists to produce.
+- check: deprecation.overdue
+  fixture: complete-notice
+  expect: pass
+  why: A deprecation that is declared and not yet due is the normal state, and a check that fires on it would be ignored within a week.
+- check: deprecation.overdue
+  fixture: removed-deprecation
+  expect: pass
+  why: The date passing is not the failure; the code surviving it is. A notice whose paths are already gone is finished, not overdue, however old the date.
+
+- check: deprecation.done
+  fixture: removed-deprecation
+  expect: fail
+  why: The removal happened and the notice stayed in current truth, describing code that no longer exists — the state nobody notices on their own.
+- check: deprecation.done
+  fixture: complete-notice
+  expect: pass
+  why: Work that is not finished must not be reported as finished, which is the direction a check coupled to git can get wrong silently.

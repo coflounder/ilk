@@ -299,6 +299,19 @@ type Check struct {
 	// Requires names a capability; the check is skipped (not failed) when the
 	// repository does not supply it.
 	Requires string `yaml:"requires,omitempty"`
+	// RequiresEnv names environment variables the check's command needs, and is
+	// the whole of ilk's credential story.
+	//
+	// A credential must come from the environment and never from the repository,
+	// which leaves ilk unable to tell "this failed" from "nobody was logged in" —
+	// the command exits non-zero either way. A layer that says which variables
+	// carry the credential lets ilk skip with a reason instead, so an absent token
+	// reads as an absent token rather than as a broken repository. `ilk doctor`
+	// reports every check dormant for want of one.
+	//
+	// The values are never read, only tested for presence. ilk has no business
+	// holding a secret it was asked to detect.
+	RequiresEnv []string `yaml:"requires_env,omitempty"`
 }
 
 // Command extends the CLI surface as `ilk <layer> <name>`.
@@ -372,6 +385,7 @@ var (
 	versionPattern = regexp.MustCompile(`^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$`)
 	capPattern     = regexp.MustCompile(`^[a-z0-9]+(\.[a-z0-9-]+)+$`)
 	repoPattern    = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$`)
+	envPattern     = regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
 )
 
 // Parse decodes and validates a layer manifest.
@@ -569,6 +583,14 @@ func (l *Layer) Validate() error {
 		}
 		if strings.TrimSpace(c.Fix) == "" {
 			bad("checks[%d] (%s): fix is required — a check that cannot tell an agent how to repair the failure is not usable", i, c.ID)
+		}
+		for _, name := range c.RequiresEnv {
+			if !envPattern.MatchString(name) {
+				bad("checks[%d] (%s): requires_env %q must be an environment variable name like PULUMI_ACCESS_TOKEN", i, c.ID, name)
+			}
+		}
+		if len(c.RequiresEnv) > 0 && c.Run == "" {
+			bad("checks[%d] (%s): requires_env only means something for a `run:` check — a builtin reads files, not credentials", i, c.ID)
 		}
 	}
 

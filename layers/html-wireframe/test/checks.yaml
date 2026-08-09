@@ -1,0 +1,41 @@
+# Every case states what it defends, so a failure here says what was lost.
+
+- check: wireframe.agreed
+  fixture: ui-spec-without-a-wireframe
+  why: Everybody reading the criteria imagines a different screen and all of them think they agree, which is discovered after the build unless something asks first.
+  expect: fail
+
+- check: wireframe.agreed
+  fixture: ui-spec-with-a-wireframe
+  why: A spec that links its sketch must pass, or the check is noise and the next repository turns it off.
+  expect: pass
+
+- check: wireframe.agreed
+  fixture: spec-that-touches-no-interface
+  why: Work nobody looks at must not be asked for a picture of itself — a gate that fires on everything is one people learn to satisfy without meaning it.
+  expect: pass
+
+- check: wireframe.exists
+  fixture: wireframe-that-was-never-drawn
+  why: A link to a sketch nobody drew reads as agreement that never happened, which is worse than an empty section because it looks settled.
+  expect: fail
+
+- check: wireframe.exists
+  fixture: ui-spec-with-a-wireframe
+  why: A link that resolves to a real file is the whole artifact.
+  expect: pass
+
+- check: wireframe.self-contained
+  fixture: wireframe-that-runs-code
+  why: Once a sketch validates a card number people review the validation, and the flow — the thing it was drawn to settle — stops being looked at.
+  expect: fail
+
+- check: wireframe.self-contained
+  fixture: wireframe-loaded-from-a-cdn
+  why: What was agreed has to still render offline and in five years; a sketch that is blank boxes without a CDN is a record of nothing.
+  expect: fail
+
+- check: wireframe.self-contained
+  fixture: ui-spec-with-a-wireframe
+  why: An ordinary inline-styled sketch must pass, or the check bans wireframes rather than bad ones.
+  expect: pass

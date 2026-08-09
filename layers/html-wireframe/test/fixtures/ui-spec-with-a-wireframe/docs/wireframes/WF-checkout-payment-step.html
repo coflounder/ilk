@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Checkout — payment step — wireframe</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; color: #222; margin: 2rem; max-width: 62rem; }
+  .frame { border: 1px solid #999; padding: 1rem; margin: 0 0 1rem; }
+  .box { border: 1px solid #bbb; background: #f4f4f4; padding: .75rem; margin: .5rem 0; }
+  .box.optional { border-style: dashed; background: none; }
+  .btn { display: inline-block; border: 1px solid #666; padding: .4rem .9rem; }
+</style>
+
+<h1>Checkout — payment step</h1>
+
+<div class="frame">
+  <div class="box">Card number</div>
+  <div class="box">Expiry and security code</div>
+  <div class="box"><span class="btn">Pay</span></div>
+</div>
+
+<div class="frame">
+  <div class="box optional">Declined: message sits under the card field, details kept</div>
+</div>

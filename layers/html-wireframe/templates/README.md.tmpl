@@ -1,0 +1,46 @@
+---
+id: wireframes-readme
+title: What belongs in {{ .Vars.wireframes_dir }}/
+status: current
+updated: 2026-01-01
+covers: []
+---
+
+# {{ .Vars.wireframes_dir }}/ — what interface work was agreed to look like
+
+One HTML file per screen or state, linked from the spec that introduced it. Layout and
+flow only: no colour, no final copy, no behaviour.
+
+```sh
+ilk html-wireframe new "Checkout — payment step"
+```
+
+Then link it from the spec's `## Wireframe` section. Any spec with `ui: true` needs one,
+and `ilk check` says so until it has one.
+
+## Why HTML
+
+Because anybody can open it, in any browser, from disk, with no licence and no account —
+including whoever inherits this repository after everyone who drew these has gone. And
+because a diff can show what changed about it, which no image format manages.
+
+Each file is self-contained: styles in a `<style>` block, no scripts, nothing fetched
+over the network. A sketch that renders as blank boxes when the CDN moves is not a record
+of anything.
+
+## Cheap to throw away, on purpose
+
+The scaffold is greyscale boxes in one system font, and it should stay that way. A
+wireframe that took three hours is one people defend instead of arguing with — which is
+the exact opposite of what it is for. The disagreement is coming either way; all this
+does is move it to the day it costs an afternoon rather than a build.
+
+Draw the empty state, the error state and the too-much state. The main state is the one
+everybody already imagines the same way, so it teaches you the least.
+
+## Afterwards
+
+Wireframes stay. This is what the work was agreed to be; if the `visual-qa` layer is
+present, its screenshots are what it turned out to be. Where the built thing deliberately
+differs, say so in the spec — an unexplained difference reads as a mistake to the next
+person, and they will go and "fix" it.

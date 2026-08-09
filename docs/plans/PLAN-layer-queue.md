@@ -2,7 +2,7 @@
 id: plan-layer-queue
 title: Layer queue
 status: active
-updated: 2026-08-07
+updated: 2026-08-09
 ---
 
 # Layer queue
@@ -17,30 +17,32 @@ Every layer ilk publishes proves its own checks catch what it claims, and the fo
 backlog items currently blocked on core decisions are unblocked by making those
 decisions rather than by working around them.
 
-## The finding this queue answers
+## The finding this queue answered
 
-Twelve layers ship today. Nine enforce something, two enforce nothing, one runs
-only what the repository hands it. That distribution is fine.
+Twelve layers shipped when this was written. Nine enforced something, two enforced
+nothing, one ran only what the repository handed it. That distribution was fine.
 
-What is not fine: **ten of the twelve have no test that their checks fire.**
+What was not fine: **ten of the twelve had no test that their checks fire.**
 `ilk layer test` proves exactly one property — add is idempotent and rm restores
 the repository — and CI runs it against all twelve. It never asserts that a check
 rejects anything. Only `toolkit` and `gh-projects` ship a `test/run.sh`, and both
 of those test provider scripts rather than checks.
 
-The checks sit on top of Go builtins that *are* tested (`internal/checks` has real
-coverage), so they probably work. But "the builtin is tested" and "this layer
-wired it up correctly" are different claims, and only the first has evidence. A
+The checks sat on top of Go builtins that *are* tested (`internal/checks` has real
+coverage), so they probably worked. But "the builtin is tested" and "this layer
+wired it up correctly" are different claims, and only the first had evidence. A
 layer whose check silently matches nothing looks exactly like a layer whose check
 passes — the same failure mode `record.coverage` exists to catch in documents, and
-ilk does not currently apply it to itself.
+ilk was not applying it to itself.
 
-Every layer added before that is fixed multiplies unverified surface. Every layer
-added after ships with evidence. That is the whole argument for the order below.
+Every layer added before that was fixed multiplied unverified surface; every layer
+added after ships with evidence. That was the whole argument for the order below,
+and it held: the eight layers that followed carry 63 assertions between them, and
+two of the first three found real bugs the moment they ran.
 
 ## Order
 
-### 0 — Check assertions in `ilk layer test` · next
+### 0 — Check assertions in `ilk layer test` · done
 
 Extend the layer test harness so a layer can assert its checks reject what they
 are supposed to reject, then backfill the ten layers that have none.
@@ -63,9 +65,12 @@ Both directions matter. A check that fails on everything is as broken as one tha
 fails on nothing, and only the second is currently possible to notice.
 
 *Accepted when:* CI fails if a layer's check stops rejecting its own fixture, and
-every layer that registers a check has at least one failing and one passing case.
+every layer that registers a check has at least one failing and one passing case. ✓
+The harness landed with `--strict` for the second half, and it found `blueprint.epic`
+passing on a spec whose epic does not exist — the sandbox had been stubbing required
+capabilities to invented paths, so the check looked somewhere empty.
 
-### 1 — The credential story · unblocks two layers
+### 1 — The credential story · done
 
 Where a provider token comes from, and what the failure looks like when it is
 absent. It must come from the environment, never the repository, and an absent
@@ -75,9 +80,11 @@ credential must say so rather than looking like an empty diff or a clean preview
 `pulumi` and `linear-mirror` cannot.
 
 *Accepted when:* a layer requiring a credential skips its check with a reason
-`ilk doctor` can print, and never reports success on a credential it did not have.
+`ilk doctor` can print, and never reports success on a credential it did not have. ✓
+`requires_env:` names the variables, tests them for presence and never reads them.
+`pulumi` is its first tenant; `linear-mirror` needs nothing further from core.
 
-### 2 — The `mcp:` neutral artifact · unblocks two more
+### 2 — The `mcp:` neutral artifact · next
 
 Add `mcp:` alongside `instructions:`, `skills:` and `hooks:` in the manifest, and
 teach each target to render it. Roughly 150 lines of core plus per-target
@@ -89,19 +96,26 @@ ship one agent's literal file, which is the thing ilk exists not to do.
 
 ### 3 — Layers, in this order
 
-| Layer | Why here |
-|---|---|
-| `pr-prep` | Smallest unblocked item, immediate value, no dependencies |
-| `autoresearch` | Unblocked; the only layer measuring staleness by expiry rather than coupling |
-| `deprecation` | Same mechanic as staleness-by-coupling, applied to removal dates |
-| `secrets` | Highest-consequence agent failure; wraps an existing scanner |
-| `pulumi` | After the credential story |
-| `migrations` | After `secrets`, which establishes the wrap-a-tool-via-capability shape |
-| `codegraph` | After `mcp:`, for the version worth having |
-| `linear-mirror` | After the credential story |
-| `release-notes` | After `pr-prep`, which it shares its derive-from-the-record idea with |
-| `html-wireframe` | Pairs with `visual-qa`; lower value than the above |
-| `incident` | Only meaningful for a project with production |
+| Layer | Why here | |
+|---|---|---|
+| `pr-prep` | Smallest unblocked item, immediate value, no dependencies | done |
+| `autoresearch` | Unblocked; the only layer measuring staleness by expiry rather than coupling | done |
+| `deprecation` | Same mechanic as staleness-by-coupling, applied to removal dates | done |
+| `secrets` | Highest-consequence agent failure; wraps an existing scanner | done |
+| `pulumi` | After the credential story | done |
+| `routine` | Not on this list when it was written: the trigger half of running unattended | done |
+| `gauntlet` | Nor was this one: the judging half, and the reason unattended work can be trusted | done |
+| `html-wireframe` | Pairs with `visual-qa`; was ranked lower, and was cheap once the pair was the argument | done |
+| `migrations` | After `secrets`, which establishes the wrap-a-tool-via-capability shape | |
+| `codegraph` | After `mcp:`, for the version worth having | |
+| `linear-mirror` | Unblocked; three shell commands over `ilk mirror` | |
+| `release-notes` | After `pr-prep`, which it shares its derive-from-the-record idea with | |
+| `incident` | Only meaningful for a project with production | |
+
+`routine` and `gauntlet` were not on the original list. They came out of asking what a
+repository needs in order to run while nobody is watching it — something to start the
+work, and something other than the builder to decide it is good enough — and that
+question turned out to be worth more than the next two items in the ranking.
 
 ## Boundaries
 

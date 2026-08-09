@@ -2,10 +2,14 @@ When a decision is genuinely not yours — expensive to reverse, requirements th
 contradict each other, access you do not have — do not guess and do not stall.
 Record it:
 
-    ilk ask-human open "Should retries live in the gateway or the client?"
+    ilk ask-human open --decision "Should retries live in the gateway or the client?"
 
 Write the question in `{{ index .Caps "ask.questions" }}/`, say what you would do absent an
 answer, then carry on with everything the answer does not block. A blocking question
 left open fails `ilk check`, so it cannot quietly become a decision nobody made.
+
+Use `--decision` whenever you can name the two or three things it could be: each option
+carries what picking it would mean, and you recommend one. That is the difference
+between a question answerable in fifteen seconds and one that needs a working session.
 
 Escalating is cheap; a wrong assumption compounding for three days is not.

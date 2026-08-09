@@ -1,5 +1,5 @@
 id: ilk/ask-human
-version: 0.2.0
+version: 0.3.0
 summary: A written escalation path — an agent records a blocking question where a human will see it, and the repository refuses to pretend the answer is known.
 facets:
   arc: operations
@@ -44,7 +44,7 @@ files:
 instructions:
   - id: ask
     src: instructions/ask.md.tmpl
-    budget: 130
+    budget: 210
 
 skills:
   - name: ask-a-human
@@ -64,6 +64,21 @@ checks:
         blocking: "true"
       exempt: [README.md]
 
+  # A question that hands the whole problem back costs the person a working session.
+  # One that names the two or three things it could be, and what each would mean,
+  # can be answered from a phone in fifteen seconds — and the difference between
+  # those two is most of whether a repository can run while nobody is watching.
+  - id: ask.options
+    title: A decision offers something to choose between
+    run: .ilk/bin/ilk-ask-human.sh check-options
+    fix: >-
+      Add `options:` to the frontmatter — two to four of them, each with an `id:`, a
+      `label:`, and a `consequence:` saying what it would mean to pick it — then
+      `recommended:` naming the one you would choose. The consequence is the load
+      bearing part: two options with no stated difference are one option asked
+      twice. If you genuinely cannot list any, this is not a decision, and
+      `kind: decision` is the wrong shape for it.
+
   - id: ask.answered
     kind: builtin.section
     title: Answered questions record the answer
@@ -78,7 +93,7 @@ checks:
 
 commands:
   - name: open
-    summary: "Record a question that blocks you: ilk ask-human open \"Should retries live in the gateway?\""
+    summary: "Record a question that blocks you: ilk ask-human open [--decision] \"Should retries live in the gateway?\""
     run: .ilk/bin/ilk-ask-human.sh open
   - name: list
     summary: "Show open questions, blocking ones first: ilk ask-human list"

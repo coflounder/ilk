@@ -1,0 +1,103 @@
+id: ilk/deprecation
+version: 0.1.0
+summary: A removal date the code is held to — deprecations that expire, and that tell you when the removal is finished.
+facets:
+  arc: quality
+  kind: process
+ilk: ">=0.2.0"
+
+# A deprecation notice is a record document, so it lives wherever the record
+# lives. Requiring the capability rather than a layer means any record satisfies
+# this — including one somebody wrote themselves.
+requires:
+  - record.docs
+
+variables:
+  prefix:
+    default: DEPRECATED-
+    description: >-
+      The filename prefix that marks a document as a deprecation notice. Worth
+      changing only if your record's naming grammar rejects a ten-letter prefix —
+      `ilk/record` does, and `DEPR-` satisfies it.
+
+files:
+  - src: bin/ilk-deprecation-scan.sh
+    dest: .ilk/bin/ilk-deprecation-scan.sh
+    mode: managed
+    exec: true
+
+instructions:
+  - id: deprecation
+    src: instructions/deprecation.md.tmpl
+    budget: 130
+
+skills:
+  - name: deprecate-something
+    description: Put a removal date on code that is going away, in a form the repository will hold you to. Use when replacing an interface, retiring a flag or an endpoint, or when about to write a comment saying "remove this after".
+    src: skills/deprecate-something.md
+  - name: retire-a-deprecation
+    description: Finish a deprecation — remove what it covers and clear the notice. Use when `deprecation.overdue` or `deprecation.done` fails, or when a removal date is close and somebody has to decide.
+    src: skills/retire-a-deprecation.md
+
+checks:
+  - id: deprecation.frontmatter
+    kind: builtin.frontmatter
+    title: Every deprecation names a date and the paths it applies to
+    fix: >-
+      Add the missing keys to the notice's frontmatter. `remove_after:` is the ISO
+      date after which the covered code must be gone; `announced:` is the date it
+      was declared, and never moves once written; `covers:` lists the paths the
+      deprecation applies to, e.g. `covers: [src/legacy/**]`. A notice with no date
+      is a wish, and one that covers nothing can never tell you it is finished.
+    args:
+      dirs: ['{{ index .Caps "record.docs" }}']
+      require: [announced, remove_after, covers]
+      match: '^{{ .Vars.prefix }}'
+
+  # The date and the paths need git and a calendar, which no builtin has. The
+  # script also reports a `remove_after:` it cannot parse and a `covers:` with
+  # nothing in it, because both leave this check unable to answer its own
+  # question — and a check that quietly passes when it could not evaluate is
+  # indistinguishable from one that works.
+  - id: deprecation.overdue
+    title: No deprecation is past its date with the code it covers still here
+    run: '.ilk/bin/ilk-deprecation-scan.sh overdue "{{ index .Caps "record.docs" }}" "{{ .Vars.prefix }}"'
+    fix: >-
+      Remove what the notice covers — that is what the date was for, and the
+      `covers:` paths above say exactly what is in scope. If removal genuinely
+      cannot happen yet, move `remove_after:` to a date somebody has actually
+      committed to and say in the document what changed; leave `announced:` alone,
+      so the gap between the two stays visible in the diff. The `retire-a-deprecation`
+      skill is about that choice; read it before extending rather than removing.
+
+  - id: deprecation.done
+    title: A deprecation whose code has gone does not linger in the record
+    run: '.ilk/bin/ilk-deprecation-scan.sh done "{{ index .Caps "record.docs" }}" "{{ .Vars.prefix }}"'
+    fix: >-
+      The removal is finished — nothing the notice covers is left in the tree. Retire
+      the document: `ilk archive it <file>` if this repository has an archive, otherwise
+      delete it and record the removal with `ilk record log "removed ..."`. A notice for
+      code that no longer exists describes the past as the present, and it is the one
+      deprecation nobody ever thinks to close. If instead the paths are wrong — a
+      rename, a typo, a directory that moved — correct `covers:` so the notice measures
+      the code it is actually about.
+
+hooks:
+  # Only the frontmatter check blocks a commit. Whether a deprecation is overdue
+  # depends on the date, not on the change being committed, so blocking on it
+  # would stop commits that have nothing to do with the deprecation — which is
+  # how a repository learns to reach for `--no-verify`.
+  - event: pre-commit
+    name: deprecation
+    blocking: true
+    run: ilk check --only deprecation.frontmatter
+
+commands:
+  - name: list
+    summary: "Show every deprecation and where it stands — due, overdue, or finished: ilk deprecation list"
+    run: '.ilk/bin/ilk-deprecation-scan.sh list "{{ index .Caps "record.docs" }}" "{{ .Vars.prefix }}"'
+
+contribution:
+  repo: coflounder/ilk
+  path: layers/deprecation
+  guidelines: CONTRIBUTING.md

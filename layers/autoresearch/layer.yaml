@@ -1,0 +1,113 @@
+id: ilk/autoresearch
+version: 0.1.0
+summary: Findings about the world outside the repository — sourced, falsifiable and dated — so no session pays to derive them twice.
+facets:
+  arc: context
+  kind: record
+ilk: ">=0.2.0"
+
+# The path travels with the capability, so a layer that wants to read the findings
+# never has to guess that `research_dir` is still called `research`.
+provides:
+  research.findings: "{{ .Vars.group }}/{{ .Vars.research_dir }}"
+
+variables:
+  group:
+    default: docs
+    description: >-
+      The grouping the findings sit in, alongside the rest of the record. What was
+      learned about the world is part of the record; it is only measured differently.
+  research_dir:
+    default: research
+    description: >-
+      Where findings about anything outside this repository live — API behaviour,
+      vendor limits, why a library was rejected.
+  warn_before_days:
+    default: "14"
+    description: >-
+      How far ahead `ilk autoresearch due` looks. The expiry check is a wall; this
+      is the window before it, so a finding is re-read on purpose rather than
+      renewed in a hurry to get a build green.
+
+dirs:
+  - group: "{{ .Vars.group }}"
+    name: "{{ .Vars.research_dir }}"
+    order: 15
+    purpose: What was learned about the world outside this repository, with sources and an expiry date.
+    keep: true
+
+files:
+  - src: templates/research-README.md.tmpl
+    dest: '{{ index .Caps "research.findings" }}/README.md'
+    mode: create-only
+  - src: bin/ilk-research.sh
+    dest: .ilk/bin/ilk-research.sh
+    mode: managed
+    exec: true
+
+instructions:
+  - id: autoresearch
+    src: instructions/autoresearch.md.tmpl
+    budget: 130
+
+skills:
+  - name: record-a-finding
+    description: Write down what was learned about something outside this repository so the next session does not pay to derive it again. Use after reading vendor documentation, testing an external API, or rejecting a library, or when a research check reports a missing source or falsification clause.
+    src: skills/record-a-finding.md
+  - name: revisit-a-finding
+    description: Decide what to do with a finding that has expired or turned out to be wrong. Use when `ilk check` reports a finding past its `expires:` date, when `ilk autoresearch due` lists one, or when the world contradicts something the research directory claims.
+    src: skills/revisit-a-finding.md
+
+checks:
+  - id: research.frontmatter
+    kind: builtin.frontmatter
+    title: Findings say what was asked, how sure we are, and when to look again
+    fix: 'Add the missing keys to the frontmatter. `question:` is the thing somebody actually wanted to know; `confidence:` is `high`, `medium` or `low`; `expires:` is the date this must be re-read (YYYY-MM-DD). `{{ index .Caps "research.findings" }}/README.md` shows the whole shape.'
+    args:
+      dirs:
+        - '{{ index .Caps "research.findings" }}'
+      # `sources:` is deliberately not here. research.sources owns it, and can tell
+      # "no sources" from "sources nobody else can open" — two different repairs.
+      require: [id, title, question, confidence, expires, updated]
+      exempt: [README.md]
+
+  - id: research.sources
+    title: Every finding cites at least one source somebody else can open
+    run: .ilk/bin/ilk-research.sh sources
+    fix: 'Add the URLs you actually read to `sources:` — the vendor page, the changelog entry, the issue thread. A finding whose provenance is "an earlier session said so" cannot be re-checked by anyone, and this directory is read as though it had been.'
+
+  - id: research.falsifiable
+    kind: builtin.section
+    title: Every finding states what would change its conclusion
+    fix: 'Add a `## What would change this` section listing what you would have to see to stop believing the finding — a different number in the vendor docs, a major release, an error you have not seen. A conclusion nothing could overturn is an opinion wearing a citation.'
+    args:
+      dirs:
+        - '{{ index .Caps "research.findings" }}'
+      heading: What would change this
+      min_items: 1
+      exempt: [README.md]
+
+  - id: research.fresh
+    title: No finding is being trusted past its expiry date
+    run: .ilk/bin/ilk-research.sh expiry
+    fix: 'Re-read the finding against its sources, then either move `expires:` forward with `updated:` — having actually checked — or correct it. Read the `revisit-a-finding` skill first: bumping the date without opening a source is how this directory becomes confidently wrong, which is worse than not having it.'
+
+hooks:
+  # research.fresh is deliberately absent. It fails because a date passed, which has
+  # nothing to do with the commit in front of you, and a blocking hook that fires for
+  # reasons the author did not cause is how a team learns to pass --no-verify.
+  # `ilk check` and CI still hold it.
+  - event: pre-commit
+    name: autoresearch
+    blocking: true
+    run: ilk check --only research.frontmatter,research.sources,research.falsifiable
+
+commands:
+  - name: due
+    summary: "List findings that have expired or are about to: ilk autoresearch due [days]"
+    run: .ilk/bin/ilk-research.sh due
+
+contribution:
+  repo: coflounder/ilk
+  path: layers/autoresearch
+  guidelines: CONTRIBUTING.md

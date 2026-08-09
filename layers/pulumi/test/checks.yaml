@@ -1,0 +1,21 @@
+# Every case states what it defends, so a failure here is actionable.
+#
+# `infra.preview` is absent on purpose: it skips in the sandbox for want of
+# credentials, and `expect:` has no verdict for that. See CONTRIBUTING.md.
+- check: infra.stack-shape
+  fixture: stack-with-no-project-file
+  expect: fail
+  why: A directory under infra/ with no Pulumi.yaml is invisible to pulumi, so nothing else would ever report it.
+- check: infra.stack-shape
+  fixture: every-stack-has-a-project-file
+  expect: pass
+  why: A shape check that rejects a well-formed estate would be turned off within a week.
+
+- check: infra.no-plaintext-secrets
+  fixture: plaintext-secret-in-stack-config
+  expect: fail
+  why: A credential typed straight into Pulumi.prod.yaml is in the git history whatever the working tree says later.
+- check: infra.no-plaintext-secrets
+  fixture: encrypted-stack-config
+  expect: pass
+  why: The `secure:` form pulumi writes is the whole point of the check, and failing it would teach people to exempt the check rather than encrypt the value.

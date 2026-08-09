@@ -1,0 +1,61 @@
+# Every case states what it defends, so a failure here says what was lost.
+#
+# The passing fixtures date `review_by:` far into the future on purpose. A fixture
+# that expires is a test that starts failing on a Tuesday for reasons nobody
+# changed, and the repair is always to move the date — which teaches exactly the
+# habit routine.reviewed exists to prevent.
+#
+# `schedule-in-sync` holds a generated workflow, so it is a golden file: change what
+# `sync` writes — a comment counts — and regenerate it with
+# `ilk routine sync` against that fixture's routine, or this case fails for a reason
+# that has nothing to do with what it defends.
+
+- check: routine.frontmatter
+  fixture: routine-without-an-owner
+  why: A routine with no owner is one whose failure has nowhere to go, and a scheduled job's failure is already the hardest kind to notice.
+  expect: fail
+
+- check: routine.frontmatter
+  fixture: routine-complete
+  why: A routine that says everything must not be reported, or the check is noise and gets skipped.
+  expect: pass
+
+- check: routine.shape
+  fixture: schedule-not-cron
+  why: "`@daily` reads as a schedule and is rejected by every runner this projects into — validating here and failing there is the worst of both."
+  expect: fail
+
+- check: routine.shape
+  fixture: budget-not-a-number
+  why: A budget nothing can enforce looks exactly like one that works, right up to the weekend it does not.
+  expect: fail
+
+- check: routine.shape
+  fixture: two-routines-one-id
+  why: "`ilk routine run <id>` is given the id; two documents sharing one means the scheduler runs whichever the filesystem lists first."
+  expect: fail
+
+- check: routine.shape
+  fixture: routine-complete
+  why: An ordinary correct routine must pass, or every repository learns to ignore this check.
+  expect: pass
+
+- check: routine.reviewed
+  fixture: review-date-passed
+  why: The failure this layer exists for is the routine that has succeeded pointlessly for a year — loud failures get fixed, silent successes never do.
+  expect: fail
+
+- check: routine.reviewed
+  fixture: routine-complete
+  why: A routine whose review is not yet due must not be reported, or the date means nothing.
+  expect: pass
+
+- check: routine.current
+  fixture: routine-complete
+  why: A routine nobody synced is a routine that does not run, and reads in the repository exactly like one that does.
+  expect: fail
+
+- check: routine.current
+  fixture: schedule-in-sync
+  why: The projection must be byte-stable — a sync that differs from the last one fails for whoever ran it second, and they cannot tell that from a real drift.
+  expect: pass
