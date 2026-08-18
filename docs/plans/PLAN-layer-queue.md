@@ -84,7 +84,7 @@ credential must say so rather than looking like an empty diff or a clean preview
 `requires_env:` names the variables, tests them for presence and never reads them.
 `pulumi` is its first tenant; `linear-mirror` needs nothing further from core.
 
-### 2 — The `mcp:` neutral artifact · next
+### 2 — The `mcp:` neutral artifact · done
 
 Add `mcp:` alongside `instructions:`, `skills:` and `hooks:` in the manifest, and
 teach each target to render it. Roughly 150 lines of core plus per-target
@@ -92,9 +92,19 @@ rendering. This is the last artifact type where a layer would otherwise have to
 ship one agent's literal file, which is the thing ilk exists not to do.
 
 *Accepted when:* a layer declares an MCP server once and `.mcp.json` and
-`.cursor/mcp.json` are both projections of it.
+`.cursor/mcp.json` are both projections of it. ✓ Both files are co-owned merges,
+and every entry ilk writes is `ilk mcp run <name>` — the command stays in the
+manifest, resolved at start time, so agent config never changes when a layer
+does and ilk's entries stay recognisable without marker keys. `requires_env:`
+carries the credential story: presence tested, values never read, a missing
+variable refuses to start with its name in the message.
 
-### 3 — Layers, in this order
+### 3 — Layers, in this order · deferred
+
+Everything not yet done below is deferred, deliberately: the next investment is
+documentation and onboarding rather than breadth, per
+[PLAN-docs-onboarding](PLAN-docs-onboarding.md). The order still holds when the
+queue resumes.
 
 | Layer | Why here | |
 |---|---|---|

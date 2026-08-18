@@ -358,6 +358,14 @@ func (p *Project) planOne(d Desired, files *fileCache, opts PlanOptions) (Action
 		a.hashBody = merged
 		a.deliveredBody = merged
 		if merged == current {
+			// An absent file ilk has nothing to contribute to must also stay
+			// out of the lockfile, or the drift check expects a file that was
+			// deliberately never written.
+			if !exists && strings.TrimSpace(merged) == "" {
+				a.Op = OpSkip
+				a.Note = "nothing to contribute"
+				a.track = false
+			}
 			return a, nil
 		}
 		if !exists {

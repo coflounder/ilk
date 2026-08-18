@@ -51,6 +51,7 @@ type Layer struct {
 	Skills   []Skill
 	Hooks    []manifest.Hook
 	Commands []manifest.Command
+	MCP      []manifest.MCPServer
 }
 
 // Instruction is rendered always-on guidance.
@@ -105,6 +106,25 @@ func (in Input) AllHooks(event string) []manifest.Hook {
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 	return out
+}
+
+// AllMCP flattens MCP servers across layers, sorted by name. Two layers
+// declaring the same name is an error rather than last-write-wins, because
+// every projection keys server entries on the name.
+func (in Input) AllMCP() ([]manifest.MCPServer, error) {
+	declaredBy := map[string]string{}
+	var out []manifest.MCPServer
+	for _, l := range in.Layers {
+		for _, s := range l.MCP {
+			if prev, ok := declaredBy[s.Name]; ok {
+				return nil, fmt.Errorf("mcp server %q is declared by both %s and %s — rename one, or drop one of the layers", s.Name, prev, l.ID)
+			}
+			declaredBy[s.Name] = l.ID
+			out = append(out, s)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	return out, nil
 }
 
 // Target is an agent adapter.

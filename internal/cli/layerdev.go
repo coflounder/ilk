@@ -480,6 +480,13 @@ skills:
 #   - event: pre-commit
 #     blocking: true
 #     run: ilk check --only %s.example
+
+# mcp:
+#   - name: my-server
+#     summary: What this server gives an agent.
+#     command: npx
+#     args: ["-y", "some-mcp-server"]
+#     requires_env: [SOME_API_KEY]
 `, id, name, name, name)
 }
 

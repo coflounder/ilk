@@ -503,6 +503,10 @@ func (p *Project) targetInput() (targets.Input, error) {
 			Summary:  m.Summary,
 			Hooks:    m.Hooks,
 			Commands: m.Commands,
+			// MCP declarations pass through unrendered: projections carry only
+			// the name, and `ilk mcp run` renders command, args and env against
+			// the layer's context at start time.
+			MCP: m.MCP,
 		}
 		for _, ins := range m.Instructions {
 			body := ins.Inline

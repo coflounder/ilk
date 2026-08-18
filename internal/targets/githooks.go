@@ -129,11 +129,16 @@ func newOpencode() opencode {
 // Cursor rule files need frontmatter to be applied automatically.
 func (c cursor) Artifacts(in Input) ([]Artifact, error) {
 	body := "---\nalwaysApply: true\ndescription: Project instructions\n---\n\n" + pointerBody("Cursor")
-	return []Artifact{{
+	out := []Artifact{{
 		Path:    c.path,
 		Mode:    manifest.ModeManaged,
 		Content: body,
-	}}, nil
+	}}
+	mcp, err := mcpArtifact(".cursor/mcp.json", in)
+	if err != nil {
+		return nil, err
+	}
+	return append(out, mcp), nil
 }
 
 // codex reads AGENTS.md natively, so there is nothing to project. It is still a

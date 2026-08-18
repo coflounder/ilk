@@ -85,10 +85,13 @@ a teammate who pulls the repository needs the same ancestor, or their upgrade de
 to a refusal for no reason they can see.
 
 **The CLI is the interface; agent config is a projection.** Layers declare instructions,
-skills, hooks and commands in a neutral form. Targets turn those into `AGENTS.md`,
-`.claude/`, `.cursor/` and git hooks. Because every generated hook says only
-`ilk hook run <event>`, adding a hook to a layer never rewrites an agent's config, and
-adding an agent never touches a layer.
+skills, hooks, MCP servers and commands in a neutral form. Targets turn those into
+`AGENTS.md`, `.claude/`, `.cursor/` and git hooks. Because every generated hook says only
+`ilk hook run <event>` — and every generated MCP entry only `ilk mcp run <name>` —
+adding either to a layer never rewrites an agent's config, and adding an agent never
+touches a layer. The indirection also keeps credentials out of committed files: an MCP
+server's `requires_env:` variables are tested for presence at start time, never read,
+never written.
 
 **Writing to somebody else's system reuses the same discipline.** `ilk mirror`
 reconciles record documents with a tracker, and the shape is `plan` then `apply`

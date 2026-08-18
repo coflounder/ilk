@@ -55,6 +55,7 @@ type Layer struct {
 	Instructions []Instruction `yaml:"instructions,omitempty"`
 	Skills       []Skill       `yaml:"skills,omitempty"`
 	Hooks        []Hook        `yaml:"hooks,omitempty"`
+	MCP          []MCPServer   `yaml:"mcp,omitempty"`
 	// Checks contributed to `ilk check`.
 	Checks []Check `yaml:"checks,omitempty"`
 	// Commands extend the CLI as `ilk <layer> <command>`.
@@ -261,6 +262,27 @@ type Skill struct {
 	Description string `yaml:"description"`
 	Src         string `yaml:"src,omitempty"`
 	Inline      string `yaml:"inline,omitempty"`
+}
+
+// MCPServer declares an MCP server the repository's agents should have, in
+// neutral form. Targets project it as `ilk mcp run <name>` rather than writing
+// the command into their config, for the same reason hooks project as
+// `ilk hook run`: the generated file never changes when the layer does, and
+// ilk's entries stay recognisable in a file whose schema it does not own.
+//
+// Credentials never appear here. RequiresEnv names the environment variables a
+// server needs; `ilk mcp run` tests them for presence — without reading them —
+// and refuses to start with a message naming what is missing, instead of the
+// agent reporting an opaque connection failure.
+type MCPServer struct {
+	Name    string `yaml:"name"`
+	Summary string `yaml:"summary,omitempty"`
+	Command string `yaml:"command"`
+	// Args and Env values are templated over the layer's variables and the
+	// repository's capabilities, like every other manifest value.
+	Args        []string          `yaml:"args,omitempty"`
+	Env         map[string]string `yaml:"env,omitempty"`
+	RequiresEnv []string          `yaml:"requires_env,omitempty"`
 }
 
 // Hook binds a command to a lifecycle event. Events are neutral; each target
@@ -567,6 +589,25 @@ func (l *Layer) Validate() error {
 		}
 	}
 
+	seenMCP := map[string]bool{}
+	for i, s := range l.MCP {
+		if !namePattern.MatchString(s.Name) {
+			bad("mcp[%d]: name %q must be lowercase-with-dashes", i, s.Name)
+		}
+		if seenMCP[s.Name] {
+			bad("mcp[%d]: duplicate name %q", i, s.Name)
+		}
+		seenMCP[s.Name] = true
+		if strings.TrimSpace(s.Command) == "" {
+			bad("mcp[%d] (%s): command is required — the server executable ilk starts", i, s.Name)
+		}
+		for _, name := range s.RequiresEnv {
+			if !envPattern.MatchString(name) {
+				bad("mcp[%d] (%s): requires_env %q must be an environment variable name like LINEAR_API_KEY", i, s.Name, name)
+			}
+		}
+	}
+
 	seenCheck := map[string]bool{}
 	for i, c := range l.Checks {
 		if c.ID == "" {
@@ -656,7 +697,7 @@ func (l *Layer) Validate() error {
 // NeedsExec reports whether adopting this layer runs code beyond rendering
 // files. Adopting such a layer requires explicit consent.
 func (l *Layer) NeedsExec() bool {
-	if len(l.Commands) > 0 || len(l.Mirrors) > 0 {
+	if len(l.Commands) > 0 || len(l.Mirrors) > 0 || len(l.MCP) > 0 {
 		return true
 	}
 	for _, c := range l.Checks {
