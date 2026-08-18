@@ -1,5 +1,5 @@
 id: ilk/toolkit
-version: 0.2.0
+version: 0.3.0
 summary: How to operate and extend ilk in this repository — adding layers, configuring, applying, resolving conflicts, and writing your own layer.
 facets:
   arc: operations

@@ -80,6 +80,22 @@ Built-in kinds that need no script: `builtin.frontmatter`, `builtin.naming`,
 `builtin.links`, `builtin.references`, `builtin.section`, `builtin.stale`,
 `builtin.coverage`.
 
+## MCP servers are declared, not configured
+
+```yaml
+mcp:
+  - name: linear
+    command: npx
+    args: ["-y", "mcp-remote", "https://mcp.linear.app/sse"]
+    requires_env: [LINEAR_API_KEY]
+```
+
+Never ship an agent's MCP config file. Declare the server under `mcp:` and each
+configured target projects it — `.mcp.json`, `.cursor/mcp.json` — as an
+`ilk mcp run <name>` entry that resolves your command at start time. Credentials go in
+`requires_env:`, which is checked for presence and never read; a server that needs a
+missing variable refuses to start and says which one.
+
 ## Capabilities, not dependencies
 
 ```yaml

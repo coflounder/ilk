@@ -418,7 +418,7 @@ func newInfoCmd() *cobra.Command {
 					"requires": m.Requires, "provides": m.Provides,
 					"variables": m.Variables, "files": m.Files, "dirs": m.Dirs,
 					"instructions": m.Instructions, "skills": m.Skills,
-					"hooks": m.Hooks, "checks": m.Checks, "commands": m.Commands,
+					"hooks": m.Hooks, "checks": m.Checks, "commands": m.Commands, "mcp": m.MCP,
 					"needs_exec": m.NeedsExec(), "instruction_budget": m.Budget(),
 				})
 			}
@@ -489,6 +489,12 @@ func newInfoCmd() *cobra.Command {
 				hooks = append(hooks, fmt.Sprintf("%-16s %s", h.Event, sty.dim(h.Run)))
 			}
 			section("Hooks", hooks)
+
+			var mcp []string
+			for _, s := range m.MCP {
+				mcp = append(mcp, fmt.Sprintf("%-20s %s", s.Name, sty.dim(truncate(s.Summary, 60))))
+			}
+			section("MCP servers", mcp)
 
 			var cmds []string
 			for _, c := range m.Commands {

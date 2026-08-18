@@ -110,6 +110,7 @@ instructions: [...]               # always-on guidance, with a declared token bu
 skills:       [...]               # detail, loaded only when its situation applies
 checks:       [...]               # validators, each carrying its own fix
 hooks:        [...]               # session-start, pre-commit, pre-push, …
+mcp:          [...]               # MCP servers, projected into each agent's config
 commands:     [...]               # extend the CLI: `ilk quality-gates report`
 ```
 

@@ -73,6 +73,14 @@ func (t claudeCode) Artifacts(in Input) ([]Artifact, error) {
 		},
 	})
 
+	// .mcp.json likewise belongs to the user; ilk contributes one entry per
+	// declared server, each an `ilk mcp run` indirection. See mcp.go.
+	mcp, err := mcpArtifact(".mcp.json", in)
+	if err != nil {
+		return nil, err
+	}
+	out = append(out, mcp)
+
 	return out, nil
 }
 

@@ -208,6 +208,36 @@ configured agents can deliver it, and `ilk doctor` reports where nothing can.
 must hold, and leave it off for anything advisory — a blocking hook that fires
 spuriously teaches people to pass `--no-verify` by reflex, which costs you every gate.
 
+## MCP servers
+
+```yaml
+mcp:
+  - name: linear
+    summary: Linear's MCP server, over the stdio bridge.
+    command: npx
+    args: ["-y", "mcp-remote", "https://mcp.linear.app/sse"]
+    requires_env: [LINEAR_API_KEY]
+```
+
+Declare the server, not the agent's config file. Each configured target renders its own
+projection — `.mcp.json` for Claude Code, `.cursor/mcp.json` for Cursor — and every
+entry ilk writes says the same thing: `ilk mcp run <name>`. The real command stays in
+the manifest and is resolved when the agent starts the server, so changing `command:`
+or `args:` never rewrites agent config, and both files are co-owned: a server the user
+configured by hand is left exactly where it was, on add and on remove alike.
+
+`args:` and `env:` values are templated over the layer's variables and the repository's
+capabilities, like every other manifest value.
+
+Credentials never go in the manifest, and never end up in a committed file.
+`requires_env:` names the variables the server needs; `ilk mcp run` tests them for
+presence — without reading them — and refuses to start with a message naming what is
+missing, instead of the agent reporting an opaque connection failure. `ilk mcp list`
+shows the same thing at a glance.
+
+Server names are a repository-wide namespace: two adopted layers declaring the same
+name refuse to plan, rather than one silently winning.
+
 ## Commands
 
 ```yaml

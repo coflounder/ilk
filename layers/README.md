@@ -164,21 +164,20 @@ of it.
 **Build the standalone layer only if** somebody can name a check for it that cannot be
 satisfied by writing three paragraphs nobody believes.
 
-### `mcp-servers` — needs a core change first
+### `mcp-servers` — unblocked; the core change landed
 
 Declare the MCP servers a repository expects, and project them into each agent's config
 the way instructions and hooks already are.
 
-**Blocked on:** this cannot be a layer as things stand. Layers emit neutral artifacts;
-only *targets* project them into agent-specific files, and there is no `mcp:` artifact
-type. `.mcp.json`, `.cursor/mcp.json` and the rest are different files with different
-shapes, so a layer shipping one literal file would work for exactly one agent — the
-thing ilk exists not to do.
+**Was blocked on:** the `mcp:` artifact type, which now exists. A layer declares a
+server once under `mcp:` and each configured target projects it — `.mcp.json` for
+Claude Code, `.cursor/mcp.json` for Cursor — as an `ilk mcp run <name>` entry resolved
+from the manifest at start time, with `requires_env:` carrying the credential story.
+See [writing a layer](../docs/reference/REF-writing-layers.md).
 
-**Shape:** add `mcp:` alongside `instructions:`, `skills:` and `hooks:` in the manifest;
-teach each target to render it. Then a layer can say "this project talks to Linear and
-Postgres" once. Perhaps 150 lines of core plus per-target rendering. It is the most
-clearly correct item on this list.
+**What remains** is only deciding whether a standalone layer bundling common servers
+earns its place, or whether `mcp:` blocks inside the layers that need them (`codegraph`,
+`linear-mirror`) cover every real case. No further core work is required.
 
 ### `linear-mirror` — unblocked, and nothing is left but the work
 

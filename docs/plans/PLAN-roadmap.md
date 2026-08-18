@@ -99,14 +99,19 @@ Remaining:
   it to warrant its own.
 - More adapters, with conformance fixtures so "works with any agent" stops being a
   claim that decays silently as agents change their formats.
-- An `mcp:` neutral artifact, so a repository can declare the MCP servers it expects
-  once and have each agent's config projected from it. The clearest remaining core
-  gap — see [layers/README.md](../../layers/README.md) for why it cannot be a layer.
 - More layers: `codegraph`, `migrations`, `release-notes`, `incident`, `linear-mirror`,
-  in the order set out in [PLAN-layer-queue](PLAN-layer-queue.md). The backlog with
+  in the order set out in [PLAN-layer-queue](PLAN-layer-queue.md) — **deferred** in
+  favour of documentation and onboarding; see
+  [PLAN-docs-onboarding](PLAN-docs-onboarding.md). The backlog with
   decided shapes is in [layers/README.md](../../layers/README.md). `brainstorm` was
   specified and then argued out of existing, on the grounds that a check counting
   alternatives is cheapest to satisfy with strawmen.
+
+The `mcp:` neutral artifact — previously the clearest remaining core gap — is done.
+A layer declares a server once and `.mcp.json` and `.cursor/mcp.json` are both
+co-owned projections of it, each entry an `ilk mcp run <name>` indirection with
+`requires_env:` carrying the credential story. That unblocks `mcp-servers` and the
+version of `codegraph` worth having.
 
 The queue's first two items are done. Check assertions closed the gap it was written
 about — ten of twelve layers had no evidence their checks rejected anything — and the
@@ -129,7 +134,7 @@ useful for a common need, and none of them required a core change.
 
 ### M4 — Hardening
 
-Provenance verification, exec-consent audit, a docs site, and `ilk upgrade --dry-run`
+Provenance verification, exec-consent audit, and `ilk upgrade --dry-run`
 diffs that show content rather than just operations.
 
 ## Open questions
