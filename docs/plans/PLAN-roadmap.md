@@ -134,7 +134,7 @@ useful for a common need, and none of them required a core change.
 
 ### M4 — Hardening
 
-Provenance verification, exec-consent audit, a docs site, and `ilk upgrade --dry-run`
+Provenance verification, exec-consent audit, and `ilk upgrade --dry-run`
 diffs that show content rather than just operations.
 
 ## Open questions

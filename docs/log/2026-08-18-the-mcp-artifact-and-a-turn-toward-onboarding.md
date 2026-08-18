@@ -55,5 +55,7 @@ written for people who were already here.
 So the remaining queue items are deferred, order preserved, and
 [PLAN-docs-onboarding](../plans/PLAN-docs-onboarding.md) is the active plan:
 first a one-line install (there are still no tagged releases), then the first
-fifteen minutes, then the layer author's path, then a docs site pulled forward
-from M4.
+fifteen minutes, then the layer author's path, then a well-structured docs
+directory — deliberately not a docs site, which came off M4 at the same time:
+the audience reads markdown in a checkout or on GitHub, and structure is what
+is missing, not hosting.

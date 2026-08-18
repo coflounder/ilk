@@ -75,14 +75,20 @@ smallest layer that earns its keep.
 else adopted it" is documented end to end, and following it exercises the M2
 acceptance criterion for real.
 
-### D3 — A docs site
+### D3 — A well-structured docs directory
 
-Pulled forward from M4. The record stays canonical in-repo; the site is a
-projection of it — quickstart, the two author paths, reference, and the layer
-index. Static, generated, boring.
+Not a docs site — a decision, not a deferral. The audience reads markdown on
+GitHub or in a checkout, and a site is a build step, a host and a staleness
+surface that the record's own checks do not cover. What is needed instead is
+structure: one obvious entry point, a deliberate reading order, and a place for
+each kind of document — the quickstart (D1), the author's path (D2), the
+reference that already exists, and the design record — with nothing reachable
+only by knowing it is there. `docs/README.md` becomes the map: who you are, what
+you came for, which document to open, in that order.
 
-*Accepted when:* every document above is readable at a URL, and regenerating the
-site is one command in CI.
+*Accepted when:* every document is reachable from `docs/README.md` by audience
+and purpose, `record.links` holds the tree together, and a newcomer can say
+from the map alone which single document answers their question.
 
 ## Boundaries
 
@@ -95,9 +101,11 @@ site is one command in CI.
 
 ## Open questions
 
-1. **Where does the quickstart live?** In-repo under `docs/` keeps it governed
-   and staleness-checked; a site-only page reads better. Probably in-repo with
-   the site as projection, consistent with everything else ilk does.
+1. **Should onboarding prose be governed?** The quickstart lives under `docs/`
+   like everything else, but its `covers:` would span half the CLI — every
+   command it demonstrates. Whether that coupling is honest staleness detection
+   or a document that cries wolf on every release is worth one release's worth
+   of evidence before deciding.
 2. **Does D0 imply `ilk self update`?** A curl-installed binary has no package
    manager watching it. `ilk self` exists; whether it should learn `update`
    before the first external users arrive is a small question with a long
