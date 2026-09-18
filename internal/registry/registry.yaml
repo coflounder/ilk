@@ -158,3 +158,9 @@ layers:
     arc: operations
     kind: gate
     requires: [infra.preview.command, infra.up.command]
+
+  - id: ilk/session-summaries
+    source: gh:coflounder/ilk/layers/session-summaries
+    summary: Shared session summaries across directly invoked harnesses and linked worktrees, with hook-driven publication and MCP retrieval.
+    arc: context
+    kind: integration

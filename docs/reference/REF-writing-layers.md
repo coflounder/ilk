@@ -2,7 +2,7 @@
 id: ref-writing-layers
 title: Writing a layer
 status: current
-updated: 2026-08-06
+updated: 2026-09-18
 covers:
   - internal/manifest/**
   - internal/builtin/layers/**
@@ -199,7 +199,13 @@ hooks:
     run: ilk check --only my-pattern.naming
 ```
 
-Events: `session-start`, `pre-commit`, `pre-push`, `post-edit`, `pre-tool-use`.
+Events: `session-start`, `turn-end`, `pre-commit`, `pre-push`, `post-edit`, `pre-tool-use`.
+
+`turn-end` maps to Claude Code's `Stop` event. Native hook JSON input is replayed to
+all hooks registered for the event. A blocking `turn-end` failure exits 2 and its
+output becomes continuation feedback. Hooks must bound their own retries using the
+native `stop_hook_active` input; a publication request must not trap the agent in a
+stop loop. Git events retain exit 1 for failure and do not consume stdin.
 
 Declare the event, not the mechanism. ilk routes it to git hooks and to whichever
 configured agents can deliver it, and `ilk doctor` reports where nothing can.

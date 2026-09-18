@@ -2,7 +2,7 @@
 id: arch-system-overview
 title: System overview
 status: current
-updated: 2026-08-07
+updated: 2026-09-18
 covers:
   - internal/**
   - cmd/**
@@ -92,6 +92,13 @@ adding either to a layer never rewrites an agent's config, and adding an agent n
 touches a layer. The indirection also keeps credentials out of committed files: an MCP
 server's `requires_env:` variables are tested for presence at start time, never read,
 never written.
+
+Native hook input is read once and replayed for every layer registered to the event.
+The `turn-end` event projects to Claude Code's `Stop`; blocking failures use exit 2
+so the active agent receives continuation feedback. The session-summaries layer uses
+that event to request a draft and publish it at the next stop. Its local store lives
+under Git's common directory, shared across linked worktrees, independently of the
+harness processes. Other harnesses can publish explicitly through MCP or CLI.
 
 **Writing to somebody else's system reuses the same discipline.** `ilk mirror`
 reconciles record documents with a tracker, and the shape is `plan` then `apply`

@@ -298,7 +298,7 @@ type Hook struct {
 
 // Events ilk understands. git-hook events are enforceable everywhere; agent
 // events are an optimisation layered on top.
-var Events = []string{"session-start", "pre-commit", "pre-push", "post-edit", "pre-tool-use"}
+var Events = []string{"session-start", "turn-end", "pre-commit", "pre-push", "post-edit", "pre-tool-use"}
 
 func ValidEvent(e string) bool {
 	for _, k := range Events {

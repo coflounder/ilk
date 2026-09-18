@@ -22,7 +22,7 @@ func (claudeCode) Description() string { return "Claude Code — skills, slash c
 
 func (claudeCode) Supports(event string) bool {
 	switch event {
-	case "session-start", "post-edit", "pre-tool-use":
+	case "session-start", "turn-end", "post-edit", "pre-tool-use":
 		return true
 	}
 	return false
@@ -127,6 +127,8 @@ func claudeEventName(event string) (name, matcher string) {
 	switch event {
 	case "session-start":
 		return "SessionStart", ""
+	case "turn-end":
+		return "Stop", ""
 	case "post-edit":
 		return "PostToolUse", "Edit|Write|MultiEdit"
 	case "pre-tool-use":
