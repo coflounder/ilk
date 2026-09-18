@@ -4,7 +4,7 @@
       {
         "hooks": [
           {
-            "command": "ilk hook run session-start --target claude-code",
+            "command": "ilk hook run session-start --target codex",
             "type": "command"
           }
         ]
@@ -14,7 +14,7 @@
       {
         "hooks": [
           {
-            "command": "ilk hook run turn-end --target claude-code",
+            "command": "ilk hook run turn-end --target codex",
             "type": "command"
           }
         ]

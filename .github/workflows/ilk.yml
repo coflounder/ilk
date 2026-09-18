@@ -39,5 +39,7 @@ jobs:
 
       # Gates that matter run here, not only in an agent's hooks. An agent that
       # ignores its instructions still cannot push past this job.
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff # v6
+
       - name: Check
         run: ilk check --json

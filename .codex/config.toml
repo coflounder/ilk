@@ -1,0 +1,6 @@
+# ilk:begin layer=target:codex region=mcp — managed by ilk — edits inside this block are overwritten; run `ilk rm` to remove it
+[mcp_servers."session-summaries"]
+command = "ilk"
+args = ["mcp", "run", "session-summaries"]
+startup_timeout_sec = 60
+# ilk:end layer=target:codex region=mcp

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "session-summaries": {
+      "args": [
+        "mcp",
+        "run",
+        "session-summaries"
+      ],
+      "command": "ilk"
+    }
+  }
+}
