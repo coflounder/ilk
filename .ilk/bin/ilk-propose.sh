@@ -93,7 +93,12 @@ git -c user.email="$(gh api user --jq '.email // "noreply@github.com"')" \
 # branch and the lease refuses — which is exactly the second time somebody sends a
 # corrected proposal, the case that must not be the one that breaks.
 git fetch --depth=1 origin "+refs/heads/$branch:refs/remotes/origin/$branch" >/dev/null 2>&1 || true
-git push -q --force-with-lease origin "$branch" ||
+# A --single-branch clone's fetch refspec covers only the base branch. Git cannot
+# infer the proposal's lease from that refspec even after the explicit fetch, so
+# supply the observed revision. An empty lease permits creation only; a concurrent
+# change after this read still makes the push refuse.
+expected=$(git rev-parse --verify "refs/remotes/origin/$branch" 2>/dev/null || true)
+git push -q "--force-with-lease=refs/heads/$branch:$expected" origin "$branch" ||
 	die "could not push $branch to $fork. If somebody else changed that branch, delete it in your fork and re-run."
 
 url=$(gh pr create --repo "$repo" --base "$base" --head "$me:$branch" \

@@ -21,6 +21,8 @@ file when its situation applies — do not read them all up front.
   `.agents/skills/review-a-proposal/SKILL.md`
 - **review-changes** — Review a change the way this repository expects, before it is proposed. Use when preparing a pull request or when asked to review a diff.
   `.agents/skills/review-changes/SKILL.md`
+- **share-session-context** — Recover another harness's progress, publish a session checkpoint, or hand off work without changing the task's worktree. Use when starting or resuming work and when the turn-end hook requests a summary.
+  `.agents/skills/share-session-context/SKILL.md`
 - **update-record** — Bring the project record back in line with the code after a change. Use after shipping work that alters architecture, interfaces, or operational behaviour, or when `ilk check` reports a stale document.
   `.agents/skills/update-record/SKILL.md`
 - **write-a-layer** — Author a new ilk layer, or change an existing one. Use when a practice worth repeating should become installable — a directory contract, a check, a skill, a hook or a subcommand — or when asked to extend what ilk does.

@@ -249,17 +249,43 @@
       ]
     },
     {
+      "id": "ilk/session-summaries",
+      "kind": "layer",
+      "version": "0.1.0",
+      "source": "/home/dev/workspace/coflounder/repos/ilk/layers/session-summaries",
+      "digest": "sha256:e904b1a412363c59457b092222aee2943c8d93acf852be0a598772a65092448b",
+      "files": [
+        {
+          "path": ".ilk/bin/session-summaries.py",
+          "mode": "managed",
+          "hash": "sha256:f633da9bb825cc726dad71ddcee0a03a88b119f26c396a377c87525653fa8471",
+          "delivered": "sha256:f633da9bb825cc726dad71ddcee0a03a88b119f26c396a377c87525653fa8471",
+          "created_file": true,
+          "owner": "ilk/session-summaries",
+          "exec": true
+        },
+        {
+          "path": "AGENTS.md",
+          "mode": "region",
+          "region": "instructions",
+          "hash": "sha256:dd43a5eb7c83e62ac68687817e59e3016cb10a5f0922275bdd01d2df5aad41a8",
+          "delivered": "sha256:dd43a5eb7c83e62ac68687817e59e3016cb10a5f0922275bdd01d2df5aad41a8",
+          "owner": "ilk/session-summaries"
+        }
+      ]
+    },
+    {
       "id": "ilk/toolkit",
       "kind": "layer",
       "version": "0.3.0",
       "source": "builtin",
-      "digest": "sha256:c3ce969503d38cd5fac8e72dfb13e75eedce718f47a3dbd1d3d64c9417d3b43f",
+      "digest": "sha256:6e4d4a796b1bdb65a47facb57ac66c4dab80df5b87eb045915c689d5325d814e",
       "files": [
         {
           "path": ".ilk/bin/ilk-propose.sh",
           "mode": "managed",
-          "hash": "sha256:676a31bc8311cf53cdce3c6268dd9c15dc0a1c06ee1c1bc324e91e1fa2ed8ae5",
-          "delivered": "sha256:676a31bc8311cf53cdce3c6268dd9c15dc0a1c06ee1c1bc324e91e1fa2ed8ae5",
+          "hash": "sha256:2eaaa305d9cecf3127e7e5fe042a302902d98fc0468a8bf994d3ffa62aa2f296",
+          "delivered": "sha256:2eaaa305d9cecf3127e7e5fe042a302902d98fc0468a8bf994d3ffa62aa2f296",
           "created_file": true,
           "owner": "ilk/toolkit",
           "exec": true
@@ -343,6 +369,14 @@
           "owner": "target:agents-md"
         },
         {
+          "path": ".agents/skills/share-session-context/SKILL.md",
+          "mode": "managed",
+          "hash": "sha256:d3c5e952d5c50dc924a55f1b02eeddd8171b63306e4ef9854b900b4a84b8d6bf",
+          "delivered": "sha256:d3c5e952d5c50dc924a55f1b02eeddd8171b63306e4ef9854b900b4a84b8d6bf",
+          "created_file": true,
+          "owner": "target:agents-md"
+        },
+        {
           "path": ".agents/skills/update-record/SKILL.md",
           "mode": "managed",
           "hash": "sha256:2675e8d773db6703414cb9565a185ec242697645d51b85bdcf4161a46c75d8c3",
@@ -375,8 +409,8 @@
           "path": "AGENTS.md",
           "mode": "region",
           "region": "skills",
-          "hash": "sha256:2f867b20c8038cf9d1d99103a99898ae6b0dcb24f51d7e4b76962fd2122d438d",
-          "delivered": "sha256:2f867b20c8038cf9d1d99103a99898ae6b0dcb24f51d7e4b76962fd2122d438d",
+          "hash": "sha256:3e9b47f41a093a0149117f169326cb898d95594e3c1d41b13736415017fe351d",
+          "delivered": "sha256:3e9b47f41a093a0149117f169326cb898d95594e3c1d41b13736415017fe351d",
           "owner": "target:agents-md"
         }
       ]
@@ -418,10 +452,34 @@
           "owner": "target:claude-code"
         },
         {
+          "path": ".claude/commands/session-summaries-list.md",
+          "mode": "managed",
+          "hash": "sha256:5d840b7461648a6200e7ce6541cae301d44fd6ca95249485d599c81bb7ffcdfd",
+          "delivered": "sha256:5d840b7461648a6200e7ce6541cae301d44fd6ca95249485d599c81bb7ffcdfd",
+          "created_file": true,
+          "owner": "target:claude-code"
+        },
+        {
+          "path": ".claude/commands/session-summaries-read.md",
+          "mode": "managed",
+          "hash": "sha256:657b1945fe3a742eb3a1be1bef1e0a23f4d34181a4d7d32cb130c08e7439ad67",
+          "delivered": "sha256:657b1945fe3a742eb3a1be1bef1e0a23f4d34181a4d7d32cb130c08e7439ad67",
+          "created_file": true,
+          "owner": "target:claude-code"
+        },
+        {
+          "path": ".claude/commands/session-summaries-save.md",
+          "mode": "managed",
+          "hash": "sha256:1ffe4a4a59f20e369267ac4a9f8592a6b5c0ba3c56136e452150239dfb09c3ae",
+          "delivered": "sha256:1ffe4a4a59f20e369267ac4a9f8592a6b5c0ba3c56136e452150239dfb09c3ae",
+          "created_file": true,
+          "owner": "target:claude-code"
+        },
+        {
           "path": ".claude/settings.json",
           "mode": "merge",
-          "hash": "sha256:949a1fe43240e43717cb78438fb476f83fb967d1e65eccec96769c1ed30e0d1f",
-          "delivered": "sha256:949a1fe43240e43717cb78438fb476f83fb967d1e65eccec96769c1ed30e0d1f",
+          "hash": "sha256:744fd1f533eac26ebbbaa4c649d1a0f5f6f63c12d5a309ddebb29b0c10c3b274",
+          "delivered": "sha256:744fd1f533eac26ebbbaa4c649d1a0f5f6f63c12d5a309ddebb29b0c10c3b274",
           "owner": "target:claude-code"
         },
         {
@@ -488,6 +546,13 @@
           "owner": "target:claude-code"
         },
         {
+          "path": ".claude/skills/share-session-context",
+          "mode": "symlink",
+          "hash": "sha256:a1c4ab0693cc6d066c50a26416124144013163d7f4a684322e4e4b11c3cfca27",
+          "created_file": true,
+          "owner": "target:claude-code"
+        },
+        {
           "path": ".claude/skills/update-record",
           "mode": "symlink",
           "hash": "sha256:2b13558b1ebb1b96d9b0cb747a46a76b2483685c088966aceeb0bb7a2f7691be",
@@ -509,12 +574,42 @@
           "owner": "target:claude-code"
         },
         {
+          "path": ".mcp.json",
+          "mode": "merge",
+          "hash": "sha256:796b4b6493e4857ba96c80bc201818d76038f6e7d2c9af52f1f98293e930f741",
+          "delivered": "sha256:796b4b6493e4857ba96c80bc201818d76038f6e7d2c9af52f1f98293e930f741",
+          "created_file": true,
+          "owner": "target:claude-code"
+        },
+        {
           "path": "CLAUDE.md",
           "mode": "region",
           "region": "pointer",
           "hash": "sha256:54829fdf67c26df7e0de1a55e04a10078b52959d91248acdc7268552ba253a82",
           "delivered": "sha256:54829fdf67c26df7e0de1a55e04a10078b52959d91248acdc7268552ba253a82",
           "owner": "target:claude-code"
+        }
+      ]
+    },
+    {
+      "id": "target:codex",
+      "kind": "target",
+      "files": [
+        {
+          "path": ".codex/config.toml",
+          "mode": "merge",
+          "hash": "sha256:5d6394d5d6add9465dca9e2f9c2c3cc09a37e5269fc9397a6eab5ff27a2fd727",
+          "delivered": "sha256:5d6394d5d6add9465dca9e2f9c2c3cc09a37e5269fc9397a6eab5ff27a2fd727",
+          "created_file": true,
+          "owner": "target:codex"
+        },
+        {
+          "path": ".codex/hooks.json",
+          "mode": "merge",
+          "hash": "sha256:f8abe0f911b520be1b974f79e880fe37b843985262abe19e4e4b850125d43557",
+          "delivered": "sha256:f8abe0f911b520be1b974f79e880fe37b843985262abe19e4e4b850125d43557",
+          "created_file": true,
+          "owner": "target:codex"
         }
       ]
     },
@@ -539,6 +634,28 @@
           "created_file": true,
           "owner": "target:git-hooks",
           "exec": true
+        }
+      ]
+    },
+    {
+      "id": "target:pi",
+      "kind": "target",
+      "files": [
+        {
+          "path": ".pi/extensions/ilk/index.ts",
+          "mode": "managed",
+          "hash": "sha256:60e4c91822c858baba2c542fb8711d9447e7520983ec84106286d57e98981d0e",
+          "delivered": "sha256:60e4c91822c858baba2c542fb8711d9447e7520983ec84106286d57e98981d0e",
+          "created_file": true,
+          "owner": "target:pi"
+        },
+        {
+          "path": ".pi/extensions/ilk/mcp-client.py",
+          "mode": "managed",
+          "hash": "sha256:eb0d14e0ffe48ec11082ee3ea7cb8f0f9a35b1ccbcf8e583215c6702822a00f4",
+          "delivered": "sha256:eb0d14e0ffe48ec11082ee3ea7cb8f0f9a35b1ccbcf8e583215c6702822a00f4",
+          "created_file": true,
+          "owner": "target:pi"
         }
       ]
     }

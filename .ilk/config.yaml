@@ -14,6 +14,8 @@
 version: 1
 targets:
   - claude-code
+  - codex
+  - pi
 capabilities:
   build.command: go build ./...
   lint.command: gofmt -l ./cmd ./internal
@@ -22,15 +24,19 @@ layers:
   - id: ilk/compound-lessons
     version: 0.2.0
     source: ./layers/compound-lessons
+  - id: ilk/gates
+    version: 0.2.0
   - id: ilk/maintainer
     version: 0.2.0
     source: ./layers/maintainer
     allow_exec: true
-  - id: ilk/gates
-    version: 0.2.0
   - id: ilk/record
     version: 0.2.0
+  - id: ilk/session-summaries
+    version: 0.1.0
+    source: ./layers/session-summaries
+    allow_exec: true
   - id: ilk/toolkit
-    version: 0.2.0
+    version: 0.3.0
 budget:
   instructions: 1500
