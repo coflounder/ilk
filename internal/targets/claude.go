@@ -147,6 +147,9 @@ func mergeClaudeSettings(existing string, events []string, adopt bool) (string, 
 func mergeHookSettings(path, target, existing string, events []string, adopt bool) (string, error) {
 	doc := map[string]any{}
 	if strings.TrimSpace(existing) != "" {
+		if !json.Valid([]byte(existing)) {
+			return "", fmt.Errorf("%s is not valid JSON, so ilk will not touch it", path)
+		}
 		decoder := json.NewDecoder(strings.NewReader(existing))
 		decoder.UseNumber()
 		if err := decoder.Decode(&doc); err != nil {

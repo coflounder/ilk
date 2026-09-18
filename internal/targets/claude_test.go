@@ -63,7 +63,7 @@ func TestNativeHooksPreserveUserHandlerInSharedGroup(t *testing.T) {
 	if !strings.Contains(removed, "keep-me") || !strings.Contains(removed, "12345678901234567890") || strings.Contains(removed, "ilk hook run") {
 		t.Fatalf("removal changed user handlers or numbers: %s", removed)
 	}
-	for _, bad := range []string{`null`, `{"hooks": []}`} {
+	for _, bad := range []string{`null`, `{"hooks": []}`, `{} {"other": 1}`} {
 		if _, err := mergeHookSettings(".codex/hooks.json", "codex", bad, nil, true); err == nil {
 			t.Fatalf("accepted wrong config shape: %s", bad)
 		}
