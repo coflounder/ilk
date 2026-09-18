@@ -1,0 +1,53 @@
+id: ilk/session-summaries
+version: 0.1.0
+summary: Publish session summaries for other directly invoked harnesses, shared across a project's worktrees.
+facets:
+  arc: context
+  kind: integration
+ilk: ">=0.2.0"
+provides: [sessions.summaries]
+files:
+  - src: bin/session-summaries.py
+    dest: .ilk/bin/session-summaries.py
+    mode: managed
+    exec: true
+instructions:
+  - id: session-summaries
+    src: instructions/summaries.md
+    budget: 230
+skills:
+  - name: share-session-context
+    description: Recover another harness's progress, publish a session checkpoint, or hand off work without changing the task's worktree. Use when starting or resuming work and when the turn-end hook requests a summary.
+    src: skills/share-session-context.md
+mcp:
+  - name: session-summaries
+    summary: Search, read and publish project session summaries across worktrees.
+    command: uv
+    args: [run, --script, .ilk/bin/session-summaries.py, serve]
+hooks:
+  - event: session-start
+    name: session-summary-context
+    run: python3 .ilk/bin/session-summaries.py context
+  - event: turn-end
+    name: session-summary-checkpoint
+    blocking: true
+    run: python3 .ilk/bin/session-summaries.py checkpoint
+checks:
+  - id: sessions.runtime
+    title: Session summary prerequisites are available
+    run: python3 .ilk/bin/session-summaries.py doctor
+    fix: Install Python 3.10 or newer and uv, and run this layer in a Git working tree. Run `ilk mcp run session-summaries` once to prepare the pinned MCP SDK environment.
+commands:
+  - name: list
+    summary: "List or search summaries: ilk session-summaries list [--query TEXT] [--limit N]"
+    run: python3 .ilk/bin/session-summaries.py list
+  - name: read
+    summary: "Read a summary and its publication status: ilk session-summaries read HARNESS SESSION"
+    run: python3 .ilk/bin/session-summaries.py read
+  - name: save
+    summary: "Publish a summary JSON file or stage a requested checkpoint: ilk session-summaries save FILE"
+    run: python3 .ilk/bin/session-summaries.py save
+contribution:
+  repo: coflounder/ilk
+  path: layers/session-summaries
+  guidelines: CONTRIBUTING.md

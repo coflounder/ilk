@@ -2,7 +2,7 @@
 id: ref-writing-layers
 title: Writing a layer
 status: current
-updated: 2026-08-06
+updated: 2026-09-18
 covers:
   - internal/manifest/**
   - internal/builtin/layers/**
@@ -199,7 +199,15 @@ hooks:
     run: ilk check --only my-pattern.naming
 ```
 
-Events: `session-start`, `pre-commit`, `pre-push`, `post-edit`, `pre-tool-use`.
+Events: `session-start`, `turn-end`, `pre-commit`, `pre-push`, `post-edit`, `pre-tool-use`.
+
+`turn-end` maps to Claude Code and Codex `Stop` events, and to Pi's `agent_settled`.
+Adapters identify themselves with `ilk hook run <event> --target <name>`, which
+sets `ILK_HARNESS` for the layer command. Native hook JSON input is replayed to
+all hooks registered for the event. A blocking `turn-end` failure exits 2 and its
+output becomes continuation feedback. Hooks must bound their own retries using the
+native `stop_hook_active` input; a publication request must not trap the agent in a
+stop loop. Git events retain exit 1 for failure and do not consume stdin.
 
 Declare the event, not the mechanism. ilk routes it to git hooks and to whichever
 configured agents can deliver it, and `ilk doctor` reports where nothing can.
@@ -220,11 +228,13 @@ mcp:
 ```
 
 Declare the server, not the agent's config file. Each configured target renders its own
-projection — `.mcp.json` for Claude Code, `.cursor/mcp.json` for Cursor — and every
+projection — `.mcp.json` for Claude Code, `.cursor/mcp.json` for Cursor,
+`.codex/config.toml` for Codex, or a project extension for Pi — and every
 entry ilk writes says the same thing: `ilk mcp run <name>`. The real command stays in
 the manifest and is resolved when the agent starts the server, so changing `command:`
-or `args:` never rewrites agent config, and both files are co-owned: a server the user
-configured by hand is left exactly where it was, on add and on remove alike.
+or `args:` never rewrites agent config. JSON/TOML configuration is co-owned;
+Pi's adapter owns only its extension directory. User configuration is preserved on
+add and remove. Codex refuses a name collision with a user-owned MCP server.
 
 `args:` and `env:` values are templated over the layer's variables and the repository's
 capabilities, like every other manifest value.

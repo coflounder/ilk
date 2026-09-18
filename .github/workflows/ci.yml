@@ -59,6 +59,15 @@ jobs:
       # run against a fake so CI needs no network, no account, and nothing to clean up.
       # It cannot prove the real API calls are right — only that the contract with ilk
       # holds and that every refusal still refuses.
+      - name: Install uv for MCP protocol tests
+        if: matrix.os == 'ubuntu-latest'
+        uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff # v6
+
+      - uses: actions/setup-node@v4
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          node-version: "22"
+
       - name: Layer provider tests
         if: matrix.os == 'ubuntu-latest'
         run: |

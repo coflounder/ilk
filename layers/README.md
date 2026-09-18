@@ -13,6 +13,7 @@ the built-in layers only, so a fresh repository still needs no network.
 
 | Layer | Enforces |
 |---|---|
+| [`session-summaries`](session-summaries/) | Active agents publish attributed summaries through a turn-end hook; other harnesses retrieve them through a project MCP shared across worktrees |
 | [`blueprint`](blueprint/) | Every spec belongs to an epic and a milestone that exist; every spec says what "done" means; every epic states an outcome |
 | [`plan-hygiene`](plan-hygiene/) | A work-in-progress limit, active work with a named owner, finished work with evidence |
 | [`ask-human`](ask-human/) | A blocking question an agent could not answer stops the checks until a person answers it — and where it can name the options, it offers them with what each would mean |
@@ -58,7 +59,7 @@ the source of truth if the tracker everyone else reads agrees with it.
 ## Layers that run code
 
 `blueprint`, `archive`, `ask-human`, `dev-loops`, `gh-projects`, `maintainer`,
-`autoresearch`, `deprecation`, `pr-prep`, `secrets`, `pulumi`, `routine` and
+`autoresearch`, `deprecation`, `pr-prep`, `secrets`, `pulumi`, `routine`, `session-summaries` and
 `html-wireframe` ship shell commands, so adding them requires consent:
 
 ```sh

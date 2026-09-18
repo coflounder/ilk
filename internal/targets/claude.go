@@ -22,7 +22,7 @@ func (claudeCode) Description() string { return "Claude Code — skills, slash c
 
 func (claudeCode) Supports(event string) bool {
 	switch event {
-	case "session-start", "post-edit", "pre-tool-use":
+	case "session-start", "turn-end", "post-edit", "pre-tool-use":
 		return true
 	}
 	return false
@@ -113,8 +113,8 @@ ilk %s %s $ARGUMENTS
 // hookCommand is the single entrypoint every adapter writes. Layers add and
 // remove hooks freely; the generated agent configuration never changes, because
 // it always says the same thing: ask ilk what to run.
-func hookCommand(event string) string {
-	return "ilk hook run " + event
+func hookCommand(event, target string) string {
+	return "ilk hook run " + event + " --target " + target
 }
 
 // isIlkHookCommand identifies an entry ilk wrote. Matching on the command string
@@ -127,6 +127,8 @@ func claudeEventName(event string) (name, matcher string) {
 	switch event {
 	case "session-start":
 		return "SessionStart", ""
+	case "turn-end":
+		return "Stop", ""
 	case "post-edit":
 		return "PostToolUse", "Edit|Write|MultiEdit"
 	case "pre-tool-use":
@@ -139,14 +141,29 @@ func claudeEventName(event string) (name, matcher string) {
 // settings document, preserving everything else byte-for-byte where it can and
 // structurally where it cannot.
 func mergeClaudeSettings(existing string, events []string, adopt bool) (string, error) {
+	return mergeHookSettings(".claude/settings.json", "claude-code", existing, events, adopt)
+}
+
+func mergeHookSettings(path, target, existing string, events []string, adopt bool) (string, error) {
 	doc := map[string]any{}
 	if strings.TrimSpace(existing) != "" {
-		if err := json.Unmarshal([]byte(existing), &doc); err != nil {
-			return "", fmt.Errorf(".claude/settings.json is not valid JSON, so ilk will not touch it: %w", err)
+		if !json.Valid([]byte(existing)) {
+			return "", fmt.Errorf("%s is not valid JSON, so ilk will not touch it", path)
+		}
+		decoder := json.NewDecoder(strings.NewReader(existing))
+		decoder.UseNumber()
+		if err := decoder.Decode(&doc); err != nil {
+			return "", fmt.Errorf("%s is not valid JSON, so ilk will not touch it: %w", path, err)
+		}
+		if doc == nil {
+			return "", fmt.Errorf("%s must be a JSON object", path)
 		}
 	}
 
-	hooks, _ := doc["hooks"].(map[string]any)
+	hooks, ok := doc["hooks"].(map[string]any)
+	if _, exists := doc["hooks"]; exists && !ok {
+		return "", fmt.Errorf("%s hooks must be a JSON object", path)
+	}
 	if hooks == nil {
 		hooks = map[string]any{}
 	}
@@ -162,6 +179,20 @@ func mergeClaudeSettings(existing string, events []string, adopt bool) (string, 
 		for _, item := range list {
 			if !claudeGroupIsIlk(item) {
 				kept = append(kept, item)
+				continue
+			}
+			group := item.(map[string]any)
+			var handlers []any
+			for _, handler := range group["hooks"].([]any) {
+				entry, _ := handler.(map[string]any)
+				command, _ := entry["command"].(string)
+				if !isIlkHookCommand(command) {
+					handlers = append(handlers, handler)
+				}
+			}
+			if len(handlers) > 0 {
+				group["hooks"] = handlers
+				kept = append(kept, group)
 			}
 		}
 		if len(kept) == 0 {
@@ -180,7 +211,7 @@ func mergeClaudeSettings(existing string, events []string, adopt bool) (string, 
 			group := map[string]any{
 				"hooks": []any{map[string]any{
 					"type":    "command",
-					"command": hookCommand(ev),
+					"command": hookCommand(ev, target),
 				}},
 			}
 			if matcher != "" {

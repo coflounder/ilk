@@ -1,12 +1,15 @@
 package cli
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/coflounder/ilk/internal/manifest"
+	"github.com/coflounder/ilk/internal/targets"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +28,8 @@ func newHookCmd() *cobra.Command {
 }
 
 func newHookRunCmd() *cobra.Command {
-	return &cobra.Command{
+	var target string
+	cmd := &cobra.Command{
 		Use:   "run <event>",
 		Short: "Run every hook registered for an event",
 		Long: "Events: " + strings.Join(manifest.Events, ", ") + `
@@ -34,6 +38,11 @@ Blocking hooks fail the run when their command exits non-zero, which is what
 makes a pre-commit gate a gate. Non-blocking hooks only report.`,
 		Args: requireArgs(1, "ilk hook run <event>"),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if target != "" {
+				if _, err := targets.Get(target); err != nil {
+					return err
+				}
+			}
 			event := args[0]
 			if !manifest.ValidEvent(event) {
 				return fmt.Errorf("unknown event %q — one of: %s", event, strings.Join(manifest.Events, ", "))
@@ -68,10 +77,29 @@ makes a pre-commit gate a gate. Non-blocking hooks only report.`,
 			if len(jobs) == 0 {
 				return nil
 			}
+			// Native events carry one JSON payload. Every layer must receive it,
+			// even when an earlier hook consumed stdin. Git hooks have no payload
+			// and must not wait for input from the caller's terminal.
+			var input []byte
+			if event != "pre-commit" && event != "pre-push" {
+				info, statErr := os.Stdin.Stat()
+				if statErr != nil {
+					return statErr
+				}
+				if info.Mode()&os.ModeCharDevice == 0 {
+					input, err = io.ReadAll(io.LimitReader(os.Stdin, 1024*1024+1))
+					if err != nil {
+						return fmt.Errorf("read hook input: %w", err)
+					}
+					if len(input) > 1024*1024 {
+						return fmt.Errorf("hook input exceeds 1 MiB")
+					}
+				}
+			}
 
 			failed := 0
 			for _, j := range jobs {
-				out, code := runShell(p.Repo.Root, j.run)
+				out, code := runShellInput(p.Repo.Root, j.run, input, "ILK_HARNESS="+target)
 				if code == 0 {
 					if event == "session-start" {
 						// The session-start packet is the output, not a status line.
@@ -87,12 +115,20 @@ makes a pre-commit gate a gate. Non-blocking hooks only report.`,
 			}
 			if failed > 0 {
 				exitCode = 1
+				if event == "turn-end" {
+					// Claude's Stop event resumes the agent only on exit 2.
+					exitCode = 2
+				}
 				fmt.Fprintf(os.Stderr, "\n%s %d blocking %s hook(s) failed.\n", sty.red("blocked:"), failed, event)
-				fmt.Fprintf(os.Stderr, "%s\n", sty.dim("Fix the failures above, or bypass deliberately with --no-verify."))
+				if event == "pre-commit" || event == "pre-push" {
+					fmt.Fprintf(os.Stderr, "%s\n", sty.dim("Fix the failures above, or bypass deliberately with --no-verify."))
+				}
 			}
 			return nil
 		},
 	}
+	cmd.Flags().StringVar(&target, "target", "", "agent adapter delivering this lifecycle event")
+	return cmd
 }
 
 func newHookListCmd() *cobra.Command {
@@ -143,9 +179,18 @@ func newHookListCmd() *cobra.Command {
 }
 
 func runShell(dir, command string) (string, int) {
+	return runShellReader(dir, command, os.Stdin)
+}
+
+func runShellInput(dir, command string, input []byte, env ...string) (string, int) {
+	return runShellReader(dir, command, bytes.NewReader(input), env...)
+}
+
+func runShellReader(dir, command string, input io.Reader, env ...string) (string, int) {
 	cmd := exec.Command("sh", "-c", command)
 	cmd.Dir = dir
-	cmd.Stdin = os.Stdin
+	cmd.Stdin = input
+	cmd.Env = append(os.Environ(), env...)
 	out, err := cmd.CombinedOutput()
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		return string(out), exitErr.ExitCode()

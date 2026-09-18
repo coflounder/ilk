@@ -215,10 +215,11 @@ ilk init --no-baseline                     # or be held to them from the start
 | `record` | The project record: what is true, what is intended, what happened, plus the checks that keep it honest |
 | `gates` | Tests, lint and build wired into `ilk check`, git hooks and CI |
 
-Nine more ship alongside in [`layers/`](layers/):
+Additional layers ship alongside in [`layers/`](layers/):
 
 | Layer | Enforces |
 |---|---|
+| `session-summaries` | Agents publish session summaries for other directly invoked harnesses; MCP retrieval and the local store work across linked worktrees |
 | `blueprint` | Every spec belongs to an epic and a milestone that exist, and says what "done" means |
 | `plan-hygiene` | A work-in-progress limit, active work with a named owner, finished work with evidence |
 | `ask-human` | A blocking question an agent could not answer stops the checks until a person answers it |

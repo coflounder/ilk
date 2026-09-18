@@ -111,9 +111,13 @@ check "the body is the proposal itself" \
 # Re-running must not fail on the branch already existing: a contributor who fixes
 # a sentence and re-sends is the normal case, not an error.
 : > "$GH_FAKE_LOG"
-url=$(printf '%s' "$proposal" | sh "$script")
+corrected_proposal=$(printf '%s\n\nCorrection: preserve the existing plan.\n' "$proposal")
+url=$(printf '%s' "$corrected_proposal" | sh "$script")
 check "re-sending an updated proposal works" \
 	"$url" "https://github.com/acme/layers/pull/7"
+updated=$(git -C "$work/fork.git" show "ilk-proposal/demo-layer:proposals/demo-layer--from-acme-api.md")
+check "the second push contains the correction" \
+	"$(printf '%s' "$updated" | tail -1)" "Correction: preserve the existing plan."
 
 # An empty proposal is a bug upstream in ilk, and silently opening an empty pull
 # request would be the worst possible response to it.

@@ -141,17 +141,6 @@ func (c cursor) Artifacts(in Input) ([]Artifact, error) {
 	return append(out, mcp), nil
 }
 
-// codex reads AGENTS.md natively, so there is nothing to project. It is still a
-// selectable target so that `ilk doctor` can say so out loud rather than leaving
-// a user wondering whether they forgot a step.
-type codex struct{}
-
-func (codex) Name() string         { return "codex" }
-func (codex) Description() string  { return "Codex — reads AGENTS.md natively; nothing to generate" }
-func (codex) Supports(string) bool { return false }
-
-func (codex) Artifacts(Input) ([]Artifact, error) { return nil, nil }
-
 // Skills for agents that read a directory of markdown but have no frontmatter
 // convention: mirror the canonical files.
 func (o opencode) Artifacts(in Input) ([]Artifact, error) {
