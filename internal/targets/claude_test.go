@@ -2,6 +2,7 @@ package targets
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -27,7 +28,7 @@ func TestTurnEndProjectsToStopAndRemovesCleanly(t *testing.T) {
 		t.Fatal("Stop does not use a matcher")
 	}
 	hook := group["hooks"].([]any)[0].(map[string]any)
-	if hook["command"] != "ilk hook run turn-end" {
+	if hook["command"] != "ilk hook run turn-end --target claude-code" {
 		t.Fatalf("wrong command: %v", hook)
 	}
 	again, err := mergeClaudeSettings(merged, []string{"turn-end"}, true)
@@ -50,5 +51,21 @@ func TestTurnEndProjectsToStopAndRemovesCleanly(t *testing.T) {
 	b, _ := json.Marshal(want)
 	if string(a) != string(b) {
 		t.Fatalf("removal changed user settings: %s", removed)
+	}
+}
+
+func TestNativeHooksPreserveUserHandlerInSharedGroup(t *testing.T) {
+	existing := `{"hooks":{"Stop":[{"timeout":12345678901234567890,"hooks":[{"type":"command","command":"ilk hook run turn-end --target codex"},{"type":"command","command":"keep-me"}]}]}}`
+	removed, err := mergeHookSettings(".codex/hooks.json", "codex", existing, nil, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(removed, "keep-me") || !strings.Contains(removed, "12345678901234567890") || strings.Contains(removed, "ilk hook run") {
+		t.Fatalf("removal changed user handlers or numbers: %s", removed)
+	}
+	for _, bad := range []string{`null`, `{"hooks": []}`} {
+		if _, err := mergeHookSettings(".codex/hooks.json", "codex", bad, nil, true); err == nil {
+			t.Fatalf("accepted wrong config shape: %s", bad)
+		}
 	}
 }

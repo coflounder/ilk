@@ -39,15 +39,15 @@ class InstalledTests(unittest.TestCase):
             payload = {"session_id": "real-hook", "stop_hook_active": False, "cwd": str(root),
                        "transcript_path": "/native/reference-only", "last_assistant_message": "Done"}
             # Session-start coexists with record's brief; turn-end receives native JSON.
-            start = run(str(binary), "hook", "run", "session-start", data=json.dumps(payload))
+            start = run(str(binary), "hook", "run", "session-start", "--target", "claude-code", data=json.dumps(payload))
             self.assertIn("Shared session summaries", start)
-            run(str(binary), "hook", "run", "turn-end", data=json.dumps(payload), expected=2)
+            run(str(binary), "hook", "run", "turn-end", "--target", "claude-code", data=json.dumps(payload), expected=2)
             state = json.loads(run(str(binary), "session-summaries", "read", "claude-code", "real-hook"))
             save = {"harness": "claude-code", "session_id": "real-hook", "expected_revision": 0,
                     "checkpoint_id": state["checkpoint"]["id"], "summary": summary("Installed flow")}
             run(str(binary), "session-summaries", "save", "-", data=json.dumps(save))
             payload["stop_hook_active"] = True
-            run(str(binary), "hook", "run", "turn-end", data=json.dumps(payload))
+            run(str(binary), "hook", "run", "turn-end", "--target", "claude-code", data=json.dumps(payload))
             published = json.loads(run(str(binary), "session-summaries", "read", "claude-code", "real-hook"))
             self.assertEqual(published["revision"], 1)
             self.assertEqual(published["checkpoint"]["state"], "published")

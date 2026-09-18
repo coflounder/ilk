@@ -45,7 +45,7 @@ async def main():
                 assert (await client.call_tool("session_summary_save", payload)).isError
                 hook = {"session_id": "checkpoint", "cwd": tmp, "stop_hook_active": False,
                         "last_assistant_message": "Ready to publish"}
-                first = subprocess.run([binary, "hook", "run", "turn-end"], cwd=tmp,
+                first = subprocess.run([binary, "hook", "run", "turn-end", "--target", "claude-code"], cwd=tmp,
                                        input=json.dumps(hook), text=True, capture_output=True)
                 assert first.returncode == 2, first.stderr
                 state = result(await client.call_tool("session_summary_read", {"harness": "claude-code", "session_id": "checkpoint"}))
@@ -53,7 +53,7 @@ async def main():
                          "checkpoint_id": state["checkpoint"]["id"]}
                 assert result(await client.call_tool("session_summary_save", draft))["status"] == "staged"
                 hook["stop_hook_active"] = True
-                subprocess.run([binary, "hook", "run", "turn-end"], cwd=tmp,
+                subprocess.run([binary, "hook", "run", "turn-end", "--target", "claude-code"], cwd=tmp,
                                input=json.dumps(hook), text=True, capture_output=True, check=True)
                 completed = result(await client.call_tool("session_summary_read", {"harness": "claude-code", "session_id": "checkpoint"}))
                 assert completed["checkpoint"]["state"] == "published"

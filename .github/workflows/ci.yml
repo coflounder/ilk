@@ -63,6 +63,11 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff # v6
 
+      - uses: actions/setup-node@v4
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          node-version: "22"
+
       - name: Layer provider tests
         if: matrix.os == 'ubuntu-latest'
         run: |

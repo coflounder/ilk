@@ -174,17 +174,21 @@ class Store:
         db.execute("INSERT OR REPLACE INTO summaries VALUES (?, ?, ?, ?, ?)",
                    (record["harness"], record["session_id"], record["revision"], record["updated_at"], json.dumps(record)))
 
-    def checkpoint(self, payload):
+    def checkpoint(self, payload, harness):
         if not isinstance(payload, dict):
             raise ValueError("Hook input must be a JSON object")
         session = identity(payload.get("session_id"), "session_id")
         if type(payload.get("stop_hook_active")) is not bool:
             raise ValueError("Stop input must include boolean stop_hook_active")
+        identity(harness, "harness (set --target on ilk hook run)")
+        payload = dict(payload)
+        # Codex legitimately omits a transcript or final message for some turns.
+        for key in ("transcript_path", "last_assistant_message"):
+            if payload.get(key) is None:
+                payload[key] = ""
         for key in ("cwd", "transcript_path", "last_assistant_message"):
             if key in payload and not isinstance(payload[key], str):
                 raise ValueError(f"Stop input {key} must be a string")
-        # The native adapter is the authority for the harness identity.
-        harness = "claude-code"
         if payload.get("cwd") and Path(git(payload["cwd"], "rev-parse", "--show-toplevel")).resolve() != self.root:
             raise ValueError("Hook cwd does not match this worktree")
         with self.connect() as db:
@@ -215,7 +219,7 @@ class Store:
                        (harness, session, checkpoint_id, revision, str(self.root), json.dumps(source)))
         request = {"harness": harness, "session_id": session, "expected_revision": revision, "checkpoint_id": checkpoint_id}
         return 2, ("Publish a session summary before stopping. Read the share-session-context skill. "
-                   "Use session_summary_save with " + json.dumps(request) + " and your cumulative summary "
+                   "Use the exposed session_summary_save tool (its name may have a server prefix) with " + json.dumps(request) + " and your cumulative summary "
                    "(task, objective, constraints, decisions, completed, remaining, verification, questions, next_actions; "
                    "all nonempty strings). Then stop without further project work; the hook will publish the draft. "
                    "If MCP is unavailable, use ilk session-summaries save with a JSON file containing the same arguments.")
@@ -278,7 +282,7 @@ def main():
             return 0
         store = Store()
         if args.command == "checkpoint":
-            code, message = store.checkpoint(json.loads(sys.stdin.read(1048576)))
+            code, message = store.checkpoint(json.loads(sys.stdin.read(1048576)), os.environ.get("ILK_HARNESS", ""))
             if message:
                 print(message, file=sys.stderr)
             return code

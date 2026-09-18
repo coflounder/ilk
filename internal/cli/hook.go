@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/coflounder/ilk/internal/manifest"
+	"github.com/coflounder/ilk/internal/targets"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +28,8 @@ func newHookCmd() *cobra.Command {
 }
 
 func newHookRunCmd() *cobra.Command {
-	return &cobra.Command{
+	var target string
+	cmd := &cobra.Command{
 		Use:   "run <event>",
 		Short: "Run every hook registered for an event",
 		Long: "Events: " + strings.Join(manifest.Events, ", ") + `
@@ -36,6 +38,11 @@ Blocking hooks fail the run when their command exits non-zero, which is what
 makes a pre-commit gate a gate. Non-blocking hooks only report.`,
 		Args: requireArgs(1, "ilk hook run <event>"),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if target != "" {
+				if _, err := targets.Get(target); err != nil {
+					return err
+				}
+			}
 			event := args[0]
 			if !manifest.ValidEvent(event) {
 				return fmt.Errorf("unknown event %q — one of: %s", event, strings.Join(manifest.Events, ", "))
@@ -92,7 +99,7 @@ makes a pre-commit gate a gate. Non-blocking hooks only report.`,
 
 			failed := 0
 			for _, j := range jobs {
-				out, code := runShellInput(p.Repo.Root, j.run, input)
+				out, code := runShellInput(p.Repo.Root, j.run, input, "ILK_HARNESS="+target)
 				if code == 0 {
 					if event == "session-start" {
 						// The session-start packet is the output, not a status line.
@@ -120,6 +127,8 @@ makes a pre-commit gate a gate. Non-blocking hooks only report.`,
 			return nil
 		},
 	}
+	cmd.Flags().StringVar(&target, "target", "", "agent adapter delivering this lifecycle event")
+	return cmd
 }
 
 func newHookListCmd() *cobra.Command {
@@ -173,14 +182,15 @@ func runShell(dir, command string) (string, int) {
 	return runShellReader(dir, command, os.Stdin)
 }
 
-func runShellInput(dir, command string, input []byte) (string, int) {
-	return runShellReader(dir, command, bytes.NewReader(input))
+func runShellInput(dir, command string, input []byte, env ...string) (string, int) {
+	return runShellReader(dir, command, bytes.NewReader(input), env...)
 }
 
-func runShellReader(dir, command string, input io.Reader) (string, int) {
+func runShellReader(dir, command string, input io.Reader, env ...string) (string, int) {
 	cmd := exec.Command("sh", "-c", command)
 	cmd.Dir = dir
 	cmd.Stdin = input
+	cmd.Env = append(os.Environ(), env...)
 	out, err := cmd.CombinedOutput()
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		return string(out), exitErr.ExitCode()

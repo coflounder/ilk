@@ -51,7 +51,7 @@ class StoreTests(unittest.TestCase):
         self.assertFalse((self.store.root / ".ilk").exists())
 
     def test_checkpoint_stages_then_hook_publishes(self):
-        code, reason = self.store.checkpoint(self.payload())
+        code, reason = self.store.checkpoint(self.payload(), "claude-code")
         self.assertEqual(code, 2)
         self.assertIn("session_summary_save", reason)
         pending = self.store.read("claude-code", "native-session")
@@ -60,19 +60,19 @@ class StoreTests(unittest.TestCase):
         saved = self.store.save("claude-code", "native-session", 0, summary(), token)
         self.assertEqual(saved["status"], "staged")
         self.assertIsNone(self.store.read("claude-code", "native-session")["published"])
-        self.assertEqual(self.store.checkpoint(self.payload(True))[0], 0)
+        self.assertEqual(self.store.checkpoint(self.payload(True), "claude-code")[0], 0)
         result = self.store.read("claude-code", "native-session")
         self.assertEqual(result["revision"], 1)
         self.assertEqual(result["published"]["source"]["checkpoint_id"], token)
         self.assertEqual(result["checkpoint"]["state"], "published")
         # Repeated Stop continuations neither republish nor restart the loop.
-        self.assertEqual(self.store.checkpoint(self.payload(True))[0], 0)
+        self.assertEqual(self.store.checkpoint(self.payload(True), "claude-code")[0], 0)
         self.assertEqual(self.store.read("claude-code", "native-session")["revision"], 1)
 
     def test_missed_checkpoint_retains_last_publication(self):
         self.store.save("claude-code", "native-session", 0, summary("old"))
-        self.store.checkpoint(self.payload())
-        self.assertEqual(self.store.checkpoint(self.payload(True))[0], 0)
+        self.store.checkpoint(self.payload(), "claude-code")
+        self.assertEqual(self.store.checkpoint(self.payload(True), "claude-code")[0], 0)
         result = self.store.read("claude-code", "native-session")
         self.assertEqual(result["published"]["task"], "old")
         self.assertEqual(result["checkpoint"]["state"], "missed")
@@ -81,12 +81,12 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(self.store.list()["incomplete_checkpoints"], [])
 
     def test_interruption_keeps_draft_unpublished_and_new_turn_invalidates_token(self):
-        self.store.checkpoint(self.payload())
+        self.store.checkpoint(self.payload(), "claude-code")
         token = self.store.read("claude-code", "native-session")["checkpoint"]["id"]
         self.store.save("claude-code", "native-session", 0, summary(), token)
         reopened = module.Store(self.store.root)
         self.assertEqual(reopened.read("claude-code", "native-session")["checkpoint"]["state"], "staged")
-        reopened.checkpoint(self.payload())
+        reopened.checkpoint(self.payload(), "claude-code")
         with self.assertRaisesRegex(ValueError, "no longer pending"):
             reopened.save("claude-code", "native-session", 0, summary(), token)
         self.assertIsNone(reopened.read("claude-code", "native-session")["published"])
@@ -111,7 +111,7 @@ class StoreTests(unittest.TestCase):
 
     def test_invalid_summary_and_checkpoint_cannot_replace_good_record(self):
         self.store.save("claude-code", "native-session", 0, summary("old"))
-        self.store.checkpoint(self.payload())
+        self.store.checkpoint(self.payload(), "claude-code")
         with self.assertRaisesRegex(ValueError, "checkpoint is pending"):
             self.store.save("claude-code", "native-session", 1, summary())
         token = self.store.read("claude-code", "native-session")["checkpoint"]["id"]
@@ -141,21 +141,31 @@ class StoreTests(unittest.TestCase):
         self.assertNotIn('"decisions"', context.stdout)
 
     def test_other_stop_hook_continuation_still_requests_first_checkpoint(self):
-        self.assertEqual(self.store.checkpoint(self.payload(True))[0], 2)
-        self.assertEqual(self.store.checkpoint(self.payload(True))[0], 0)
+        self.assertEqual(self.store.checkpoint(self.payload(True), "claude-code")[0], 2)
+        self.assertEqual(self.store.checkpoint(self.payload(True), "claude-code")[0], 0)
 
     def test_checkpoint_cannot_be_staged_or_published_from_another_worktree(self):
         worktree = self.root / "second"
         subprocess.run(["git", "-C", str(self.store.root), "worktree", "add", "-qb", "second", str(worktree)], check=True)
         other = module.Store(worktree)
-        self.store.checkpoint(self.payload())
+        self.store.checkpoint(self.payload(), "claude-code")
         token = self.store.read("claude-code", "native-session")["checkpoint"]["id"]
         with self.assertRaisesRegex(ValueError, "another worktree"):
             other.save("claude-code", "native-session", 0, summary(), token)
         self.store.save("claude-code", "native-session", 0, summary(), token)
         with self.assertRaisesRegex(ValueError, "another worktree"):
-            other.checkpoint({**self.payload(True), "cwd": str(worktree)})
+            other.checkpoint({**self.payload(True), "cwd": str(worktree)}, "claude-code")
         self.assertEqual(self.store.read("claude-code", "native-session")["checkpoint"]["state"], "staged")
+
+    def test_each_native_harness_keeps_its_own_checkpoint(self):
+        for harness in ("claude-code", "codex", "pi"):
+            payload = {**self.payload(), "transcript_path": None, "last_assistant_message": None}
+            self.assertEqual(self.store.checkpoint(payload, harness)[0], 2)
+            state = self.store.read(harness, "native-session")
+            self.store.save(harness, "native-session", 0, summary(harness), state["checkpoint"]["id"])
+            self.assertEqual(self.store.checkpoint({**payload, "stop_hook_active": True}, harness)[0], 0)
+            self.assertEqual(self.store.read(harness, "native-session")["published"]["harness"], harness)
+        self.assertEqual(len(self.store.list()["summaries"]), 3)
 
     def test_prerequisite_check_names_missing_uv(self):
         checked = subprocess.run([sys.executable, str(SCRIPT), "doctor"], cwd=self.store.root,

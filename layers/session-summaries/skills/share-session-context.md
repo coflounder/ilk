@@ -15,9 +15,10 @@ files to continue in; verify it exists and inspect current changes before editin
 The agent doing the work writes the summary from its current conversation. No second
 model, transcript importer, or background agent is involved.
 
-When the Claude Stop hook requests a checkpoint, it provides the harness, session ID,
+When a Claude, Codex or Pi turn-end hook requests a checkpoint, it provides the harness, session ID,
 checkpoint ID and expected revision. Call `session_summary_save` with those values
-and a `summary` object containing all of these string fields:
+and a `summary` object containing all of these string fields. Pi exposes the tool
+as `ilk_session_summaries__session_summary_save`:
 
 - `task`: concise task name or tracker key
 - `objective`: the user's intended outcome

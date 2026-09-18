@@ -152,6 +152,7 @@ func init() {
 	register(claudeCode{})
 	register(newCursor())
 	register(codex{})
+	register(piAgent{})
 	register(newCopilot())
 	register(newGemini())
 	register(newOpencode())

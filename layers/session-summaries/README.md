@@ -12,30 +12,51 @@ Use an ilk build containing the `turn-end` event introduced with this layer.
 
 ```sh
 ilk add gh:coflounder/ilk/layers/session-summaries --allow-exec
+ilk agents add codex
+ilk agents add pi
 ilk mcp list
 ilk check --only sessions.runtime
 ```
 
 For an unpublished local checkout, use its absolute layer directory instead of the
-`gh:` source. MCP registration is generated for the configured Claude Code and Cursor
-targets. For another MCP-capable harness, register this stdio command in that harness's
-own configuration, with the task's repository/worktree as its working directory:
+`gh:` source. Enable whichever targets you use with `ilk agents add <target>`.
 
-```sh
-ilk mcp run session-summaries
-```
+| Harness | Generated integration | Checkpoints |
+|---|---|---|
+| Claude Code | `.claude/settings.json` hooks and `.mcp.json` | Native SessionStart and Stop |
+| Codex | `.codex/hooks.json` and a fenced MCP section in `.codex/config.toml` | Native SessionStart and Stop |
+| Pi | `.pi/extensions/ilk/` with a native extension and MCP client | Session startup and agent-settled events |
+| Cursor | `.cursor/mcp.json` | Explicit publication |
 
-Pi needs an MCP extension; this layer does not install one. Targets without MCP can
-use the equivalent `ilk session-summaries` CLI commands. The server uses the official
-MCP Python SDK, pinned in the script; uv installs it on first connection. Hooks and
-CLI commands use only Python's standard library, so publishing does not need an
-SDK download. Restart an existing harness after adopting the layer.
+Codex's user configuration and comments are preserved. A user-owned server with the
+same name is a conflict, not permission to overwrite it. Codex requires trusting the
+project and reviewing generated hooks with `/hooks`; ilk does not change trust or
+approval settings. Hook support must be enabled in the harness. See the
+[official hooks guide](https://developers.openai.com/codex/hooks).
+
+Pi loads the project extension after project trust. It registers the MCP server's
+actual tool schemas as native Pi tools, with names such as
+`ilk_session_summaries__session_summary_save`. The extension keeps one MCP connection
+per server for the session, forwards cancellation, and closes connections on reload
+or shutdown. It uses the official Python MCP client; no separate Pi MCP package or
+npm install is needed by adopters. Pi already discovers `.agents/skills` directly.
+
+The adapters are tested with Codex 0.153.4 and Pi 0.85.1 (Node 22.19+). The MCP server
+and Pi client use the official Python SDK, pinned in their scripts; uv prepares their
+environments on first connection. Hooks and CLI commands use Python's standard
+library. Restart a running harness after adoption, or use Pi's `/reload`.
+
+Another MCP-capable harness can register `ilk mcp run session-summaries` as a stdio
+server, with the task's worktree as its working directory. CLI commands remain
+available to every harness. All agents are launched directly; ilk starts no agents.
 
 ## Publication lifecycle
 
-On Claude Code, `session-start` shows recent summary metadata. The agent searches and
-reads relevant summaries rather than loading the entire project history into context.
-The layer maps `turn-end` to Claude's native `Stop` event:
+On Claude Code, Codex and Pi, `session-start` shows recent summary metadata. The
+agent searches and reads relevant summaries rather than loading the entire project
+history into context.
+The layer maps `turn-end` to native Stop events on Claude/Codex, and Pi's
+`agent_settled` event after automatic retries and compaction have finished:
 
 1. The hook stores a checkpoint request and asks the active agent to write its summary.
 2. The agent calls `session_summary_save` with the checkpoint ID and expected revision.
@@ -46,16 +67,16 @@ There is at most one requested continuation. If the agent stops again without a 
 the checkpoint is marked `missed`; the previous publication survives. Pending, staged,
 and missed checkpoints are visible through list/read. A later normal turn supersedes
 an interrupted request, so an old draft cannot be mistaken for a new checkpoint.
-Stop hooks do not run on user interruption or API failure. This is checkpointed
-context, not a crash-proof transcript backup.
+Interrupted or failed runs do not force a summary continuation. This is checkpointed
+context, not a crash-proof transcript backup. Pi uses a custom context message for
+its continuation, so the summary request is not impersonated user input.
 
 The active agent creates the summary; no other model or harness is launched. Its
 quality still depends on that agent. The hook checks the publication shape and
 lifecycle, not whether every statement is true.
 
-Other harnesses publish explicitly through MCP or CLI before handoff or compaction.
-Automatic end-of-turn integration is currently Claude-only. The `share-session-context`
-skill and generated instructions describe both workflows.
+Harnesses without a native adapter publish explicitly through MCP or CLI before
+handoff or compaction. The `share-session-context` skill describes both workflows.
 
 ## Tools and commands
 
@@ -124,8 +145,12 @@ sh layers/session-summaries/test/run.sh
 
 Tests exercise real linked worktrees, separate project isolation, revision conflicts,
 concurrent publication, interrupted/missed checkpoints, CLI publication and real MCP
-stdio exchanges using two independently started server processes. They do not launch
+stdio exchanges using independently started server processes. Harness tests load the
+real Pi extension SDK, run the registered tools and lifecycle handlers, exercise
+reload/shutdown, and verify generated MCP configuration with the actual Codex CLI.
+Native Stop payload fixtures cover all three harness identities. They do not launch
 a paid model session or prove that an agent will write an accurate summary.
+The test runner installs pinned harness packages into a disposable directory.
 
 Hook contract: [Claude Code hooks](https://code.claude.com/docs/en/hooks#stop).
 MCP implementation: [official Python SDK](https://github.com/modelcontextprotocol/python-sdk).
