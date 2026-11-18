@@ -122,7 +122,10 @@ func runSubmit(p *engine.Project, l *engine.ResolvedLayer, prop *contrib.Proposa
 	if prop.Contribution.Path != "" {
 		target += "/" + prop.Contribution.Path
 	}
-	if !yes && !confirm(fmt.Sprintf("Open a pull request against %s?", target)) {
+	if ok, err := approve(yes, fmt.Sprintf("Open a pull request against %s?", target)); !ok {
+		if err != nil {
+			return err
+		}
 		println(sty.dim("Nothing sent."))
 		return nil
 	}

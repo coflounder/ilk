@@ -113,7 +113,10 @@ is written, and ` + "`ilk rm`" + ` removes exactly what was added.`,
 				printf("\n%s\n", sty.dim("Nothing written. Re-run without --no-apply to add it."))
 				return nil
 			}
-			if !yes && !confirm("\nApply?") {
+			if ok, err := approve(yes, "\nApply?"); !ok {
+				if err != nil {
+					return err
+				}
 				println(sty.dim("Nothing applied."))
 				return nil
 			}
@@ -208,7 +211,10 @@ then. Anything you edited after ilk wrote it is reported and left alone.`,
 
 			printf("%s %s\n\n", sty.bold("rm"), id)
 			printPlan(pl, false)
-			if !yes && !confirm("\nApply?") {
+			if ok, err := approve(yes, "\nApply?"); !ok {
+				if err != nil {
+					return err
+				}
 				println(sty.dim("Nothing removed."))
 				return nil
 			}
@@ -291,7 +297,10 @@ genuinely collide, ilk refuses and says where.`,
 				return nil
 			}
 			printPlan(pl, false)
-			if !yes && !confirm("\nApply?") {
+			if ok, err := approve(yes, "\nApply?"); !ok {
+				if err != nil {
+					return err
+				}
 				println(sty.dim("Nothing applied."))
 				return nil
 			}

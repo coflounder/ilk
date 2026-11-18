@@ -114,7 +114,10 @@ versions into the file, or --force to discard yours.`,
 			}
 			if !flagJSON {
 				printPlan(pl, false)
-				if !yes && !pl.Empty() && !confirm("\nApply?") {
+				if ok, err := approve(yes || pl.Empty(), "\nApply?"); !ok {
+					if err != nil {
+						return err
+					}
 					println(sty.dim("Nothing applied."))
 					return nil
 				}

@@ -61,6 +61,7 @@ func newLayerRunCmd(l *engine.ResolvedLayer, name, summary, run string) *cobra.C
 		Short:              summary,
 		DisableFlagParsing: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			args = layerArgs(args)
 			if len(args) == 1 && (args[0] == "--help" || args[0] == "-h") {
 				return cmd.Help()
 			}
@@ -83,6 +84,7 @@ func newLayerRunCmd(l *engine.ResolvedLayer, name, summary, run string) *cobra.C
 			c.Env = append(os.Environ(),
 				"ILK_LAYER="+l.ID(),
 				"ILK_REPO_ROOT="+l.Ctx.Repo.Root,
+				"ILK_OUTPUT="+outputMode(),
 			)
 			for k, v := range l.Vars {
 				c.Env = append(c.Env, "ILK_VAR_"+strings.ToUpper(k)+"="+v)
@@ -97,6 +99,40 @@ func newLayerRunCmd(l *engine.ResolvedLayer, name, summary, run string) *cobra.C
 			return nil
 		},
 	}
+}
+
+// layerArgs removes ilk's own global flags from a layer command's arguments.
+//
+// Layer commands take their arguments unparsed, so without this `--json` and
+// `-C dir` reached the script as words: `ilk record new docs "Overview" --json`
+// created a document whose name ended in "json". ilk has already acted on these
+// flags — -C chose the repository, and --json is passed on as ILK_OUTPUT=json —
+// so the script never needs to see them. A script that wants one of these words
+// literally takes it after "--", which is dropped and ends the stripping.
+func layerArgs(args []string) []string {
+	kept := make([]string, 0, len(args))
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		switch {
+		case a == "--":
+			return append(kept, args[i+1:]...)
+		case a == "--json" || a == "--json=true" || a == "--json=false":
+		case a == "-C" || a == "--dir":
+			i++
+		case strings.HasPrefix(a, "--dir=") || (strings.HasPrefix(a, "-C") && len(a) > 2):
+		default:
+			kept = append(kept, a)
+		}
+	}
+	return kept
+}
+
+// outputMode is what a layer command is told about the output its caller wants.
+func outputMode() string {
+	if flagJSON {
+		return "json"
+	}
+	return "text"
 }
 
 // shellQuoteAll makes user arguments safe to interpolate into `sh -c`.

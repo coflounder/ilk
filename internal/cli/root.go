@@ -9,6 +9,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/coflounder/ilk/internal/engine"
 	"github.com/coflounder/ilk/internal/version"
@@ -20,12 +21,24 @@ var (
 	flagDir  string
 )
 
-// Execute runs the CLI.
+// Execute runs the CLI and returns the process exit code.
 func Execute() int {
+	return run(os.Args[1:])
+}
+
+// run executes one invocation. It is separate from Execute so tests can drive
+// the whole CLI, flags and exit codes included, without a subprocess.
+func run(args []string) int {
+	exitCode = exitOK
+	// Layer commands are attached before cobra parses anything, from whatever
+	// repository -C names. Reading the global flags first is what makes
+	// `ilk -C other-repo <layer> <command>` find the other repository's layers.
+	flagJSON, flagDir = scanGlobalFlags(args)
 	root := newRoot()
+	root.SetArgs(args)
 	if err := root.Execute(); err != nil {
-		fail(err)
-		return 1
+		json, _ := scanGlobalFlags(args)
+		return report(err, flagJSON || json)
 	}
 	return exitCode
 }
@@ -50,8 +63,12 @@ Start with ` + "`ilk init`" + `.`,
 		Version:       version.String(),
 	}
 
+	// Defining a flag resets its variable to the default, which would throw away
+	// what run() pre-scanned before the layer commands are attached below.
+	preJSON, preDir := flagJSON, flagDir
 	root.PersistentFlags().BoolVar(&flagJSON, "json", false, "emit machine-readable JSON")
 	root.PersistentFlags().StringVarP(&flagDir, "dir", "C", "", "run as if ilk was started in this directory")
+	flagJSON, flagDir = preJSON, preDir
 
 	root.AddCommand(
 		newInitCmd(),
@@ -80,8 +97,34 @@ Start with ` + "`ilk init`" + `.`,
 	// Layer-provided subcommands are attached last, so a layer can never shadow a
 	// built-in verb.
 	attachLayerCommands(root)
+	markUsageErrors(root)
 
 	return root
+}
+
+// scanGlobalFlags reads --json and -C/--dir from raw arguments, stopping at "--".
+// Cobra parses them too; this exists for the moments before it has, and for layer
+// commands, which take their arguments unparsed.
+func scanGlobalFlags(args []string) (asJSON bool, dir string) {
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		switch {
+		case a == "--":
+			return asJSON, dir
+		case a == "--json" || a == "--json=true":
+			asJSON = true
+		case a == "--json=false":
+			asJSON = false
+		case (a == "-C" || a == "--dir") && i+1 < len(args):
+			dir = args[i+1]
+			i++
+		case strings.HasPrefix(a, "--dir="):
+			dir = strings.TrimPrefix(a, "--dir=")
+		case strings.HasPrefix(a, "-C") && len(a) > 2:
+			dir = strings.TrimPrefix(strings.TrimPrefix(a, "-C"), "=")
+		}
+	}
+	return asJSON, dir
 }
 
 // workdir resolves the directory commands operate from.
