@@ -7,7 +7,7 @@ from the diff and remembering.
 ## When
 
 You are about to open a pull request; somebody asked you to summarise a branch; or
-`prprep.criteria-settled` or `prprep.evidence-checkable` failed.
+`pr-prep.criteria-settled` or `pr-prep.evidence-checkable` failed.
 
 ## Procedure
 
@@ -49,14 +49,14 @@ You are about to open a pull request; somebody asked you to summarise a branch; 
 
 ## When a check fails
 
-**`prprep.criteria-settled`** — a document at `status: done` has an unticked box. One
+**`pr-prep.criteria-settled`** — a document at `status: done` has an unticked box. One
 of two things is true, and only you know which: the criterion is settled and nobody
 ticked it, or the work is not done. Ticking a box you have not settled is the failure
 this exists to prevent, so establish the answer before you touch the file. If the
 criterion has been deferred, move it into a follow-up document and link it — deleting
 it is how a commitment quietly stops existing.
 
-**`prprep.evidence-checkable`** — the evidence section reads as evidence and is not.
+**`pr-prep.evidence-checkable`** — the evidence section reads as evidence and is not.
 Replace each bullet with the thing itself: the command in backticks and the line it
 printed, the link to the run, the path to the test. If you cannot reconstruct what was
 run, write that instead of inventing something. "Marked done on 2026-06-02; evidence

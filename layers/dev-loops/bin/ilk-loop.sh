@@ -10,42 +10,12 @@
 # Managed by ilk — edits are overwritten on the next `ilk apply`.
 set -eu
 
-gate=${ILK_VAR_GATE:-ilk check}
-max=${ILK_VAR_MAX_ITERATIONS:-10}
+# ilk parses the flags and hands them over as ILK_FLAG_*; an empty one means it
+# was not given, so the layer's variable applies.
+gate=${ILK_FLAG_GATE:-${ILK_VAR_GATE:-ilk check}}
+max=${ILK_FLAG_MAX:-${ILK_VAR_MAX_ITERATIONS:-10}}
 log_dir=${ILK_VAR_LOG_DIR:-scratch/loops}
-command=""
-
-while [ $# -gt 0 ]; do
-	case "$1" in
-	--gate)
-		[ $# -ge 2 ] || { echo "ilk dev-loops run: --gate needs a command" >&2; exit 2; }
-		gate=$2
-		shift 2
-		;;
-	--max)
-		[ $# -ge 2 ] || { echo "ilk dev-loops run: --max needs a number" >&2; exit 2; }
-		max=$2
-		shift 2
-		;;
-	-h | --help)
-		cat >&2 <<'EOF'
-usage: ilk dev-loops run '<command>' [--gate '<command>'] [--max N]
-
-Runs <command> until <gate> exits zero, or until N attempts have been made.
-Each attempt's output is written to the log directory so a failed run is inspectable.
-EOF
-		exit 2
-		;;
-	*)
-		if [ -n "$command" ]; then
-			echo "ilk dev-loops run: unexpected argument $1" >&2
-			exit 2
-		fi
-		command=$1
-		shift
-		;;
-	esac
-done
+command=${1:-}
 
 if [ -z "$command" ]; then
 	echo "ilk dev-loops run: nothing to run" >&2
@@ -55,7 +25,7 @@ fi
 
 case "$max" in
 '' | *[!0-9]*)
-	echo "ilk dev-loops run: --max must be a number, got $max" >&2
+	echo "ilk dev-loops run: the iteration limit must be a number, got $max" >&2
 	exit 2
 	;;
 esac

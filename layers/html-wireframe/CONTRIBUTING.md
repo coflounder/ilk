@@ -7,7 +7,7 @@ What this layer wants from a proposal:
   - If the scaffold's fidelity was wrong for your work, say which way. Too plain and
     nobody can tell what they are looking at; too finished and the reactions arrive
     about the styling. That balance is the only genuinely hard thing here.
-  - If `wireframe.self-contained` fired on something legitimate, send the file. The
+  - If `html-wireframe.self-contained` fired on something legitimate, send the file. The
     check is deliberately crude, and a real wireframe it refuses is a bug in the check.
   - Do not send a component library, a token set or a screenshot pipeline. A wireframe
     that is expensive to throw away stops being one, and `visual-qa` already owns what

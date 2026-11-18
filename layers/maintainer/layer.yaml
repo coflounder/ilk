@@ -5,6 +5,9 @@ facets:
   arc: operations
   kind: process
 ilk: ">=0.2.0"
+examples:
+  - ilk maintainer queue
+  - ilk check --only maintainer
 
 provides:
   contribution.inbox: "{{ .Vars.group }}/{{ .Vars.proposals_dir }}"
@@ -49,6 +52,8 @@ skills:
 commands:
   - name: queue
     summary: List proposals waiting for a decision, oldest first
+    examples:
+      - ilk maintainer queue
     run: |
       dir='{{ index .Caps "maintainer.proposals" }}'
       [ -d "$dir" ] || { echo "no $dir/ — nothing has been proposed here yet"; exit 0; }
@@ -65,7 +70,7 @@ commands:
       [ "$found" -gt 0 ] || echo "  nothing waiting for a decision"
 
 checks:
-  - id: proposal.frontmatter
+  - id: maintainer.frontmatter
     title: Proposals say what they are about and where they came from
     kind: builtin.frontmatter
     args:
@@ -74,7 +79,7 @@ checks:
       exempt: [README.md]
     fix: "Add `layer:`, `from:` and `status:` to the proposal's frontmatter. `ilk contribute` writes all three; a proposal missing them was assembled by hand, and without `from:` nobody can tell whether three similar reports are one repository or three."
 
-  - id: proposal.judgeable
+  - id: maintainer.judgeable
     title: Proposals have had their case written
     kind: builtin.forbid
     args:
@@ -85,7 +90,7 @@ checks:
           reason: "the contributor's own case is still unwritten here — this is a diff with a covering note, and there is nothing yet to judge"
     fix: "Ask the contributor to say what they needed and why it is not specific to their repository, and to re-send. Do not fill it in for them: guessing at somebody else's reasoning and then approving your own guess is not review. `ilk contribute` refuses to submit while these markers stand, so a proposal reaching you with one was edited on the way."
 
-  - id: proposal.verdict
+  - id: maintainer.verdict
     title: Reviewed proposals record what was decided
     kind: builtin.frontmatter
     args:
@@ -96,7 +101,7 @@ checks:
       require: [verdict, decided]
     fix: "Set `verdict:` to accepted, declined or needs-work, and `decided:` to who decided. A proposal marked reviewed with no record of the decision is worse than an open one — it looks handled, so nobody looks at it again."
 
-  - id: proposal.reasons
+  - id: maintainer.reasons
     title: A verdict gives its reasons
     kind: builtin.section
     args:
@@ -108,7 +113,7 @@ checks:
       min_items: 1
     fix: "Add a `## Verdict` section with at least one bullet saying why. A decline with no reason teaches the contributor nothing, and they are the reason the next proposal is better than this one — or the reason there is not one."
 
-  - id: proposal.queue
+  - id: maintainer.queue
     title: The proposal queue is short enough to be a promise
     kind: builtin.limit
     args:

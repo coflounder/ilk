@@ -122,8 +122,9 @@ Start with ` + "`ilk init`" + `.`,
 }
 
 // scanGlobalFlags reads --json and -C/--dir from raw arguments, stopping at "--".
-// Cobra parses them too; this exists for the moments before it has, and for layer
-// commands, which take their arguments unparsed.
+// Cobra parses them too; this exists for the moment before it has, when the layer
+// commands of the repository -C names are attached, and for reporting an error
+// under --json when parsing itself failed.
 func scanGlobalFlags(args []string) (asJSON bool, dir string) {
 	for i := 0; i < len(args); i++ {
 		a := args[i]

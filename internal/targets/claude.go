@@ -97,9 +97,13 @@ func (t claudeCode) activeEvents(in Input) []string {
 }
 
 func slashCommand(layer string, c manifest.Command) string {
+	hint := ""
+	if syn := c.Synopsis(); syn != "" {
+		hint = "argument-hint: " + yamlScalar(syn) + "\n"
+	}
 	return fmt.Sprintf(`---
 description: %s
-# %s
+%s# %s
 ---
 
 Run this and report what it printed:
@@ -107,7 +111,7 @@ Run this and report what it printed:
 `+"```"+`
 ilk %s %s $ARGUMENTS
 `+"```"+`
-`, yamlScalar(c.Summary), generatedNotice, layer, c.Name)
+`, yamlScalar(c.Summary), hint, generatedNotice, layer, c.Name)
 }
 
 // hookCommand is the single entrypoint every adapter writes. Layers add and

@@ -6,7 +6,7 @@
       "kind": "layer",
       "version": "0.2.0",
       "source": "/home/claude/coflounder/ilk/layers/compound-lessons",
-      "digest": "sha256:1e82811a5165acf8ed5c0dc20ea0c3fc053092216a1a5ca6f4f36af0663a2494",
+      "digest": "sha256:de53bbb27998b6996cfac10a4ada44045e235d7024257f8e682b27339b9ad2f3",
       "files": [
         {
           "path": "AGENTS.md",
@@ -52,7 +52,7 @@
       "kind": "layer",
       "version": "0.2.0",
       "source": "builtin",
-      "digest": "sha256:6b72cf74919a5bd967689d1a3bb8c7e1a7177066d9f5fb71ef26de598ea45c2d",
+      "digest": "sha256:4a54881f09f817d4913a7b7d3af01ce67b4a34bf05dd2d3dacbc404dbf8fc2f0",
       "vars": {
         "ci": "github"
       },
@@ -77,7 +77,7 @@
       "kind": "layer",
       "version": "0.2.0",
       "source": "/home/claude/coflounder/ilk/layers/maintainer",
-      "digest": "sha256:c0b8483911e4367b919a8d67ad11e5e590d7e39a9fab43bc7944d8ed91339e6b",
+      "digest": "sha256:773b02ba599ac8b29d6326a6a16032ca866c2a5435bbc37550bb46cab266531d",
       "vars": {
         "group": "docs",
         "open_max": "12",
@@ -117,7 +117,7 @@
       "kind": "layer",
       "version": "0.2.0",
       "source": "builtin",
-      "digest": "sha256:ae0a153f55a9611f486415d1d85f6910c2ed8c5f92dd626bc5556e1fd505326f",
+      "digest": "sha256:3288522427f5dd9b20b4970b27cb9a6df45ba25da525e30c1a37cf6a5cb9b78c",
       "vars": {
         "group": "docs",
         "log_dir": "log",
@@ -148,8 +148,8 @@
         {
           "path": ".ilk/bin/ilk-record-review.sh",
           "mode": "managed",
-          "hash": "sha256:29496c1c34e000c7c0cfec97031ebc3d52b373c7ade9d6b88cf95771563bd5c5",
-          "delivered": "sha256:29496c1c34e000c7c0cfec97031ebc3d52b373c7ade9d6b88cf95771563bd5c5",
+          "hash": "sha256:3f6adbf68333922f48184efae98c88fdbca2fa83e8d5c00ffc66c298b0ae5f5b",
+          "delivered": "sha256:3f6adbf68333922f48184efae98c88fdbca2fa83e8d5c00ffc66c298b0ae5f5b",
           "created_file": true,
           "owner": "ilk/record",
           "exec": true
@@ -253,7 +253,7 @@
       "kind": "layer",
       "version": "0.1.0",
       "source": "/home/claude/coflounder/ilk/layers/session-summaries",
-      "digest": "sha256:e904b1a412363c59457b092222aee2943c8d93acf852be0a598772a65092448b",
+      "digest": "sha256:7c0933a26f1f97543c7882d513411e35c881b976e5c3dbcdc578dd5c8bee3f96",
       "files": [
         {
           "path": ".ilk/bin/session-summaries.py",
@@ -279,7 +279,7 @@
       "kind": "layer",
       "version": "0.3.0",
       "source": "builtin",
-      "digest": "sha256:adf732cc8bd5358d70987f1b02c5c03c0da96536503eaeb56508bd8134d902c8",
+      "digest": "sha256:70a91c839a485a7325e2c27d10d530ed50cc8e60daa9cffc0469c5fe1933b1a7",
       "files": [
         {
           "path": ".ilk/bin/ilk-propose.sh",
@@ -355,8 +355,8 @@
         {
           "path": ".agents/skills/review-a-proposal/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:e6cb6f89c70ee7f1116a55a6208149443b595dd5eeebf7be84701660af6e623a",
-          "delivered": "sha256:e6cb6f89c70ee7f1116a55a6208149443b595dd5eeebf7be84701660af6e623a",
+          "hash": "sha256:8e38ec8096b444411d6e62a2caf899ad2a3c80eedaac9611539a33fcc761e7ae",
+          "delivered": "sha256:8e38ec8096b444411d6e62a2caf899ad2a3c80eedaac9611539a33fcc761e7ae",
           "created_file": true,
           "owner": "target:agents-md"
         },
@@ -387,8 +387,8 @@
         {
           "path": ".agents/skills/write-a-layer/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:dd8b2521418e8195f11754def473db218b6f2206f7d06436a84be31ce41dd83e",
-          "delivered": "sha256:dd8b2521418e8195f11754def473db218b6f2206f7d06436a84be31ce41dd83e",
+          "hash": "sha256:c46b8d585684fba2827b8aeb672fef6ad3f2c8fd8dccd5bd3daff1941e7e6a32",
+          "delivered": "sha256:c46b8d585684fba2827b8aeb672fef6ad3f2c8fd8dccd5bd3daff1941e7e6a32",
           "created_file": true,
           "owner": "target:agents-md"
         },
@@ -430,48 +430,48 @@
         {
           "path": ".claude/commands/record-log.md",
           "mode": "managed",
-          "hash": "sha256:a31b83484c23936a8c987ae3ec44373ee8eaf9d675264cbe49d58c3574a7aac4",
-          "delivered": "sha256:a31b83484c23936a8c987ae3ec44373ee8eaf9d675264cbe49d58c3574a7aac4",
+          "hash": "sha256:3de91dfde8239cffe01218cf9e1fa350f0848d523df18685d6ae4a8e69eb08b7",
+          "delivered": "sha256:3de91dfde8239cffe01218cf9e1fa350f0848d523df18685d6ae4a8e69eb08b7",
           "created_file": true,
           "owner": "target:claude-code"
         },
         {
           "path": ".claude/commands/record-new.md",
           "mode": "managed",
-          "hash": "sha256:31ec78c2c96b12ae09c6fb07dad1c39395fbc79e0a2a496bb526246ea7771455",
-          "delivered": "sha256:31ec78c2c96b12ae09c6fb07dad1c39395fbc79e0a2a496bb526246ea7771455",
+          "hash": "sha256:a6d2f97409f15d11ea708ece554a8429e838071ac2798ad3584c03bd5f6b95a6",
+          "delivered": "sha256:a6d2f97409f15d11ea708ece554a8429e838071ac2798ad3584c03bd5f6b95a6",
           "created_file": true,
           "owner": "target:claude-code"
         },
         {
           "path": ".claude/commands/record-review.md",
           "mode": "managed",
-          "hash": "sha256:cf50137a2b67f10134307e7bbbb9238895175c5852cef20e92aee20bdad74370",
-          "delivered": "sha256:cf50137a2b67f10134307e7bbbb9238895175c5852cef20e92aee20bdad74370",
+          "hash": "sha256:339dbc8a2bafdda7a79b79185888171731936216dbacdc7a537fd2675e4132f0",
+          "delivered": "sha256:339dbc8a2bafdda7a79b79185888171731936216dbacdc7a537fd2675e4132f0",
           "created_file": true,
           "owner": "target:claude-code"
         },
         {
           "path": ".claude/commands/session-summaries-list.md",
           "mode": "managed",
-          "hash": "sha256:5d840b7461648a6200e7ce6541cae301d44fd6ca95249485d599c81bb7ffcdfd",
-          "delivered": "sha256:5d840b7461648a6200e7ce6541cae301d44fd6ca95249485d599c81bb7ffcdfd",
+          "hash": "sha256:01342bfe2e4fe025fdb568cf80271f514cf3b9d09a608b49ad7c981010b1a4b7",
+          "delivered": "sha256:01342bfe2e4fe025fdb568cf80271f514cf3b9d09a608b49ad7c981010b1a4b7",
           "created_file": true,
           "owner": "target:claude-code"
         },
         {
           "path": ".claude/commands/session-summaries-read.md",
           "mode": "managed",
-          "hash": "sha256:657b1945fe3a742eb3a1be1bef1e0a23f4d34181a4d7d32cb130c08e7439ad67",
-          "delivered": "sha256:657b1945fe3a742eb3a1be1bef1e0a23f4d34181a4d7d32cb130c08e7439ad67",
+          "hash": "sha256:45f6accab4fa76793d0b0b4de9801fc860bfdbed35fd2463d9ac84cbe56f2f2c",
+          "delivered": "sha256:45f6accab4fa76793d0b0b4de9801fc860bfdbed35fd2463d9ac84cbe56f2f2c",
           "created_file": true,
           "owner": "target:claude-code"
         },
         {
           "path": ".claude/commands/session-summaries-save.md",
           "mode": "managed",
-          "hash": "sha256:1ffe4a4a59f20e369267ac4a9f8592a6b5c0ba3c56136e452150239dfb09c3ae",
-          "delivered": "sha256:1ffe4a4a59f20e369267ac4a9f8592a6b5c0ba3c56136e452150239dfb09c3ae",
+          "hash": "sha256:caf93cee1a88213278b2d3333d4268efca0dfb27e38a828f7c498a4263449f96",
+          "delivered": "sha256:caf93cee1a88213278b2d3333d4268efca0dfb27e38a828f7c498a4263449f96",
           "created_file": true,
           "owner": "target:claude-code"
         },

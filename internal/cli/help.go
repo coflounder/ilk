@@ -134,7 +134,10 @@ Two commands sit outside the table on purpose:
 
   ilk hook run turn-end    exits 2 to block, because Claude Code's Stop hook
                            resumes the agent only on 2
-  ilk <layer> <command>    passes its script's exit code through unchanged
+  ilk <layer> <command>    passes its script's exit code through unchanged, once
+                           ilk has accepted the call: a missing argument, an
+                           unknown flag or an unsupported --json is 2 before the
+                           script runs
 
 Examples:
   ilk plan --exit-code     # 0 in sync, 4 changes pending, 1 error
@@ -154,14 +157,20 @@ root as its working directory and the rest of ilk's environment passed through.
   Layer commands (ilk <layer> <command>):
     ILK_LAYER           the layer's id, e.g. ilk/record
     ILK_REPO_ROOT       the repository root
-    ILK_OUTPUT          json when --json was given, otherwise text; --json itself
-                        is never passed to the script
+    ILK_OUTPUT          json when --json was given (only to a command that
+                        declares json: true), otherwise text
     ILK_VAR_<NAME>      each of the layer's variables, upper-cased
+    ILK_FLAG_<NAME>     each flag the command declares, upper-cased with dashes
+                        as underscores: 1 or 0 for a bool, otherwise the value
+                        given or the declared default (empty when neither)
+    Arguments arrive as positional parameters. ilk's own flags (--json, -C) never
+    reach the script.
 
   Command-based checks (ilk check):
     ILK_LAYER, ILK_VAR_<NAME>
     A check may name variables of its own under requires_env; it is skipped,
-    not failed, while any of them is empty.
+    not failed, while any of them is empty. Its exit code decides the result:
+    0 pass, 1 fail, anything else error (the check could not run).
 
   Mirror provider commands (ilk mirror):
     ILK_LAYER, ILK_REPO_ROOT, ILK_VAR_<NAME>
@@ -187,6 +196,7 @@ var errorCodes = []struct{ code, exit, meaning string }{
 	{"invalid_on_conflict", "2", "an --on-conflict value that is not merge, markers, keep-mine, take-layer or refuse"},
 	{"unknown_config_key", "2", "a config key that is neither a capability nor a layer variable here"},
 	{"invalid_config_key", "2", "a key spelled like neither a capability nor <layer>.<variable>"},
+	{"json_unsupported", "2", "--json given to a layer command that does not declare `json: true`"},
 	{"confirmation_required", "3", "a change that needed a yes nobody could give"},
 	{"failed", "1", "the work failed; the message says how"},
 	{"layer_conflict", "1", "two layers would do the same job"},
@@ -220,8 +230,10 @@ holds one JSON object:
 Error codes:
   code                     exit  meaning
 ` + codes.String() + `
-A layer's own commands receive --json as ILK_OUTPUT=json and decide for
-themselves what to print.`
+A layer's own command takes --json only when its manifest declares ` + "`json: true`" + `;
+it then receives ILK_OUTPUT=json and prints JSON itself. Without that declaration,
+--json is refused with json_unsupported and exit 2, rather than answering a
+caller who asked for JSON with text.`
 }
 
 const layersTopic = `A layer is a versioned package of process: directories, instructions, skills,
@@ -239,11 +251,37 @@ Capabilities are how layers depend on a project rather than on each other. The
 gates layer needs test.command, and anything that supplies it satisfies the need.
 A check whose capability is missing is skipped, and says so.
 
-Variables are a layer's own settings, with defaults; ` + "`ilk info <layer>`" + ` lists them.
+Variables are a layer's own settings, with defaults; ` + "`ilk info <layer>`" + ` lists them,
+with the layer's examples of itself in use.
 
 Both are set from the command line, and the repository is reconciled in the same
 step:
 
   ilk config set test.command "go test ./..."
   ilk config set gates.ci none
-  ilk config list`
+  ilk config list
+
+A layer's checks are named after it: pr-prep.criteria-settled belongs to pr-prep,
+and ` + "`ilk check --only pr-prep`" + ` runs all of them. A layer's commands run as
+` + "`ilk <layer> <command>`" + ` and take --help like any other.
+
+Writing a layer: ` + "`ilk layer new`" + ` scaffolds one, and the write-a-layer skill and
+docs/reference/REF-writing-layers.md describe the manifest. In short:
+
+  commands:
+    - name: draft
+      summary: Assemble a pull request description from a plan document
+      args:
+        - {name: document, required: true, usage: the plan document}
+      flags:
+        - {name: title, type: bool, usage: print only the title line}
+      examples:
+        - ilk pr-prep draft docs/plans/SPEC-checkout-totals.md --title
+      json: false        # true when the script honours ILK_OUTPUT=json
+      run: .ilk/bin/draft.sh
+
+  checks:
+    - id: pr-prep.evidence-checkable     # <layer>.<name>
+      run: .ilk/bin/evidence.sh          # exit 0 pass, 1 fail, else error
+      findings: jsonl                    # optional: {"path","line","message"} per line
+      fix: Say what to do about it.`

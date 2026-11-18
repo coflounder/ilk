@@ -18,13 +18,12 @@
 set -eu
 
 dir=${ILK_PLANS_DIR:-docs/plans}
+# ilk parses --title and hands it over as ILK_FLAG_TITLE.
 title_only=0
-target=""
-
-usage() {
-	echo "usage: ilk pr-prep draft <document> [--title]" >&2
-	echo "  --title   print the pull request title instead of the body" >&2
-}
+if [ "${ILK_FLAG_TITLE:-0}" = 1 ]; then
+	title_only=1
+fi
+target=${1:-}
 
 # One frontmatter field, unquoted. Stops at the closing delimiter so a line in
 # the body that looks like `status: whatever` cannot answer for the header.
@@ -112,28 +111,6 @@ candidates() {
 	done
 	[ "$found" -eq 1 ] || echo "  (none — $dir/ has no plan documents yet)"
 }
-
-for arg in "$@"; do
-	case "$arg" in
-	--title) title_only=1 ;;
-	-h | --help)
-		usage
-		exit 2
-		;;
-	-*)
-		echo "ilk pr-prep draft: unknown argument $arg" >&2
-		usage
-		exit 2
-		;;
-	*)
-		if [ -n "$target" ]; then
-			echo "ilk pr-prep draft: one document at a time (got $target and $arg)" >&2
-			exit 2
-		fi
-		target=$arg
-		;;
-	esac
-done
 
 if [ ! -d "$dir" ]; then
 	echo "ilk pr-prep draft: no $dir/ directory — run \`ilk apply\` first" >&2

@@ -5,6 +5,9 @@ facets:
   arc: context
   kind: record
 ilk: ">=0.2.0"
+examples:
+  - ilk autoresearch due 30
+  - ilk check --only autoresearch
 
 # The path travels with the capability, so a layer that wants to read the findings
 # never has to guess that `research_dir` is still called `research`.
@@ -59,24 +62,24 @@ skills:
     src: skills/revisit-a-finding.md
 
 checks:
-  - id: research.frontmatter
+  - id: autoresearch.frontmatter
     kind: builtin.frontmatter
     title: Findings say what was asked, how sure we are, and when to look again
     fix: 'Add the missing keys to the frontmatter. `question:` is the thing somebody actually wanted to know; `confidence:` is `high`, `medium` or `low`; `expires:` is the date this must be re-read (YYYY-MM-DD). `{{ index .Caps "research.findings" }}/README.md` shows the whole shape.'
     args:
       dirs:
         - '{{ index .Caps "research.findings" }}'
-      # `sources:` is deliberately not here. research.sources owns it, and can tell
+      # `sources:` is deliberately not here. autoresearch.sources owns it, and can tell
       # "no sources" from "sources nobody else can open" — two different repairs.
       require: [id, title, question, confidence, expires, updated]
       exempt: [README.md]
 
-  - id: research.sources
+  - id: autoresearch.sources
     title: Every finding cites at least one source somebody else can open
     run: .ilk/bin/ilk-research.sh sources
     fix: 'Add the URLs you actually read to `sources:` — the vendor page, the changelog entry, the issue thread. A finding whose provenance is "an earlier session said so" cannot be re-checked by anyone, and this directory is read as though it had been.'
 
-  - id: research.falsifiable
+  - id: autoresearch.falsifiable
     kind: builtin.section
     title: Every finding states what would change its conclusion
     fix: 'Add a `## What would change this` section listing what you would have to see to stop believing the finding — a different number in the vendor docs, a major release, an error you have not seen. A conclusion nothing could overturn is an opinion wearing a citation.'
@@ -87,24 +90,29 @@ checks:
       min_items: 1
       exempt: [README.md]
 
-  - id: research.fresh
+  - id: autoresearch.fresh
     title: No finding is being trusted past its expiry date
     run: .ilk/bin/ilk-research.sh expiry
     fix: 'Re-read the finding against its sources, then either move `expires:` forward with `updated:` — having actually checked — or correct it. Read the `revisit-a-finding` skill first: bumping the date without opening a source is how this directory becomes confidently wrong, which is worse than not having it.'
 
 hooks:
-  # research.fresh is deliberately absent. It fails because a date passed, which has
+  # autoresearch.fresh is deliberately absent. It fails because a date passed, which has
   # nothing to do with the commit in front of you, and a blocking hook that fires for
   # reasons the author did not cause is how a team learns to pass --no-verify.
   # `ilk check` and CI still hold it.
   - event: pre-commit
     name: autoresearch
     blocking: true
-    run: ilk check --only research.frontmatter,research.sources,research.falsifiable
+    run: ilk check --only autoresearch.frontmatter,autoresearch.sources,autoresearch.falsifiable
 
 commands:
   - name: due
-    summary: "List findings that have expired or are about to: ilk autoresearch due [days]"
+    summary: List findings that have expired or are about to
+    args:
+      - {name: days, usage: how far ahead to look; defaults to the warn_before_days variable}
+    examples:
+      - ilk autoresearch due
+      - ilk autoresearch due 30
     run: .ilk/bin/ilk-research.sh due
 
 contribution:

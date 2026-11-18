@@ -13,7 +13,7 @@ with reasons.
 ## When
 
 A proposal arrives in `docs/proposals/`; somebody asks about the queue;
-`ilk check` reports `proposal.queue`. Run `ilk maintainer queue` for what is waiting.
+`ilk check` reports `maintainer.queue`. Run `ilk maintainer queue` for what is waiting.
 
 ## Read it in this order
 

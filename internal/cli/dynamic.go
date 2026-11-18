@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/coflounder/ilk/internal/engine"
+	"github.com/coflounder/ilk/internal/manifest"
 	"github.com/coflounder/ilk/internal/render"
 	"github.com/coflounder/ilk/internal/version"
 	"github.com/spf13/cobra"
@@ -57,82 +59,156 @@ func attachLayerCommands(root *cobra.Command) {
 		}
 		group.GroupID = groupLayerCmds
 		for _, c := range m.Commands {
-			group.AddCommand(newLayerRunCmd(l, c.Name, c.Summary, c.Run))
+			group.AddCommand(newLayerRunCmd(l, c))
 		}
 		root.AddCommand(group)
 	}
 }
 
-func newLayerRunCmd(l *engine.ResolvedLayer, name, summary, run string) *cobra.Command {
-	return &cobra.Command{
-		Use:                name,
-		Short:              summary,
-		DisableFlagParsing: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			args = layerArgs(args)
-			if len(args) == 1 && (args[0] == "--help" || args[0] == "-h") {
-				return cmd.Help()
-			}
-			// Rendered like every other command a layer declares — a check's `run:`,
-			// a mirror's provider commands, a contribution's submit. Leaving this
-			// one literal meant a subcommand could not reach its own layer's
-			// variables, and the failure showed up as `{{ .Vars.x }}` in output.
-			full, err := render.String("command:"+l.ID()+":"+name, run, l.Ctx)
-			if err != nil {
-				return err
-			}
-			if len(args) > 0 {
-				full += " " + shellQuoteAll(args)
-			}
-			c := exec.Command("sh", "-c", full)
-			c.Dir = l.Ctx.Repo.Root
-			c.Stdin = os.Stdin
-			c.Stdout = os.Stdout
-			c.Stderr = os.Stderr
-			c.Env = append(os.Environ(),
-				"ILK_LAYER="+l.ID(),
-				"ILK_REPO_ROOT="+l.Ctx.Repo.Root,
-				"ILK_OUTPUT="+outputMode(),
-			)
-			for k, v := range l.Vars {
-				c.Env = append(c.Env, "ILK_VAR_"+strings.ToUpper(k)+"="+v)
-			}
-			if err := c.Run(); err != nil {
-				if exitErr, ok := err.(*exec.ExitError); ok {
-					exitCode = exitErr.ExitCode()
-					return nil
+func newLayerRunCmd(l *engine.ResolvedLayer, c manifest.Command) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     layerUseLine(c),
+		Short:   c.Summary,
+		Long:    fmt.Sprintf("%s\n\nProvided by the %s layer.", c.Summary, l.ID()),
+		Example: indentExamples(c.Examples),
+		Args:    layerArgsValidator(c),
+	}
+
+	// Every declared flag reaches the script, given or not, so a script reads its
+	// own defaults from one place: the manifest.
+	values := map[string]func() string{}
+	for _, f := range c.Flags {
+		switch f.Kind() {
+		case "bool":
+			v := cmd.Flags().BoolP(f.Name, f.Short, f.Default == "true", f.Usage)
+			values[f.EnvName()] = func() string {
+				if *v {
+					return "1"
 				}
-				return err
+				return "0"
 			}
-			return nil
-		},
+		default:
+			v := &layerFlagValue{kind: f.Kind(), value: f.Default}
+			cmd.Flags().VarP(v, f.Name, f.Short, f.Usage)
+			values[f.EnvName()] = v.String
+		}
+	}
+
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		if flagJSON && !c.JSON {
+			return &cliError{
+				Exit:    exitUsage,
+				Code:    "json_unsupported",
+				Message: fmt.Sprintf("`%s` has no JSON output", cmd.CommandPath()),
+				Fix:     fmt.Sprintf("run it without --json; the %s layer offers JSON by declaring `json: true` on the command", l.ID()),
+			}
+		}
+		// Rendered like every other command a layer declares — a check's `run:`,
+		// a mirror's provider commands, a contribution's submit. Leaving this
+		// one literal meant a subcommand could not reach its own layer's
+		// variables, and the failure showed up as `{{ .Vars.x }}` in output.
+		full, err := render.String("command:"+l.ID()+":"+c.Name, c.Run, l.Ctx)
+		if err != nil {
+			return err
+		}
+		if len(args) > 0 {
+			full += " " + shellQuoteAll(args)
+		}
+		sh := exec.Command("sh", "-c", full)
+		sh.Dir = l.Ctx.Repo.Root
+		sh.Stdin = os.Stdin
+		sh.Stdout = out
+		sh.Stderr = errOut
+		sh.Env = append(withoutFlagEnv(os.Environ()),
+			"ILK_LAYER="+l.ID(),
+			"ILK_REPO_ROOT="+l.Ctx.Repo.Root,
+			"ILK_OUTPUT="+outputMode(),
+		)
+		for k, v := range l.Vars {
+			sh.Env = append(sh.Env, "ILK_VAR_"+strings.ToUpper(k)+"="+v)
+		}
+		for name, value := range values {
+			sh.Env = append(sh.Env, name+"="+value())
+		}
+		if err := sh.Run(); err != nil {
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				exitCode = exitErr.ExitCode()
+				return nil
+			}
+			return err
+		}
+		return nil
+	}
+	return cmd
+}
+
+// layerUseLine is the usage line built from a command's declared arguments.
+func layerUseLine(c manifest.Command) string {
+	return strings.TrimSpace(c.Name + " " + c.ArgsUsage())
+}
+
+// layerArgsValidator holds a layer command to the arguments it declares, so a
+// missing or extra one is a usage error before the script ever runs.
+func layerArgsValidator(c manifest.Command) cobra.PositionalArgs {
+	return func(cmd *cobra.Command, args []string) error {
+		required, max := 0, len(c.Args)
+		for _, a := range c.Args {
+			if a.Required {
+				required++
+			}
+			if a.Variadic {
+				max = -1
+			}
+		}
+		if len(args) < required {
+			return fmt.Errorf("missing <%s> — usage: %s", c.Args[len(args)].Name, cmd.UseLine())
+		}
+		if max >= 0 && len(args) > max {
+			return fmt.Errorf("unexpected argument %q — usage: %s", args[max], cmd.UseLine())
+		}
+		return nil
 	}
 }
 
-// layerArgs removes ilk's own global flags from a layer command's arguments.
-//
-// Layer commands take their arguments unparsed, so without this `--json` and
-// `-C dir` reached the script as words: `ilk record new docs "Overview" --json`
-// created a document whose name ended in "json". ilk has already acted on these
-// flags — -C chose the repository, and --json is passed on as ILK_OUTPUT=json —
-// so the script never needs to see them. A script that wants one of these words
-// literally takes it after "--", which is dropped and ends the stripping.
-func layerArgs(args []string) []string {
-	kept := make([]string, 0, len(args))
-	for i := 0; i < len(args); i++ {
-		a := args[i]
-		switch {
-		case a == "--":
-			return append(kept, args[i+1:]...)
-		case a == "--json" || a == "--json=true" || a == "--json=false":
-		case a == "-C" || a == "--dir":
-			i++
-		case strings.HasPrefix(a, "--dir=") || (strings.HasPrefix(a, "-C") && len(a) > 2):
-		default:
-			kept = append(kept, a)
+// indentExamples lays a layer's examples out the way built-in commands' are.
+func indentExamples(examples []string) string {
+	lines := make([]string, 0, len(examples))
+	for _, e := range examples {
+		lines = append(lines, "  "+strings.TrimSpace(e))
+	}
+	return strings.Join(lines, "\n")
+}
+
+// withoutFlagEnv drops ILK_FLAG_ variables ilk did not set itself. A layer
+// command run from inside another one would otherwise see its caller's flags.
+func withoutFlagEnv(env []string) []string {
+	kept := make([]string, 0, len(env))
+	for _, kv := range env {
+		if !strings.HasPrefix(kv, "ILK_FLAG_") {
+			kept = append(kept, kv)
 		}
 	}
 	return kept
+}
+
+// layerFlagValue holds a string or int flag of a layer command. Ints are kept as
+// text, since they only ever reach the script as text, but are checked on the
+// way in so `--max lots` is a usage error rather than the script's problem.
+type layerFlagValue struct {
+	kind  string
+	value string
+}
+
+func (v *layerFlagValue) String() string { return v.value }
+func (v *layerFlagValue) Type() string   { return v.kind }
+func (v *layerFlagValue) Set(s string) error {
+	if v.kind == "int" {
+		if _, err := strconv.Atoi(s); err != nil {
+			return fmt.Errorf("%q is not a whole number", s)
+		}
+	}
+	v.value = s
+	return nil
 }
 
 // outputMode is what a layer command is told about the output its caller wants.

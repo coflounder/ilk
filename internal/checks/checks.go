@@ -7,6 +7,7 @@
 package checks
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -41,14 +42,17 @@ type Finding struct {
 
 // Result is one check's outcome.
 type Result struct {
-	ID       string        `json:"id"`
-	Title    string        `json:"title,omitempty"`
-	Layer    string        `json:"layer"`
-	Status   Status        `json:"status"`
-	Findings []Finding     `json:"findings,omitempty"`
-	Fix      string        `json:"fix,omitempty"`
-	Reason   string        `json:"reason,omitempty"`
-	Output   string        `json:"output,omitempty"`
+	ID       string    `json:"id"`
+	Title    string    `json:"title,omitempty"`
+	Layer    string    `json:"layer"`
+	Status   Status    `json:"status"`
+	Findings []Finding `json:"findings,omitempty"`
+	Fix      string    `json:"fix,omitempty"`
+	Reason   string    `json:"reason,omitempty"`
+	Output   string    `json:"output,omitempty"`
+	// Warnings are about the check rather than the repository: a line of
+	// `findings: jsonl` output that could not be read, for instance.
+	Warnings []string      `json:"warnings,omitempty"`
 	Duration time.Duration `json:"-"`
 }
 
@@ -175,22 +179,47 @@ func filter(all []registered, opts Options) ([]registered, error) {
 	for _, r := range all {
 		known[r.check.ID] = true
 	}
-	for _, id := range append(append([]string{}, opts.Only...), opts.Skip...) {
-		if !known[id] {
-			available := make([]string, 0, len(known))
-			for k := range known {
-				available = append(available, k)
+	// A name with no check of its own selects every check of the layer it
+	// names, because check ids start with their layer's name.
+	expand := func(ids []string) ([]string, error) {
+		var out []string
+		for _, id := range ids {
+			if known[id] {
+				out = append(out, id)
+				continue
 			}
-			sort.Strings(available)
-			return nil, fmt.Errorf("no check called %q — available: %s", id, strings.Join(available, ", "))
+			var layer []string
+			for _, r := range all {
+				if strings.HasPrefix(r.check.ID, id+".") {
+					layer = append(layer, r.check.ID)
+				}
+			}
+			if len(layer) == 0 {
+				available := make([]string, 0, len(known))
+				for k := range known {
+					available = append(available, k)
+				}
+				sort.Strings(available)
+				return nil, fmt.Errorf("no check or layer called %q — available: %s", id, strings.Join(available, ", "))
+			}
+			out = append(out, layer...)
 		}
+		return out, nil
+	}
+	onlyIDs, err := expand(opts.Only)
+	if err != nil {
+		return nil, err
+	}
+	skipIDs, err := expand(opts.Skip)
+	if err != nil {
+		return nil, err
 	}
 	only := map[string]bool{}
-	for _, id := range opts.Only {
+	for _, id := range onlyIDs {
 		only[id] = true
 	}
 	skip := map[string]bool{}
-	for _, id := range opts.Skip {
+	for _, id := range skipIDs {
 		skip[id] = true
 	}
 	var out []registered
@@ -271,17 +300,33 @@ func runOne(p *engine.Project, r registered, caps map[string]string, opts Option
 			res.Reason = err.Error()
 			break
 		}
-		out, code, err := runCommand(p.Repo.Root, cmd, opts.Timeout, checkEnv(r))
-		res.Output = strings.TrimRight(out, "\n")
+		jsonl := r.check.Findings == manifest.FindingsJSONL
+		stdout, stderr, code, err := runCommand(p.Repo.Root, cmd, opts.Timeout, checkEnv(r), jsonl)
+		output := stdout
+		if jsonl {
+			// Findings come on stdout; anything else the script says is on stderr,
+			// and is kept as its output.
+			res.Findings, res.Warnings = parseFindings(stdout)
+			output = stderr
+		}
+		res.Output = strings.TrimRight(output, "\n")
 		switch {
 		case err != nil:
 			res.Status = StatusError
 			res.Reason = err.Error()
 		case code == 0:
 			res.Status = StatusPass
-		default:
+			if len(res.Findings) > 0 {
+				res.Warnings = append(res.Warnings, fmt.Sprintf("printed %d finding(s) but exited 0, so it passed — a check script exits 1 to fail", len(res.Findings)))
+			}
+		case code == 1:
 			res.Status = StatusFail
-			res.Findings = []Finding{{Message: fmt.Sprintf("`%s` exited %d", cmd, code)}}
+			if len(res.Findings) == 0 {
+				res.Findings = []Finding{{Message: fmt.Sprintf("`%s` exited 1", shortCommand(cmd))}}
+			}
+		default:
+			res.Status = StatusError
+			res.Reason = scriptErrorReason(cmd, code)
 		}
 
 	default:
@@ -318,7 +363,60 @@ func checkEnv(r registered) []string {
 	return env
 }
 
-func runCommand(dir, command string, timeout time.Duration, env []string) (string, int, error) {
+// scriptErrorReason explains an exit code outside the check contract.
+func scriptErrorReason(cmd string, code int) string {
+	why := "a check script exits 0 to pass and 1 to fail; anything else means the check could not run"
+	switch {
+	case code == 127:
+		why = "127 means the command was not found — is the script there, and is ilk apply up to date?"
+	case code == 126:
+		why = "126 means the command could not be executed — check its permissions"
+	case code > 128:
+		why = fmt.Sprintf("it was killed by signal %d", code-128)
+	case code < 0:
+		why = "it was killed by a signal"
+	}
+	return fmt.Sprintf("`%s` exited %d: %s", shortCommand(cmd), code, why)
+}
+
+// shortCommand is a command as a message can quote it: its first line, cut short.
+func shortCommand(cmd string) string {
+	line, _, _ := strings.Cut(strings.TrimSpace(cmd), "\n")
+	return truncate(line, 72)
+}
+
+// parseFindings reads `findings: jsonl` output: one JSON object per line, with
+// at least a message. A line that is not one becomes a warning and is otherwise
+// skipped, so a stray print in a script costs a warning, never the check.
+func parseFindings(stdout string) ([]Finding, []string) {
+	var findings []Finding
+	var warnings []string
+	for i, line := range strings.Split(stdout, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		var f Finding
+		if err := json.Unmarshal([]byte(line), &f); err != nil || strings.TrimSpace(f.Message) == "" {
+			warnings = append(warnings, fmt.Sprintf("line %d of its output is not a finding (want {\"path\": ..., \"line\": ..., \"message\": ...}): %s", i+1, truncate(line, 80)))
+			continue
+		}
+		findings = append(findings, f)
+	}
+	return findings, warnings
+}
+
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "…"
+}
+
+// runCommand runs a check's command. With split, stdout and stderr come back
+// separately; otherwise they are interleaved in stdout, as a person would see
+// them, and stderr is empty.
+func runCommand(dir, command string, timeout time.Duration, env []string, split bool) (stdout, stderr string, code int, err error) {
 	if timeout <= 0 {
 		timeout = 10 * time.Minute
 	}
@@ -327,12 +425,16 @@ func runCommand(dir, command string, timeout time.Duration, env []string) (strin
 	if len(env) > 0 {
 		cmd.Env = append(os.Environ(), env...)
 	}
+	var outBuf, errBuf bytes.Buffer
+	cmd.Stdout = &outBuf
+	cmd.Stderr = &outBuf
+	if split {
+		cmd.Stderr = &errBuf
+	}
 
 	done := make(chan struct{})
-	var out []byte
-	var err error
 	go func() {
-		out, err = cmd.CombinedOutput()
+		err = cmd.Run()
 		close(done)
 	}()
 
@@ -343,16 +445,16 @@ func runCommand(dir, command string, timeout time.Duration, env []string) (strin
 			_ = cmd.Process.Kill()
 		}
 		<-done
-		return string(out), -1, fmt.Errorf("timed out after %s", timeout)
+		return outBuf.String(), errBuf.String(), -1, fmt.Errorf("timed out after %s", timeout)
 	}
 
 	if exitErr, ok := err.(*exec.ExitError); ok {
-		return string(out), exitErr.ExitCode(), nil
+		return outBuf.String(), errBuf.String(), exitErr.ExitCode(), nil
 	}
 	if err != nil {
-		return string(out), -1, err
+		return outBuf.String(), errBuf.String(), -1, err
 	}
-	return string(out), 0, nil
+	return outBuf.String(), errBuf.String(), 0, nil
 }
 
 // renderArgs walks a check's arguments and renders every string through the

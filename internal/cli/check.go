@@ -111,6 +111,11 @@ func applyFix(p *engine.Project) error {
 
 func printReport(r *checks.Report) {
 	for _, res := range r.Results {
+		// Warnings are about the check, not the repository, so they go to stderr
+		// with the other notes rather than into the report.
+		for _, w := range res.Warnings {
+			warnf("%s %s: %s\n", sty.yellow("warning:"), res.ID, w)
+		}
 		switch res.Status {
 		case checks.StatusPass:
 			printf("%s %-28s %s\n", sty.green("✓"), res.ID, sty.dim(res.Title))
@@ -118,6 +123,11 @@ func printReport(r *checks.Report) {
 			printf("%s %-28s %s\n", sty.dim("−"), res.ID, sty.dim(res.Reason))
 		case checks.StatusError:
 			printf("%s %-28s %s\n", sty.yellow("!"), res.ID, sty.yellow("could not run: "+res.Reason))
+			if res.Output != "" {
+				for _, line := range lastLines(res.Output, 6) {
+					printf("    %s\n", sty.dim(line))
+				}
+			}
 		case checks.StatusFail:
 			printf("%s %-28s %s\n", sty.red("✗"), res.ID, res.Title)
 			for _, f := range res.Findings {

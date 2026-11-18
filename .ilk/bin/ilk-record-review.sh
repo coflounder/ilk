@@ -23,28 +23,12 @@ EOF
 	exit 2
 }
 
-file=""
+file=${1:-}
+# ilk parses --show and hands it over as ILK_FLAG_SHOW.
 show_only=0
-for arg in "$@"; do
-	case "$arg" in
-	--show)
-		show_only=1
-		;;
-	-h | --help)
-		usage
-		;;
-	-*)
-		echo "ilk record review: unknown option $arg" >&2
-		usage
-		;;
-	*)
-		if [ -n "$file" ]; then
-			usage
-		fi
-		file=$arg
-		;;
-	esac
-done
+if [ "${ILK_FLAG_SHOW:-0}" = 1 ]; then
+	show_only=1
+fi
 
 [ -n "$file" ] || usage
 

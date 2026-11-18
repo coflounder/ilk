@@ -5,6 +5,9 @@ facets:
   arc: context
   kind: record
 ilk: ">=0.2.0"
+examples:
+  - ilk archive it docs/reference/ARCH-billing-v1.md arch-billing
+  - ilk check --only archive
 
 requires:
   - record.docs
@@ -63,7 +66,12 @@ checks:
 
 commands:
   - name: it
-    summary: "Move a superseded document into the archive, recording what replaced it: ilk archive it <file> [replacement-id]"
+    summary: Move a superseded document into the archive, recording what replaced it
+    args:
+      - {name: file, required: true, usage: the document that is no longer true}
+      - {name: replacement-id, usage: the id of the document that replaces it}
+    examples:
+      - ilk archive it docs/reference/ARCH-billing-v1.md arch-billing
     run: .ilk/bin/ilk-archive.sh
 
 contribution:

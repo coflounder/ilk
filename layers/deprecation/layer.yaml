@@ -5,6 +5,9 @@ facets:
   arc: quality
   kind: process
 ilk: ">=0.2.0"
+examples:
+  - ilk deprecation list
+  - ilk check --only deprecation
 
 # A deprecation notice is a record document, so it lives wherever the record
 # lives. Requiring the capability rather than a layer means any record satisfies
@@ -94,7 +97,9 @@ hooks:
 
 commands:
   - name: list
-    summary: "Show every deprecation and where it stands — due, overdue, or finished: ilk deprecation list"
+    summary: Show every deprecation and where it stands — due, overdue, or finished
+    examples:
+      - ilk deprecation list
     run: '.ilk/bin/ilk-deprecation-scan.sh list "{{ index .Caps "record.docs" }}" "{{ .Vars.prefix }}"'
 
 contribution:

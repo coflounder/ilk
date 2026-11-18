@@ -5,6 +5,9 @@ facets:
   arc: operations
   kind: process
 ilk: ">=0.2.0"
+examples:
+  - ilk layer new layers/release-notes
+  - ilk layer validate layers/release-notes
 
 provides:
   - ilk.toolkit

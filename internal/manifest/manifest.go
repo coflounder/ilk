@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -39,6 +40,10 @@ type Layer struct {
 	Summary string            `yaml:"summary"`
 	Facets  map[string]string `yaml:"facets,omitempty"`
 	Ilk     string            `yaml:"ilk,omitempty"`
+	// Examples show the layer in use, so a reader of `ilk info` sees what adding
+	// it gets them before they add it. Each is one command line, usually one of
+	// the layer's own commands or an `ilk check --only` for its checks.
+	Examples []string `yaml:"examples,omitempty"`
 
 	Requires []string `yaml:"requires,omitempty"`
 	Provides Provides `yaml:"provides,omitempty"`
@@ -311,6 +316,14 @@ func ValidEvent(e string) bool {
 
 // Check is a validator contributed to `ilk check`. Fix is mandatory: a check
 // that cannot tell an agent how to repair the failure is a bug, not a check.
+//
+// A check's id starts with its layer's name and a dot (`pr-prep.criteria-settled`
+// in the pr-prep layer), so ids cannot collide across layers and
+// `ilk check --only pr-prep` selects the whole layer.
+//
+// A `run:` check keeps an exit contract: 0 passes, 1 fails, and anything else
+// means the check itself could not run (a missing script exits 127), which is
+// reported as an error rather than as a fault in the repository.
 type Check struct {
 	ID    string         `yaml:"id"`
 	Kind  string         `yaml:"kind,omitempty"`
@@ -334,14 +347,108 @@ type Check struct {
 	// The values are never read, only tested for presence. ilk has no business
 	// holding a secret it was asked to detect.
 	RequiresEnv []string `yaml:"requires_env,omitempty"`
+	// Findings, set to `jsonl`, says the command prints one finding per line of
+	// stdout as a JSON object, `{"path": "...", "line": 3, "message": "..."}`, so
+	// a script check reports per-file problems the way builtins do. The exit code
+	// still decides pass or fail.
+	Findings string `yaml:"findings,omitempty"`
 }
 
+// FindingsJSONL is the one findings format a script check can declare.
+const FindingsJSONL = "jsonl"
+
 // Command extends the CLI surface as `ilk <layer> <name>`.
+//
+// ilk owns the parsing: it builds a real command from Args and Flags, so a
+// layer command gets usage, `--help`, examples and completion the same way a
+// built-in does, and an unknown flag is a usage error before the script runs.
+// Arguments reach the script as positional parameters; flags as ILK_FLAG_<NAME>.
 type Command struct {
-	Name    string `yaml:"name"`
-	Summary string `yaml:"summary"`
-	Run     string `yaml:"run"`
+	Name     string        `yaml:"name" json:"name"`
+	Summary  string        `yaml:"summary" json:"summary"`
+	Args     []CommandArg  `yaml:"args,omitempty" json:"args,omitempty"`
+	Flags    []CommandFlag `yaml:"flags,omitempty" json:"flags,omitempty"`
+	Examples []string      `yaml:"examples,omitempty" json:"examples,omitempty"`
+	// JSON says the script honours ILK_OUTPUT=json. A command without it refuses
+	// --json, rather than printing text to a caller that asked for JSON.
+	JSON bool   `yaml:"json,omitempty" json:"json"`
+	Run  string `yaml:"run" json:"run"`
 }
+
+// ArgsUsage is the argument part of the command's usage line: `<required>`,
+// `[optional]`, and `...` on a variadic one.
+func (c Command) ArgsUsage() string {
+	parts := make([]string, 0, len(c.Args))
+	for _, a := range c.Args {
+		name := a.Name
+		if a.Variadic {
+			name += "..."
+		}
+		if a.Required {
+			parts = append(parts, "<"+name+">")
+		} else {
+			parts = append(parts, "["+name+"]")
+		}
+	}
+	return strings.Join(parts, " ")
+}
+
+// Synopsis is the arguments and flags in one line, for places that show a
+// command without its full help: `<document> [--title]`.
+func (c Command) Synopsis() string {
+	parts := []string{}
+	if a := c.ArgsUsage(); a != "" {
+		parts = append(parts, a)
+	}
+	for _, f := range c.Flags {
+		if f.Kind() == "bool" {
+			parts = append(parts, "[--"+f.Name+"]")
+		} else {
+			parts = append(parts, "[--"+f.Name+" <"+f.Kind()+">]")
+		}
+	}
+	return strings.Join(parts, " ")
+}
+
+// CommandArg is one positional argument of a layer command.
+type CommandArg struct {
+	Name  string `yaml:"name" json:"name"`
+	Usage string `yaml:"usage,omitempty" json:"usage,omitempty"`
+	// Required arguments come before optional ones.
+	Required bool `yaml:"required,omitempty" json:"required,omitempty"`
+	// Variadic takes every remaining argument. Only the last one may be.
+	Variadic bool `yaml:"variadic,omitempty" json:"variadic,omitempty"`
+}
+
+// CommandFlag is one flag of a layer command. Its value reaches the script as
+// ILK_FLAG_<NAME>, upper-cased with dashes as underscores: a bool is 1 or 0, any
+// other type its value, or the default when it was not given.
+type CommandFlag struct {
+	Name  string `yaml:"name" json:"name"`
+	Short string `yaml:"short,omitempty" json:"short,omitempty"`
+	// Type is bool, string or int. Empty means string.
+	Type    string `yaml:"type,omitempty" json:"type,omitempty"`
+	Default string `yaml:"default,omitempty" json:"default,omitempty"`
+	Usage   string `yaml:"usage" json:"usage"`
+}
+
+// Kind is the flag's type with the default filled in.
+func (f CommandFlag) Kind() string {
+	if f.Type == "" {
+		return "string"
+	}
+	return f.Type
+}
+
+// EnvName is the variable a flag's value reaches the script in.
+func (f CommandFlag) EnvName() string {
+	return "ILK_FLAG_" + strings.ToUpper(strings.ReplaceAll(f.Name, "-", "_"))
+}
+
+// Flag names ilk keeps for itself on every command. A layer flag of the same
+// name would never reach its script.
+var reservedFlags = map[string]bool{"json": true, "dir": true, "help": true}
+var reservedShorts = map[string]bool{"C": true, "h": true}
 
 // Mirror declares that a set of record documents has a counterpart in an
 // external system — a GitHub Project, a Linear team, a Jira board.
@@ -408,6 +515,7 @@ var (
 	capPattern     = regexp.MustCompile(`^[a-z0-9]+(\.[a-z0-9-]+)+$`)
 	repoPattern    = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$`)
 	envPattern     = regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
+	checkIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]*$`)
 )
 
 // ValidCapability reports whether name is spelled like a capability: dotted,
@@ -625,8 +733,16 @@ func (l *Layer) Validate() error {
 			bad("checks[%d]: id is required", i)
 		} else if seenCheck[c.ID] {
 			bad("checks[%d]: duplicate id %q", i, c.ID)
+		} else if prefix := l.Name() + "."; !strings.HasPrefix(c.ID, prefix) || !checkIDPattern.MatchString(strings.TrimPrefix(c.ID, prefix)) {
+			bad("checks[%d]: id %q must start with the layer's name and a dot (e.g. `%s.%s`), so ids cannot collide and `ilk check --only %s` selects this layer", i, c.ID, l.Name(), lastSegment(c.ID), l.Name())
 		}
 		seenCheck[c.ID] = true
+		if c.Findings != "" && c.Findings != FindingsJSONL {
+			bad("checks[%d] (%s): findings %q is not a format ilk reads — the only one is `jsonl`", i, c.ID, c.Findings)
+		}
+		if c.Findings != "" && c.Run == "" {
+			bad("checks[%d] (%s): findings only means something for a `run:` check — a builtin reports its own", i, c.ID)
+		}
 		if c.Kind == "" && c.Run == "" {
 			bad("checks[%d] (%s): set either kind (a builtin) or run (a command)", i, c.ID)
 		}
@@ -660,6 +776,12 @@ func (l *Layer) Validate() error {
 		}
 		if strings.TrimSpace(c.Summary) == "" {
 			bad("commands[%d] (%s): summary is required — it is the command's help text", i, c.Name)
+		}
+		validateCommand(fmt.Sprintf("commands[%d] (%s)", i, c.Name), c, bad)
+	}
+	for i, e := range l.Examples {
+		if strings.TrimSpace(e) == "" {
+			bad("examples[%d]: an example is one command line, and this one is empty", i)
 		}
 	}
 
@@ -703,6 +825,88 @@ func (l *Layer) Validate() error {
 	}
 	sort.Strings(errs)
 	return fmt.Errorf("invalid layer manifest:\n  - %s", strings.Join(errs, "\n  - "))
+}
+
+// validateCommand checks a command's args, flags and examples.
+func validateCommand(where string, c Command, bad func(string, ...any)) {
+	seenArg := map[string]bool{}
+	optional := false
+	for j, a := range c.Args {
+		if !namePattern.MatchString(a.Name) {
+			bad("%s: args[%d]: name %q must be lowercase-with-dashes", where, j, a.Name)
+		}
+		if seenArg[a.Name] {
+			bad("%s: args[%d]: duplicate name %q", where, j, a.Name)
+		}
+		seenArg[a.Name] = true
+		if a.Required && optional {
+			bad("%s: args[%d] (%s): a required argument cannot follow an optional one", where, j, a.Name)
+		}
+		if !a.Required {
+			optional = true
+		}
+		if a.Variadic && j != len(c.Args)-1 {
+			bad("%s: args[%d] (%s): only the last argument can be variadic", where, j, a.Name)
+		}
+	}
+	seenFlag := map[string]bool{}
+	seenShort := map[string]bool{}
+	for j, f := range c.Flags {
+		if !namePattern.MatchString(f.Name) {
+			bad("%s: flags[%d]: name %q must be lowercase-with-dashes", where, j, f.Name)
+		}
+		if reservedFlags[f.Name] {
+			bad("%s: flags[%d]: --%s is ilk's own flag on every command — pick another name", where, j, f.Name)
+		}
+		if seenFlag[f.Name] {
+			bad("%s: flags[%d]: duplicate name %q", where, j, f.Name)
+		}
+		seenFlag[f.Name] = true
+		if f.Short != "" {
+			if len(f.Short) != 1 || !strings.ContainsAny(f.Short, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ") {
+				bad("%s: flags[%d] (%s): short %q must be a single letter", where, j, f.Name, f.Short)
+			} else if reservedShorts[f.Short] {
+				bad("%s: flags[%d] (%s): -%s is ilk's own flag on every command — pick another letter", where, j, f.Name, f.Short)
+			}
+			if seenShort[f.Short] {
+				bad("%s: flags[%d] (%s): short -%s is used twice", where, j, f.Name, f.Short)
+			}
+			seenShort[f.Short] = true
+		}
+		switch f.Kind() {
+		case "string":
+		case "bool":
+			if f.Default != "" && f.Default != "true" && f.Default != "false" {
+				bad("%s: flags[%d] (%s): a bool default is true or false, not %q", where, j, f.Name, f.Default)
+			}
+		case "int":
+			if f.Default != "" {
+				if _, err := strconv.Atoi(f.Default); err != nil {
+					bad("%s: flags[%d] (%s): an int default must be a whole number, not %q", where, j, f.Name, f.Default)
+				}
+			}
+		default:
+			bad("%s: flags[%d] (%s): type %q is not one of bool, string, int", where, j, f.Name, f.Type)
+		}
+		if strings.TrimSpace(f.Usage) == "" {
+			bad("%s: flags[%d] (%s): usage is required — it is the flag's line in --help", where, j, f.Name)
+		}
+	}
+	for j, e := range c.Examples {
+		if strings.TrimSpace(e) == "" {
+			bad("%s: examples[%d]: an example is one command line, and this one is empty", where, j)
+		}
+	}
+}
+
+func lastSegment(id string) string {
+	if i := strings.LastIndex(id, "."); i >= 0 && i < len(id)-1 {
+		return id[i+1:]
+	}
+	if id == "" {
+		return "name"
+	}
+	return id
 }
 
 // NeedsExec reports whether adopting this layer runs code beyond rendering

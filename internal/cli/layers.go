@@ -584,6 +584,7 @@ func newInfoCmd() *cobra.Command {
 				return emitJSON(map[string]any{
 					"id": m.ID, "version": m.Version, "summary": m.Summary,
 					"facets": m.Facets, "source": loaded.Source, "digest": loaded.Digest,
+					"examples": nonNil(m.Examples),
 					"requires": m.Requires, "provides": m.Provides,
 					"variables": m.Variables, "files": m.Files, "dirs": m.Dirs,
 					"instructions": m.Instructions, "skills": m.Skills,
@@ -613,6 +614,8 @@ func newInfoCmd() *cobra.Command {
 					printf("  %s\n", l)
 				}
 			}
+
+			section("Examples", m.Examples)
 
 			var reqs []string
 			for _, r := range m.Requires {
@@ -667,7 +670,7 @@ func newInfoCmd() *cobra.Command {
 
 			var cmds []string
 			for _, c := range m.Commands {
-				cmds = append(cmds, fmt.Sprintf("%-28s %s", "ilk "+m.Name()+" "+c.Name, sty.dim(c.Summary)))
+				cmds = append(cmds, fmt.Sprintf("%-36s %s", "ilk "+m.Name()+" "+layerUseLine(c), sty.dim(c.Summary)))
 			}
 			section("Commands", cmds)
 
@@ -688,6 +691,15 @@ func newInfoCmd() *cobra.Command {
 		},
 	}
 	return cmd
+}
+
+// nonNil keeps an empty list a list in JSON, so a caller can range over it
+// without first testing for null.
+func nonNil(s []string) []string {
+	if s == nil {
+		return []string{}
+	}
+	return s
 }
 
 func truncate(s string, n int) string {

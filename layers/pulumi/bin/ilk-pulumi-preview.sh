@@ -73,7 +73,7 @@ fi
 status=0
 while read -r stack; do
 	if [ ! -f "$stack/Pulumi.yaml" ]; then
-		echo "$stack: no Pulumi.yaml, so there is nothing to preview here (see infra.stack-shape)"
+		echo "$stack: no Pulumi.yaml, so there is nothing to preview here (see pulumi.stack-shape)"
 		status=1
 		continue
 	fi

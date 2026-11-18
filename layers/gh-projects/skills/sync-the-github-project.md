@@ -80,7 +80,7 @@ Set these for this layer in `.ilk/config.yaml` (`ilk info gh-projects` lists the
 - `status_field` — the single-select field holding workflow state. Defaults to
   `Status`.
 
-`ilk check --only gh.configured` verifies the whole path: `gh` installed, `gh`
+`ilk check --only gh-projects.configured` verifies the whole path: `gh` installed, `gh`
 authenticated, the project readable. Run it before the first sync.
 
 ## When something fails

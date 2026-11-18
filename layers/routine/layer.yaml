@@ -5,6 +5,10 @@ facets:
   arc: operations
   kind: process
 ilk: ">=0.2.0"
+examples:
+  - ilk routine new "Refresh the dependency audit"
+  - ilk routine sync
+  - ilk routine run dependency-audit
 
 # No scheduler. The platform already has one — GitHub's `schedule:` trigger, cron,
 # a systemd timer — and a layer that reimplemented it would need somewhere to keep
@@ -120,16 +124,34 @@ hooks:
 
 commands:
   - name: new
-    summary: 'Write a routine: ilk routine new "Refresh the dependency audit"'
+    summary: Write a routine
+    args:
+      - {name: title, required: true, variadic: true, usage: what the routine does}
+    examples:
+      - ilk routine new "Refresh the dependency audit"
     run: '.ilk/bin/ilk-routine.sh new'
   - name: list
-    summary: "Show every routine, its schedule and when it must be reviewed: ilk routine list"
+    summary: Show every routine, its schedule and when it must be reviewed
+    examples:
+      - ilk routine list
     run: '.ilk/bin/ilk-routine.sh list'
   - name: sync
-    summary: "Write the runner file from the routines: ilk routine sync [--remove]"
+    summary: Write the runner file from the routines
+    flags:
+      - {name: remove, type: bool, usage: delete the runner file instead of writing it}
+    examples:
+      - ilk routine sync
+      - ilk routine sync --remove
     run: '.ilk/bin/ilk-routine.sh sync'
   - name: run
-    summary: "Run a routine under its budget: ilk routine run <id> | --schedule '<cron>'"
+    summary: Run a routine under its budget
+    args:
+      - {name: id, usage: "the routine's id; give this or --schedule"}
+    flags:
+      - {name: schedule, usage: run every active routine scheduled at this cron expression}
+    examples:
+      - ilk routine run dependency-audit
+      - ilk routine run --schedule '0 6 * * 1'
     run: '.ilk/bin/ilk-routine.sh run'
 
 contribution:

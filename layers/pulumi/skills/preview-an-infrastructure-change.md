@@ -8,7 +8,7 @@ half the inputs are not in the repository.
 ## When
 
 Editing anything under the infrastructure group, before proposing it. When
-`ilk check` reports `infra.preview`. When somebody asks whether a change is safe.
+`ilk check` reports `pulumi.preview`. When somebody asks whether a change is safe.
 
 ## Procedure
 
@@ -19,7 +19,7 @@ Editing anything under the infrastructure group, before proposing it. When
 2. **Run the gate.** It previews exactly the stacks the change touched:
 
    ```
-   ilk check --only infra.preview
+   ilk check --only pulumi.preview
    ```
 
    To iterate faster, run the repository's `infra.preview.command` yourself from
@@ -46,7 +46,7 @@ Editing anything under the infrastructure group, before proposing it. When
 
 ## When the preview will not run
 
-- **`infra.preview` skipped for want of `PULUMI_ACCESS_TOKEN`.** There are no
+- **`pulumi.preview` skipped for want of `PULUMI_ACCESS_TOKEN`.** There are no
   credentials here, so the check declined to guess rather than reporting an auth
   failure as a broken repository. A skipped check is not a passing one — say the
   preview did not run, and do not report the change as verified.

@@ -12,8 +12,8 @@ What this layer wants from a proposal:
     `high`, or a `high` one that should not have been — say so. The field is not
     checked by anything, on purpose; whether that is enough is the open question the
     layer was published to answer.
-  - If a check fired on something legitimate, show the document. `research.sources`
-    rejecting a genuine non-URL source, or `research.falsifiable` rejecting a finding
+  - If a check fired on something legitimate, show the document. `autoresearch.sources`
+    rejecting a genuine non-URL source, or `autoresearch.falsifiable` rejecting a finding
     that really cannot be falsified, are both statements about whether the grammar is
     right.
   - Say whether you worked around it by exempting, by weakening the finding, or by

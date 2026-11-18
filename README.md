@@ -108,6 +108,7 @@ A directory with a `layer.yaml`. Everything else is optional.
 id: acme/quality-gates
 version: 0.2.0
 summary: Verification an agent cannot talk its way past.
+examples: [ilk check --only quality-gates]   # shown by `ilk info`
 
 requires: [test.command]          # a capability, not a layer name
 provides: [gates.tests]
@@ -116,10 +117,10 @@ files:        [...]               # literal files, with an ownership mode
 dirs:         [...]               # directory contracts
 instructions: [...]               # always-on guidance, with a declared token budget
 skills:       [...]               # detail, loaded only when its situation applies
-checks:       [...]               # validators, each carrying its own fix
+checks:       [...]               # validators named quality-gates.*, each carrying its own fix
 hooks:        [...]               # session-start, pre-commit, pre-push, …
 mcp:          [...]               # MCP servers, projected into each agent's config
-commands:     [...]               # extend the CLI: `ilk quality-gates report`
+commands:     [...]               # extend the CLI: `ilk quality-gates report`, with args, flags and --help
 ```
 
 Layers require **capabilities**, not each other. `gates` needs `test.command`;

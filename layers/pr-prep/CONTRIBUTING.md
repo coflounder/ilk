@@ -7,7 +7,7 @@ What this layer wants from a proposal:
     A section this layer does not know how to read is the most useful thing you can
     report, because it looks like nothing is wrong — the draft is simply thinner
     than it should be.
-  - If `prprep.evidence-checkable` rejected evidence that was genuinely checkable,
+  - If `pr-prep.evidence-checkable` rejected evidence that was genuinely checkable,
     quote the bullet. The heuristic is deliberately generous and a false positive
     means it is not generous enough in a way this repository has not seen.
   - Say whether you stopped using the command, and at what point. A layer whose

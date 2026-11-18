@@ -5,6 +5,9 @@ facets:
   arc: operations
   kind: process
 ilk: ">=0.2.0"
+examples:
+  - ilk ask-human open --decision "Should retries live in the gateway or the client?"
+  - ilk ask-human list
 
 provides:
   ask.questions: "{{ .Vars.group }}/{{ .Vars.questions_dir }}"
@@ -52,7 +55,7 @@ skills:
     src: skills/ask-a-human.md
 
 checks:
-  - id: ask.blocking
+  - id: ask-human.blocking
     kind: builtin.limit
     title: No blocking question is sitting unanswered
     fix: "Answer the question named above: edit the file, write the `## Answer`, and set `status: answered`. If it turns out not to be blocking after all, set `blocking: false` and say why in the document — a question that stops nothing should not stop everything."
@@ -68,7 +71,7 @@ checks:
   # One that names the two or three things it could be, and what each would mean,
   # can be answered from a phone in fifteen seconds — and the difference between
   # those two is most of whether a repository can run while nobody is watching.
-  - id: ask.options
+  - id: ask-human.options
     title: A decision offers something to choose between
     run: .ilk/bin/ilk-ask-human.sh check-options
     fix: >-
@@ -79,7 +82,7 @@ checks:
       twice. If you genuinely cannot list any, this is not a decision, and
       `kind: decision` is the wrong shape for it.
 
-  - id: ask.answered
+  - id: ask-human.answered
     kind: builtin.section
     title: Answered questions record the answer
     fix: "Add an `## Answer` section saying what was decided and by whom. An answer that lives only in a conversation is one the next session cannot inherit, which is the whole reason the question was written down."
@@ -93,10 +96,22 @@ checks:
 
 commands:
   - name: open
-    summary: "Record a question that blocks you: ilk ask-human open [--decision] \"Should retries live in the gateway?\""
+    summary: Record a question that blocks you, where a person will see it
+    args:
+      - {name: question, required: true, variadic: true, usage: "the question, in a sentence"}
+    flags:
+      - {name: decision, type: bool, usage: record a decision that offers options rather than an open question}
+    examples:
+      - ilk ask-human open "Which region should the staging database live in?"
+      - ilk ask-human open --decision "Should retries live in the gateway or the client?"
     run: .ilk/bin/ilk-ask-human.sh open
   - name: list
-    summary: "Show open questions, blocking ones first: ilk ask-human list"
+    summary: Show open questions, blocking ones first
+    flags:
+      - {name: all, type: bool, usage: include questions that have been answered}
+    examples:
+      - ilk ask-human list
+      - ilk ask-human list --all
     run: .ilk/bin/ilk-ask-human.sh list
 
 contribution:
