@@ -25,7 +25,7 @@ built-in layers, so a fresh repository still needs no network.
 | [`autoresearch`](autoresearch/) | A finding about the world outside the repository cites its sources, says what would change its conclusion, and expires on a date |
 | [`deprecation`](deprecation/) | A deprecation carries a removal date the checks hold you to, and says when the removal is actually finished |
 | [`pr-prep`](pr-prep/) | A pull request description is derived from the plan — outcome, criteria, evidence — rather than written from memory |
-| [`pulumi`](pulumi/) | `preview` is agent work and `up` is human work; every stack has a project file and none carries a plaintext secret |
+| [`infra`](infra/) | `preview` is agent work and `up` is human work; every stack has a project file and none carries a plaintext secret. Pulumi by default, Terraform by changing two settings |
 | [`routine`](routine/) | Scheduled work is a document with an owner, a budget and a review date, and what actually runs it is generated from that document |
 | [`gauntlet`](gauntlet/) | Finished work names who judged it, what it was compared against, and the largest thing still wrong — the builder does not grade its own homework |
 | [`html-wireframe`](html-wireframe/) | Interface work is sketched and agreed before it is built, as one HTML file that opens from disk with no network and no build |
@@ -65,7 +65,7 @@ the source of truth if the tracker everyone else reads agrees with it.
 ## Layers that run code
 
 `blueprint`, `archive`, `ask-human`, `dev-loops`, `gh-projects`, `maintainer`,
-`autoresearch`, `deprecation`, `pr-prep`, `pulumi`, `routine`, `session-summaries` and
+`autoresearch`, `deprecation`, `pr-prep`, `infra`, `routine`, `session-summaries` and
 `html-wireframe` ship shell commands, so adding them requires consent:
 
 ```sh
@@ -200,7 +200,7 @@ refusal and plan-then-apply are already core and already tested.
 leaning on `gh` — reading an API token — is answered by `requires_env:` on a check: the
 variables that carry a credential are named, their presence is tested and their values
 are never read, and a check whose credential is absent skips with a reason rather than
-failing as if the board were empty. `pulumi` is the first layer to use it.
+failing as if the board were empty. `infra` is the first layer to use it.
 
 **What is left is the work.** Copy `layers/gh-projects/`, point it at Linear's API, and
 name the token variable in `requires_env:` — nothing in core needs to change.

@@ -12,12 +12,13 @@ it, the thing to produce is this handoff instead.
 ## When
 
 A preview is clean and the change now needs applying. Somebody says deploy, apply,
-roll out, ship it, or push it to prod. Somebody asks you to run `pulumi up`.
+roll out, ship it, or push it to prod. Somebody asks you to run `pulumi up` or
+`terraform apply`.
 
 ## Procedure
 
 1. **Confirm the preview is clean and current.** Not from memory — from a run since
-   the last edit. `ilk check --only pulumi.preview`.
+   the last edit. `ilk check --only infra.preview`.
 
 2. **Write the handoff.** It is short, and every line is something the person
    applying it cannot reconstruct in ten seconds:
@@ -31,7 +32,8 @@ roll out, ship it, or push it to prod. Somebody asks you to run `pulumi up`.
      perfectly good answer and by far the most useful one.
 
 3. **Give them the command rather than running it.** The apply command for this
-   repository is `infra.up.command`; `ilk info pulumi` prints its value. Present
+   repository is `infra.up.command`; `ilk config get infra.up.command` prints its
+   value. Present
    it as text for a person to run.
 
 4. **Say what you will do afterwards** — re-run the preview to confirm it is

@@ -195,6 +195,14 @@ Check ids start with the layer's short name and a dot: `my-pattern.coverage` in
 id. The prefix keeps ids from colliding across layers, and lets
 `ilk check --only my-pattern` select the whole layer.
 
+A `run:` check that needs a credential names the variable that carries it with
+`requires_env: [PULUMI_ACCESS_TOKEN]`. ilk tests that it is set, never reads it, and
+skips the check with that reason while it is absent, so a missing token does not read
+as a broken repository. An entry may be a template — `requires_env: ["{{ .Vars.credentials }}"]`
+— when which variable carries the credential is the adopter's choice; one that renders
+empty requires nothing. `infra` uses this, because Pulumi Cloud, a self-managed Pulumi
+backend and Terraform each read a different one.
+
 `fix` is mandatory, and the manifest will not validate without it. **A check that can
 only say "invalid" is a bug in the check.** The caller is often an agent that can
 repair the problem itself if told precisely enough what it is — that is the entire

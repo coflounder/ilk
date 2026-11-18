@@ -11,7 +11,7 @@ What this layer wants from a proposal:
     separate layer. Either way we would rather hear it than have every adopter
     quietly rediscover it.
 
-  - If `pulumi.no-plaintext-secrets` fired on something that was not a secret, send
+  - If `infra.no-plaintext-secrets` fired on something that was not a secret, send
     the key name and nothing else. **Never paste the value**, real or redacted. The
     check reads key names because that is the only signal a file carries, and the
     list of credential-shaped names is exactly the kind of thing that only improves
@@ -21,13 +21,11 @@ What this layer wants from a proposal:
   - If it did *not* fire on something that was a secret, that is more urgent than
     anything else on this list. Send the shape of the entry, with a fake value.
 
-  - **The credential story is the known gap.** `requires_env` names
-    `PULUMI_ACCESS_TOKEN`, which is right for Pulumi Cloud and wrong for a
-    self-managed backend, where the credential is `PULUMI_CONFIG_PASSPHRASE` and
-    the backend URL. `requires_env` is a fixed list in the manifest and is not
-    templated, so the layer cannot currently express "one or the other". If you run
-    a self-managed backend, say how you configured around it — that is the input
-    the fix needs.
+  - If you run something other than Pulumi — Terraform, OpenTofu, CDK — say what
+    you set `infra.preview.command`, `infra.up.command` and `credentials` to, and
+    what the shape check made of your stacks. The layer is named for the rule so
+    that the tool is a setting; a tool that needed more than settings is the case
+    that proves it wrong.
 
   - Say whether "the stacks this change touched" was the right granularity. It is
     the union of the merge-base diff, the working tree and untracked files, which
@@ -37,13 +35,13 @@ What this layer wants from a proposal:
 
 ## What is deliberately untested
 
-`pulumi.preview` has no case in `test/checks.yaml`, and cannot have one.
+`infra.preview` has no case in `test/checks.yaml`, and cannot have one.
 
 The assertion harness runs in a sandbox with no credentials, so the check skips —
 and `expect:` accepts only `pass` or `fail`. Asserting it would mean either
 weakening the check until it runs without a backend, or asserting something other
 than what the check does. Both are worse than the gap. `ilk layer test --strict`
-will name `pulumi.preview` as unasserted; that is correct, and it should stay named
+will name `infra.preview` as unasserted; that is correct, and it should stay named
 rather than silenced.
 
 The two file-shape checks are asserted in both directions, which is what covers

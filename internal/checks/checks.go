@@ -259,7 +259,14 @@ func runOne(p *engine.Project, r registered, caps map[string]string, opts Option
 	// A credential lives in the environment, so without this the command runs,
 	// fails to authenticate, and reports a broken repository. Skipping says what
 	// is actually wrong. The values are never read — only their presence.
-	if missing := missingEnv(r.check.RequiresEnv); len(missing) > 0 {
+	names, err := requiredEnv(r)
+	if err != nil {
+		res.Status = StatusError
+		res.Reason = err.Error()
+		res.Duration = time.Since(start)
+		return res
+	}
+	if missing := missingEnv(names); len(missing) > 0 {
 		res.Status = StatusSkip
 		res.Reason = fmt.Sprintf("needs %s in the environment — this check cannot tell an absent credential from a failure, so it declines to guess",
 			strings.Join(missing, ", "))
@@ -343,6 +350,27 @@ func runOne(p *engine.Project, r registered, caps map[string]string, opts Option
 // Without this a check that shells out to a script the layer ships can only
 // receive its configuration by interpolating it into the command string, which
 // works right up to the first value containing a space.
+// requiredEnv renders a check's requires_env entries, dropping any that render
+// empty, and refuses a result that is not a variable name.
+func requiredEnv(r registered) ([]string, error) {
+	var names []string
+	for i, entry := range r.check.RequiresEnv {
+		name, err := render.String(fmt.Sprintf("requires_env[%d]:%s", i, r.check.ID), entry, r.ctx)
+		if err != nil {
+			return nil, err
+		}
+		name = strings.TrimSpace(name)
+		if name == "" {
+			continue
+		}
+		if !manifest.ValidEnvName(name) {
+			return nil, fmt.Errorf("requires_env %q renders to %q, which is not an environment variable name — set the layer variable it reads to one, or to nothing", entry, name)
+		}
+		names = append(names, name)
+	}
+	return names, nil
+}
+
 // missingEnv lists which of the named variables are absent or empty. Only their
 // presence is tested; ilk never reads a credential it was asked to notice.
 func missingEnv(names []string) []string {
