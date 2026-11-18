@@ -122,6 +122,20 @@ fi
 CI=true ILK_FLAG_UPLOAD=1 ILK_VAR_WRANGLER_CONFIG=wrangler.jsonc sh "$bin/ilk-preview-url.sh" feat/x >/dev/null 2>&1
 same "an explicit wrangler_config is passed to wrangler" "$(cat "$FAKE_LOG")" "versions upload --preview-alias feat-x --config wrangler.jsonc"
 
+# Workers Previews are built by `wrangler preview`, not uploaded as versions, so
+# --upload must not upload a version the repository's previews never use.
+cp -R "$here/fixtures/workers-previews/." "$work/wp"
+: >"$FAKE_LOG"
+if out=$(cd "$work/wp" && CI=true ILK_FLAG_UPLOAD=1 sh "$bin/ilk-preview-url.sh" feat/x 2>&1); then
+	fail "--upload refuses for Workers Previews" "$out"
+elif [ -s "$FAKE_LOG" ]; then
+	fail "--upload refuses for Workers Previews, before calling wrangler" "$(cat "$FAKE_LOG")"
+else
+	case $out in *"wrangler preview"*) pass "--upload refuses for Workers Previews, before calling wrangler" ;; *) fail "--upload refuses for Workers Previews and says why" "$out" ;; esac
+fi
+out=$(cd "$work/wp" && sh "$bin/ilk-preview-url.sh" feat/x)
+same "a Workers Preview's URL is worked out the same way" "$out" "https://feat-x-shop.acme.workers.dev"
+
 # --- open --------------------------------------------------------------------
 
 secret=$(printf 'deadbeef%.0s' 1 2 3 4 5 6 7 8)

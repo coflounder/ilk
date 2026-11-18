@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "shop",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "account_id": "<your-account-id>",
+  "workers_dev": false,
+  "preview_urls": true,
+  "routes": [{ "pattern": "shop.example.com", "custom_domain": true }],
+  "assets": { "directory": "./dist", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
+  "durable_objects": {
+    // Lives here. Built as Workers Previews, each preview gets its own namespace and a URL.
+    "bindings": [{ "name": "CART", "class_name": "Cart" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Cart"] }],
+  "kv_namespaces": [{ "binding": "CACHE", "id": "<production-kv-id>" }],
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "<team>.cloudflareaccess.com",
+    "ACCESS_AUD": "<production-access-aud>",
+    "ACCESS_AUD_PREVIEW": "<preview-access-aud>"
+  },
+  // Workers Previews (`wrangler preview`) inherit no bindings: only these reach a preview.
+  "previews": {
+    "durable_objects": { "bindings": [{ "name": "CART", "class_name": "Cart" }] },
+    "kv_namespaces": [{ "binding": "CACHE", "id": "<preview-kv-id>" }],
+    "vars": {
+      "ACCESS_TEAM_DOMAIN": "<team>.cloudflareaccess.com",
+      "ACCESS_AUD": "<production-access-aud>",
+      "ACCESS_AUD_PREVIEW": "<preview-access-aud>"
+    }
+  }
+}

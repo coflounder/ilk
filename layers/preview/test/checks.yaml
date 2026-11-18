@@ -78,6 +78,10 @@
   fixture: durable-object-here
   expect: fail
   why: Cloudflare makes no preview URL for a Worker that implements a Durable Object, so every preview answers error 1042.
+- check: preview.no-durable-objects
+  fixture: workers-previews
+  expect: pass
+  why: Workers Previews give each preview its own Durable Object namespace and a URL, so a class implemented here no longer costs the repository its previews.
 
 - check: preview.separate-data
   fixture: compliant
@@ -91,6 +95,14 @@
   fixture: durable-object-elsewhere
   expect: fail
   why: Another Worker's Durable Object is still production's state, whichever Worker implements it.
+- check: preview.separate-data
+  fixture: workers-previews
+  expect: pass
+  why: Workers Previews inherit no bindings, so production's KV bound only at the top level does not reach a preview, and the previews block binds its own namespace and a per-preview Durable Object.
+- check: preview.separate-data
+  fixture: workers-previews-shared
+  expect: fail
+  why: A previews block that binds production's KV id, or another Worker's Durable Object, gives every preview production's data, however the block is spelled.
 
 - check: preview.no-committed-token
   fixture: compliant

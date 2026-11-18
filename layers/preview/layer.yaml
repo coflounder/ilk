@@ -1,5 +1,5 @@
 id: ilk/preview
-version: 0.1.0
+version: 0.2.0
 summary: A preview of every pull request, behind sign-in, that an agent can find and open read-only — and checks that the preview is not quietly public, shared with production, or missing.
 facets:
   arc: release
@@ -175,9 +175,12 @@ checks:
     findings: jsonl
     fix: >-
       Cloudflare makes no preview URL for a Worker that implements a Durable
-      Object: versions upload, and their URLs answer error 1042. Move each class
-      named above into a Worker of its own and bind it here with `script_name`
-      — a cross-script binding costs this Worker nothing. Until then this
+      Object: versions upload, and their URLs answer error 1042. Either build
+      previews as Workers Previews instead — Workers Builds runs `wrangler
+      preview` for a non-production branch, configured by a `previews` block in
+      the Wrangler configuration, and each preview gets its own namespace and a
+      URL — or move each class named above into a Worker of its own and bind it
+      here with `script_name`, which costs this Worker nothing. Until then this
       repository has no previews, and this check says so rather than letting a
       dead URL look like a preview. A change that adds, renames or deletes a
       class cannot be uploaded as a version either; that ships with the
@@ -189,8 +192,11 @@ checks:
     fix: >-
       A preview version runs with the Worker's own bindings, so the bindings
       named above are production's, and a write made in a preview is a write
-      to production. Either give previews data of their own — a separate
-      preview Worker with its own KV, D1, R2 and Durable Objects — or accept it
+      to production. With a `previews` block (Workers Previews), only what it
+      binds reaches a preview: bind preview stores there, not production's ids,
+      and a Durable Object class this Worker implements is already separate per
+      preview. Otherwise give previews data of their own — a separate preview
+      Worker with its own KV, D1, R2 and Durable Objects — or accept it
       on purpose: confirm agents open previews only with the Access service
       token, that the Worker refuses every write from a service token (a
       service-token request carries `common_name` and no `email`), then run

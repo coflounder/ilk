@@ -160,6 +160,12 @@ preview-audience)
 
 no-durable-objects)
 	need_config
+	# Workers Previews (`wrangler preview`, configured by a `previews` block)
+	# give each preview its own Durable Object namespace and a URL, so a class
+	# implemented here no longer costs the repository its previews.
+	if has_top previews; then
+		done_
+	fi
 	# A binding without script_name is a class this Worker implements; with one,
 	# it is somebody else's Worker and costs this one nothing.
 	awk -F '\t' '
@@ -182,8 +188,51 @@ separate-data)
 		done_
 	fi
 	need_config
+	state="kv_namespaces d1_databases r2_buckets durable_objects queues hyperdrive vectorize workflows services"
+	if has_top previews; then
+		# Workers Previews inherit no bindings: only what the `previews` block
+		# binds reaches a preview. A Durable Object class this Worker implements
+		# gets a namespace per preview, so it starts empty and is not
+		# production's. A binding into another Worker's Durable Object is that
+		# Worker's data. Anything else is shared when it names the same store
+		# — KV id, database, bucket, queue, index, service — production binds.
+		awk -F '\t' -v kinds="$state" '
+			BEGIN {
+				n = split(kinds, k, " "); for (i = 1; i <= n; i++) want[k[i]] = 1
+				split("id database_id bucket_name queue index_name service script_name", f, " ")
+				for (i in f) ident[f[i]] = 1
+			}
+			{
+				side = "prod"; p = $1
+				if (index(p, "previews.") == 1) { side = "prev"; p = substr(p, 10) }
+				split(p, part, /[.[]/)
+				if (!(part[1] in want)) next
+				if (!match(p, /^[a-z_]+(\.bindings)?\[[0-9]+\]/)) next
+				b = substr(p, 1, RLENGTH); field = substr(p, RLENGTH + 2)
+				if (side == "prod") { if (field in ident) seen[part[1] SUBSEP field SUBSEP $2] = 1; next }
+				kind[b] = part[1]
+				if (field == "name" || field == "binding") name[b] = $2
+				if (field == "script_name") ext[b] = $2
+				if (field in ident) { idf[b] = field; idv[b] = $2 }
+			}
+			END {
+				for (b in kind) {
+					label = (b in name) ? name[b] : b
+					if (kind[b] == "durable_objects") {
+						if (b in ext) print kind[b] "\t" label ", a Durable Object of the Worker " ext[b] ", whose data production reads too"
+						continue
+					}
+					if (!(b in idf)) print kind[b] "\t" label ", and nothing in it says which store, so it is taken to be production'"'"'s"
+					else if ((kind[b] SUBSEP idf[b] SUBSEP idv[b]) in seen) print kind[b] "\t" label ", the same " idf[b] " production binds"
+				}
+			}
+		' "$flat" | sort -u | while IFS='	' read -r b what; do
+			finding "$cfg" "previews.$b binds $what — a write in a preview is a write to production's data"
+		done | grep . && exit 1
+		done_
+	fi
 	# Bindings that hold or reach state. Workers AI, assets and plain vars do not.
-	for b in kv_namespaces d1_databases r2_buckets durable_objects queues hyperdrive vectorize workflows services; do
+	for b in $state; do
 		if has_top "$b"; then
 			finding "$cfg" "$b is bound at the top level, and every preview version runs with the same $b as production"
 		fi

@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "shop",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "account_id": "<your-account-id>",
+  "workers_dev": false,
+  "preview_urls": true,
+  "routes": [{ "pattern": "shop.example.com", "custom_domain": true }],
+  "durable_objects": {
+    "bindings": [
+      { "name": "CART", "class_name": "Cart" },
+      { "name": "STORE", "class_name": "Store", "script_name": "shop-store" }
+    ]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Cart"] }],
+  "kv_namespaces": [{ "binding": "CACHE", "id": "<production-kv-id>" }],
+  "vars": { "ACCESS_AUD_PREVIEW": "<preview-access-aud>" },
+  "previews": {
+    "durable_objects": {
+      "bindings": [
+        { "name": "CART", "class_name": "Cart" },
+        // Another Worker's object: production's data, whichever side binds it.
+        { "name": "STORE", "class_name": "Store", "script_name": "shop-store" }
+      ]
+    },
+    // The same namespace id as production.
+    "kv_namespaces": [{ "binding": "CACHE", "id": "<production-kv-id>" }],
+    "vars": { "ACCESS_AUD_PREVIEW": "<preview-access-aud>" }
+  }
+}

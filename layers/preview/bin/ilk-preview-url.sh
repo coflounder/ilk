@@ -98,6 +98,10 @@ if [ "$upload" = 1 ]; then
 		fail not_in_ci "--upload runs only in CI (CI or WORKERS_CI set); a preview built on a laptop is a preview of an unknown tree" \
 			"let the pull request's build upload it (Cloudflare Workers Builds or the CI pipeline), then run ilk preview url without --upload"
 	fi
+	if [ -n "$(get previews)" ]; then
+		fail workers_previews "$cfg has a previews block, so this Worker's previews are Workers Previews, built by \`wrangler preview\` rather than uploaded as versions" \
+			"let the pull request's build make the preview (Workers Builds runs wrangler preview for a non-production branch), then run ilk preview url without --upload"
+	fi
 	set -- versions upload --preview-alias "$alias"
 	if [ "${ILK_VAR_WRANGLER_CONFIG:-auto}" != auto ]; then
 		set -- "$@" --config "$cfg"
