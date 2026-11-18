@@ -10,21 +10,11 @@
 set -eu
 
 dir=${ILK_VAR_PLANS_DIR:-plans}
+# ilk parses --all and hands it over as ILK_FLAG_ALL.
 show_all=0
-for arg in "$@"; do
-	case "$arg" in
-	--all) show_all=1 ;;
-	-h | --help)
-		echo "usage: ilk blueprint next [--all]" >&2
-		echo "  --all   include specs that are done or dropped" >&2
-		exit 2
-		;;
-	*)
-		echo "ilk blueprint next: unknown argument $arg" >&2
-		exit 2
-		;;
-	esac
-done
+if [ "${ILK_FLAG_ALL:-0}" = 1 ]; then
+	show_all=1
+fi
 
 if [ ! -d "$dir" ]; then
 	echo "ilk blueprint next: no $dir/ directory — run \`ilk apply\` first" >&2

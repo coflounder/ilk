@@ -15,7 +15,7 @@ ilk add gh:coflounder/ilk/layers/session-summaries --allow-exec
 ilk agents add codex
 ilk agents add pi
 ilk mcp list
-ilk check --only sessions.runtime
+ilk check --only session-summaries.runtime
 ```
 
 For an unpublished local checkout, use its absolute layer directory instead of the

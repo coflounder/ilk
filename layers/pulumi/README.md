@@ -61,9 +61,9 @@ whole estate.
 
 | Check | Holds |
 |---|---|
-| `infra.stack-shape` | Every directory under `infra/` has a `Pulumi.yaml`. A directory without one is invisible to pulumi, so the failure mode is silence. |
-| `infra.no-plaintext-secrets` | No `Pulumi.yaml` or `Pulumi.*.yaml` carries a credential-shaped key with a plain value. The `secure:` form written by `pulumi config set --secret` is the only acceptable one. |
-| `infra.preview` | Preview is clean for the stacks this change touched. |
+| `pulumi.stack-shape` | Every directory under `infra/` has a `Pulumi.yaml`. A directory without one is invisible to pulumi, so the failure mode is silence. |
+| `pulumi.no-plaintext-secrets` | No `Pulumi.yaml` or `Pulumi.*.yaml` carries a credential-shaped key with a plain value. The `secure:` form written by `pulumi config set --secret` is the only acceptable one. |
+| `pulumi.preview` | Preview is clean for the stacks this change touched. |
 
 The first two are wired to a blocking `pre-commit` hook. The preview is not: it
 needs a network and somebody else's backend, and a blocking hook that waits on an
@@ -71,12 +71,12 @@ API teaches people to reach for `--no-verify`, which costs you every gate.
 
 ## Credentials
 
-`infra.preview` declares `requires_env: [PULUMI_ACCESS_TOKEN]`. Without it the
+`pulumi.preview` declares `requires_env: [PULUMI_ACCESS_TOKEN]`. Without it the
 check **skips with a reason** rather than running and reporting an authentication
 failure as a broken repository:
 
 ```
-· infra.preview  needs PULUMI_ACCESS_TOKEN in the environment — this check cannot
+· pulumi.preview  needs PULUMI_ACCESS_TOKEN in the environment — this check cannot
                  tell an absent credential from a failure, so it declines to guess
 ```
 

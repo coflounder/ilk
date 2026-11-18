@@ -280,7 +280,8 @@ list)
 	;;
 
 sync)
-	if [ "${1:-}" = --remove ]; then
+	# ilk parses --remove and hands it over as ILK_FLAG_REMOVE.
+	if [ "${ILK_FLAG_REMOVE:-0}" = 1 ]; then
 		# Not `[ ... ] && exit 0`: under `set -e` a false test is a failed command,
 		# so the every-other-runner case would exit 1 having done nothing.
 		if [ "$runner" = none ]; then
@@ -400,16 +401,17 @@ check-reviewed)
 	;;
 
 run)
-	id=""
-	cron=""
-	case "${1:-}" in
-	--schedule)
-		cron=${2:-}
-		[ -n "$cron" ] || { echo "ilk routine run: --schedule needs a cron expression" >&2; exit 2; }
-		;;
-	"") echo "usage: ilk routine run <id> | --schedule '<cron>'" >&2; exit 2 ;;
-	*) id=$1 ;;
-	esac
+	# ilk parses --schedule and hands it over as ILK_FLAG_SCHEDULE.
+	id=${1:-}
+	cron=${ILK_FLAG_SCHEDULE:-}
+	if [ -n "$id" ] && [ -n "$cron" ]; then
+		echo "ilk routine run: give a routine id or --schedule, not both" >&2
+		exit 2
+	fi
+	if [ -z "$id" ] && [ -z "$cron" ]; then
+		echo "usage: ilk routine run <id> | --schedule '<cron>'" >&2
+		exit 2
+	fi
 
 	# A budget that silently does not apply is worse than no budget, so a missing
 	# `timeout` is a failure rather than a licence to run unbounded.

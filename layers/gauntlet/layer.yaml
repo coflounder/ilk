@@ -5,6 +5,8 @@ facets:
   arc: quality
   kind: gate
 ilk: ">=0.2.0"
+examples:
+  - ilk check --only gauntlet
 
 # Entirely declarative: no scripts, no capability to configure, nothing to consent
 # to. Running the critic is the skill's business, because what a critic is differs

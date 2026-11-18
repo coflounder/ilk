@@ -112,8 +112,14 @@ nothing, rather than declining silently with 0. Under `--json` an error is one o
 stderr, `{"error": {"code", "message", "exit", "fix"}}`, and `--json` on a write applies
 without asking. `ilk hook run` and layer commands are the two exceptions: the first
 speaks each harness's hook protocol, and the second passes its script's exit code
-through. A layer command never sees ilk's own `--json`, `-C` or `--dir`; it gets
-`ILK_OUTPUT=json|text`, and anything after `--` reaches the script verbatim.
+through once ilk has accepted the call. A layer command is a real command built from
+its manifest's `args`, `flags` and `examples`: ilk parses it, so a missing argument or
+unknown flag exits 2 before the script runs, and the script gets arguments as positional
+parameters and flags as `ILK_FLAG_<NAME>`. It never sees ilk's own `--json`, `-C` or
+`--dir`; it gets `ILK_OUTPUT=json|text`, and `--json` is refused (exit 2,
+`json_unsupported`) unless the command declares `json: true`. A script check keeps the
+same kind of contract: exit 0 passes, 1 fails, anything else is an error in the check
+itself, and with `findings: jsonl` it reports per-file findings as JSON lines.
 
 **Writing to somebody else's system reuses the same discipline.** `ilk mirror`
 reconciles record documents with a tracker, and the shape is `plan` then `apply`

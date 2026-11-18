@@ -447,7 +447,7 @@ func diffSnapshots(before, after map[string]string, seeded map[string]bool) (res
 }
 
 func scaffoldManifest(id, name string) string {
-	return fmt.Sprintf(`id: %s
+	return fmt.Sprintf(`id: %[1]s
 version: 0.1.0
 summary: One line describing what adding this layer gets you.
 facets:
@@ -455,11 +455,16 @@ facets:
   kind: process       # record | process | gate | harness | integration | target
 ilk: ">=0.1.0"
 
+# The layer in use, shown by `+"`ilk info`"+` before anyone adds it.
+# examples:
+#   - ilk check --only %[2]s
+#   - ilk %[2]s greet Ada
+
 # Capabilities, not layer names. Anything that supplies these satisfies them.
 # requires:
 #   - test.command
 # provides:
-#   - %s.done
+#   - %[2]s.done
 
 variables:
   greeting:
@@ -479,16 +484,33 @@ skills:
     description: Replace this with the situation that should make an agent read the skill.
     src: skills/do-the-thing.md
 
+# Check ids start with the layer's name. A `+"`run:`"+` check exits 0 to pass, 1 to
+# fail, and anything else when it could not run. With `+"`findings: jsonl`"+` it may
+# print one {"path": ..., "line": ..., "message": ...} object per line of stdout.
 # checks:
-#   - id: %s.example
+#   - id: %[2]s.example
 #     title: Something that must be true
 #     run: "test -f README.md"
 #     fix: "Create a README.md at the repository root."
 
+# Commands run as `+"`ilk %[2]s <name>`"+`. ilk parses the arguments and flags:
+# arguments reach the script as $1, $2…; flags as ILK_FLAG_<NAME>.
+# commands:
+#   - name: greet
+#     summary: Say hello to someone
+#     args:
+#       - {name: who, required: true, usage: the person to greet}
+#     flags:
+#       - {name: loud, type: bool, usage: shout it}
+#     examples:
+#       - ilk %[2]s greet Ada --loud
+#     json: false      # true when the script honours ILK_OUTPUT=json
+#     run: .ilk/bin/greet.sh
+
 # hooks:
 #   - event: pre-commit
 #     blocking: true
-#     run: ilk check --only %s.example
+#     run: ilk check --only %[2]s.example
 
 # mcp:
 #   - name: my-server
@@ -496,7 +518,7 @@ skills:
 #     command: npx
 #     args: ["-y", "some-mcp-server"]
 #     requires_env: [SOME_API_KEY]
-`, id, name, name, name)
+`, id, name)
 }
 
 func scaffoldInstructions(name string) string {

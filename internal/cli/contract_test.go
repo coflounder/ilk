@@ -26,6 +26,9 @@ files:
 commands:
   - name: args
     summary: Record the arguments and output mode it was given.
+    args:
+      - {name: words, variadic: true, usage: anything}
+    json: true
     run: sh -c 'printf "%s\n" "$@" > args.txt; printf "%s" "$ILK_OUTPUT" > output.txt' args
 `
 

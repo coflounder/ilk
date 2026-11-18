@@ -91,7 +91,7 @@ EOF
 	echo
 	# Relative to the spec, not to the repository root: links are resolved from
 	# the document they are written in, and a root-relative path here would be a
-	# broken link that `wireframe.exists` then reports as a wireframe nobody drew.
+	# broken link that `html-wireframe.exists` then reports as a wireframe nobody drew.
 	echo "    - [$title](../${ILK_VAR_WIREFRAMES_DIR:-wireframes}/WF-$slug.html)"
 	echo
 	echo "Draw the empty and error states too — they are where the disagreements are."

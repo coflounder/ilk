@@ -5,6 +5,10 @@ facets:
   arc: context
   kind: record
 ilk: ">=0.2.0"
+examples:
+  - ilk record new docs "Payments overview"
+  - ilk record log "Moved retries into the gateway"
+  - ilk check --only record
 
 # Each capability carries the path it names, so a layer that needs the plans can
 # find them instead of redeclaring `plans_dir: plans` and hoping it still matches.
@@ -181,13 +185,30 @@ hooks:
 
 commands:
   - name: new
-    summary: "Create a record document with correct naming and frontmatter: ilk record new <docs|plans|log> <title>"
+    summary: Create a record document with correct naming and frontmatter
+    args:
+      - {name: kind, required: true, usage: "docs, plans or log — or the directory itself"}
+      - {name: title, required: true, variadic: true, usage: the document's title; the file name is made from it}
+    examples:
+      - ilk record new docs "Payments overview"
+      - ilk record new plans "Checkout totals"
     run: .ilk/bin/ilk-record-new.sh
   - name: log
-    summary: "Append a dated entry to the log: ilk record log <title>"
+    summary: Append a dated entry to the log
+    args:
+      - {name: title, required: true, variadic: true, usage: "what happened, in a line"}
+    examples:
+      - ilk record log "Moved retries into the gateway"
     run: .ilk/bin/ilk-record-new.sh log
   - name: review
-    summary: "Show what changed under a document's covers: paths, then record that you have read it: ilk record review <file>"
+    summary: "Show what changed under a document's covers: paths, then record that you have read it"
+    args:
+      - {name: file, required: true, usage: the document to review}
+    flags:
+      - {name: show, type: bool, usage: "print what changed and stop, without recording the review"}
+    examples:
+      - ilk record review docs/reference/ARCH-payments.md
+      - ilk record review docs/reference/ARCH-payments.md --show
     run: .ilk/bin/ilk-record-review.sh
 
 contribution:

@@ -5,6 +5,9 @@ facets:
   arc: planning
   kind: process
 ilk: ">=0.2.0"
+examples:
+  - ilk blueprint next
+  - ilk check --only blueprint
 
 # The plan documents live in the record's plans directory. Requiring the
 # capability rather than the layer means anything that provides a plans directory
@@ -106,8 +109,13 @@ hooks:
 
 commands:
   - name: next
-    summary: "Show the specs that are ready to work on, grouped by milestone: ilk blueprint next"
-    run: .ilk/bin/ilk-blueprint-next.sh
+    summary: Show the specs that are ready to work on, grouped by milestone
+    flags:
+      - {name: all, type: bool, usage: include specs that are done or dropped}
+    examples:
+      - ilk blueprint next
+      - ilk blueprint next --all
+    run: 'ILK_VAR_PLANS_DIR="{{ index .Caps "record.plans" }}" .ilk/bin/ilk-blueprint-next.sh'
 
 contribution:
   repo: coflounder/ilk

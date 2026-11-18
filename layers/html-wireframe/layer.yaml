@@ -5,6 +5,9 @@ facets:
   arc: planning
   kind: process
 ilk: ">=0.2.0"
+examples:
+  - ilk html-wireframe new "Checkout — payment step"
+  - ilk check --only html-wireframe
 
 # The pair with `visual-qa` is the point. Same trigger — `ui: true` — and two
 # artifacts either side of the work: the wireframe is what was agreed, the
@@ -58,7 +61,7 @@ skills:
     src: skills/sketch-before-building.md
 
 checks:
-  - id: wireframe.agreed
+  - id: html-wireframe.agreed
     kind: builtin.section
     title: Interface work is sketched before it is built
     fix: >-
@@ -75,7 +78,7 @@ checks:
         ui: "true"
       exempt: [README.md]
 
-  - id: wireframe.exists
+  - id: html-wireframe.exists
     kind: builtin.links
     title: Linked wireframes actually exist
     fix: "Draw the wireframe and commit it, or fix the path. A link to a sketch nobody drew reads as agreement that never happened, which is worse than no link at all."
@@ -87,7 +90,7 @@ checks:
   # a wireframe that runs code is a prototype — people react to a prototype as
   # though it were the product, which is the disagreement this layer exists to
   # provoke early, arriving late and about the wrong thing.
-  - id: wireframe.self-contained
+  - id: html-wireframe.self-contained
     title: A wireframe opens on its own
     run: .ilk/bin/ilk-wireframe.sh check-self-contained
     fix: >-
@@ -98,7 +101,11 @@ checks:
 
 commands:
   - name: new
-    summary: 'Start a wireframe: ilk html-wireframe new "Checkout — payment step"'
+    summary: Start a wireframe
+    args:
+      - {name: title, required: true, variadic: true, usage: the screen or step being sketched}
+    examples:
+      - ilk html-wireframe new "Checkout — payment step"
     run: '.ilk/bin/ilk-wireframe.sh new'
 
 contribution:

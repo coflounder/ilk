@@ -5,6 +5,8 @@ facets:
   arc: planning
   kind: gate
 ilk: ">=0.2.0"
+examples:
+  - ilk check --only plan-hygiene
 
 requires:
   - record.plans
@@ -21,7 +23,7 @@ variables:
       kind, and it is invisible until somebody counts.
 
 checks:
-  - id: hygiene.wip
+  - id: plan-hygiene.wip
     kind: builtin.limit
     title: Work in progress is within the limit
     fix: "Finish something before starting something else, or move one of these back to `status: proposed`. If the limit is genuinely wrong for this team, raise `wip_limit` deliberately — but a limit you raise whenever you hit it is not a limit."
@@ -32,7 +34,7 @@ checks:
         status: active
       exempt: [README.md]
 
-  - id: hygiene.owner
+  - id: plan-hygiene.owner
     kind: builtin.frontmatter
     title: Active work has somebody accountable for it
     fix: "Add `owner:` to the frontmatter naming a person or a team. Work that is in progress with nobody named is work that stalls without anybody noticing."
@@ -43,7 +45,7 @@ checks:
         status: active
       exempt: [README.md]
 
-  - id: hygiene.evidence
+  - id: plan-hygiene.evidence
     kind: builtin.section
     title: Finished work says how it was verified
     fix: "Add an `## Evidence` section to the completed document: the commands that were run and what they said, the pull request, the acceptance criteria and what settles each. \"Done\" is a claim; this is what makes it checkable by somebody who was not there."

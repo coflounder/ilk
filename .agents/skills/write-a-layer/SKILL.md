@@ -76,9 +76,46 @@ The manifest will not validate without `fix`. Write it as an instruction to some
 who has the failure in front of them and no other context — the caller is often an
 agent that can repair the problem itself if told precisely enough what it is.
 
+A check's id starts with the layer's name and a dot — `my-pattern.coverage` — or the
+manifest will not validate. That is what lets `ilk check --only my-pattern` select
+the whole layer.
+
+A `run:` script exits **0 to pass, 1 to fail, and anything else when it could not
+run**; ilk reports the last as an error, not as a fault in the repository. Wrap a
+tool whose failure codes are not 1, as the gates layer does. To report per-file
+problems, declare `findings: jsonl` and print one
+`{"path": "...", "line": 3, "message": "..."}` per line of stdout; a line that is not
+one is skipped with a warning.
+
 Built-in kinds that need no script: `builtin.frontmatter`, `builtin.naming`,
 `builtin.links`, `builtin.references`, `builtin.section`, `builtin.stale`,
-`builtin.coverage`.
+`builtin.coverage`, `builtin.limit`, `builtin.forbid`.
+
+## Commands are declared, and ilk parses them
+
+```yaml
+commands:
+  - name: report
+    summary: Print the coverage report
+    args:
+      - {name: package, required: true, usage: the package to report on}
+    flags:
+      - {name: open, short: o, type: bool, usage: open the report when it is written}
+      - {name: threshold, type: int, default: "80", usage: the coverage to report against}
+    examples:
+      - ilk my-pattern report ./internal/payments -o
+    json: false         # true only if the script honours ILK_OUTPUT=json
+    run: .ilk/bin/report.sh
+```
+
+ilk turns this into a real `ilk my-pattern report` with usage, `--help`, examples and
+completion, and refuses a missing argument, an extra one or an unknown flag with exit
+2 before the script runs. Arguments arrive as `$1`, `$2`…; flags as `ILK_FLAG_<NAME>`
+(`ILK_FLAG_OPEN=1`, `ILK_FLAG_THRESHOLD=80`) — so the script never parses flags
+itself. `--json` is refused unless the command declares `json: true`.
+
+Give the layer itself `examples:` too: `ilk info` shows them first, so a reader sees
+the layer in use before adding it.
 
 ## MCP servers are declared, not configured
 
@@ -143,7 +180,7 @@ your assurance.
 ## Versioning
 
 Breaking: removing or renaming a check id (somebody's hook references it), removing a
-command, changing a `managed` file's `dest` (the old one is orphaned), adding a
+command, an argument or a flag, making an argument required, changing a `managed` file's `dest` (the old one is orphaned), adding a
 `requires:` (existing adopters start failing to satisfy it).
 
 Minor: adding a check, a skill or an instruction. Growing your instruction budget is

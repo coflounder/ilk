@@ -5,7 +5,7 @@ contradicted.
 
 ## When
 
-`ilk check` reports `research.fresh`; `ilk autoresearch due` lists something; or you
+`ilk check` reports `autoresearch.fresh`; `ilk autoresearch due` lists something; or you
 have just watched the world disagree with a document in
 `{{ index .Caps "research.findings" }}/`.
 

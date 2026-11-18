@@ -31,7 +31,7 @@ class InstalledTests(unittest.TestCase):
             run("git", "commit", "--allow-empty", "-qm", "initial")
             run(str(binary), "init", "-y", "--test-command", "true")
             run(str(binary), "add", str(LAYER), "--allow-exec", "-y")
-            run(str(binary), "check", "--only", "sessions.runtime")
+            run(str(binary), "check", "--only", "session-summaries.runtime")
             settings = json.loads((root / ".claude/settings.json").read_text())
             self.assertIn("Stop", settings["hooks"])
             config = json.loads((root / ".mcp.json").read_text())

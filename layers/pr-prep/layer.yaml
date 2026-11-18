@@ -5,6 +5,9 @@ facets:
   arc: release
   kind: process
 ilk: ">=0.2.0"
+examples:
+  - ilk pr-prep draft SPEC-checkout-totals > body.md
+  - gh pr create --title "$(ilk pr-prep draft SPEC-checkout-totals --title)" --body-file body.md
 
 # The document a description is derived from lives in the record's plans
 # directory. Requiring the capability rather than the layer means anything that
@@ -44,7 +47,7 @@ skills:
     src: skills/draft-a-pull-request.md
 
 checks:
-  - id: prprep.criteria-settled
+  - id: pr-prep.criteria-settled
     kind: builtin.forbid
     title: Finished work leaves no acceptance criterion unticked
     requires: record.plans
@@ -60,7 +63,7 @@ checks:
         - text: "* [ ]"
           reason: "an acceptance criterion is still unticked on work marked {{ .Vars.ship_status }}"
 
-  - id: prprep.evidence-checkable
+  - id: pr-prep.evidence-checkable
     title: Finished work cites evidence somebody else can open
     requires: record.plans
     run: 'ILK_PLANS_DIR="{{ index .Caps "record.plans" }}" .ilk/bin/ilk-prprep-evidence.sh'
@@ -70,11 +73,18 @@ hooks:
   - event: pre-push
     name: pr-prep
     blocking: false
-    run: ilk check --only prprep.criteria-settled,prprep.evidence-checkable
+    run: ilk check --only pr-prep.criteria-settled,pr-prep.evidence-checkable
 
 commands:
   - name: draft
-    summary: "Assemble a pull request description from a plan document: ilk pr-prep draft <document> [--title]"
+    summary: Assemble a pull request description from a plan document
+    args:
+      - {name: document, usage: "the plan document, by path or name; without it, the plans are listed"}
+    flags:
+      - {name: title, type: bool, usage: print the pull request title instead of the body}
+    examples:
+      - ilk pr-prep draft docs/plans/SPEC-checkout-totals.md
+      - ilk pr-prep draft SPEC-checkout-totals --title
     run: 'ILK_PLANS_DIR="{{ index .Caps "record.plans" }}" .ilk/bin/ilk-prprep-draft.sh'
 
 contribution:

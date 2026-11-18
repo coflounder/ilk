@@ -17,7 +17,7 @@ roll out, ship it, or push it to prod. Somebody asks you to run `pulumi up`.
 ## Procedure
 
 1. **Confirm the preview is clean and current.** Not from memory — from a run since
-   the last edit. `ilk check --only infra.preview`.
+   the last edit. `ilk check --only pulumi.preview`.
 
 2. **Write the handoff.** It is short, and every line is something the person
    applying it cannot reconstruct in ten seconds:

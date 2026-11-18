@@ -2,7 +2,7 @@
 id: ref-writing-layers
 title: Writing a layer
 status: current
-updated: 2026-09-18
+updated: 2026-11-18
 covers:
   - internal/manifest/**
   - internal/builtin/layers/**
@@ -41,7 +41,13 @@ facets:
   arc: quality                # context | planning | execution | quality | release | operations
   kind: process               # record | process | gate | harness | integration | target
 ilk: ">=0.1.0"
+examples:                     # the layer in use, shown by `ilk info`
+  - ilk my-pattern report
+  - ilk check --only my-pattern
 ```
+
+`examples:` are what `ilk info` leads with, so somebody deciding whether to add the
+layer sees it being used before they read what it contains. One command line each.
 
 Facets are advisory tags for discovery, not a taxonomy you have to fit into. A layer
 that is memory *and* execution *and* verification at once is normal; pick whichever
@@ -184,6 +190,11 @@ checks:
           example: ARCH-overview.md
 ```
 
+Check ids start with the layer's short name and a dot: `my-pattern.coverage` in
+`you/my-pattern`. `ilk layer validate`, and every load of a layer, refuse any other
+id. The prefix keeps ids from colliding across layers, and lets
+`ilk check --only my-pattern` select the whole layer.
+
 `fix` is mandatory, and the manifest will not validate without it. **A check that can
 only say "invalid" is a bug in the check.** The caller is often an agent that can
 repair the problem itself if told precisely enough what it is — that is the entire
@@ -194,7 +205,52 @@ no other context.
 
 Built-in kinds: `builtin.frontmatter`, `builtin.naming`, `builtin.links`,
 `builtin.stale`, `builtin.coverage`, `builtin.drift`, `builtin.budget`,
-`builtin.conflicts`.
+`builtin.conflicts`, `builtin.references`, `builtin.section`, `builtin.limit`,
+`builtin.forbid`.
+
+### Script checks: the exit contract and findings
+
+A `run:` check's exit code decides its result:
+
+| exit | result | meaning |
+|------|--------|---------|
+| 0 | pass | the repository is right |
+| 1 | fail | the repository is wrong; the fix applies |
+| anything else | error | the check itself could not run — a missing script (127), a crash, a usage mistake |
+
+An error still fails `ilk check`, but it is reported as "could not run" rather than
+as a fault in the repository, so a missing script never sends an agent off to fix
+code that is fine. Write your script to exit 1 for what it finds and leave every
+other code for what went wrong. When the command is somebody else's tool whose
+failure codes are not 1 — a test runner, `make` — map them at the boundary, as the
+gates layer does:
+
+```yaml
+run: '( {{ index .Caps "test.command" }} ) || { s=$?; [ "$s" -ge 126 ] && exit "$s"; exit 1; }'
+```
+
+A script check can report findings per file, the way builtins do, by declaring
+`findings: jsonl` and printing one JSON object per line of stdout:
+
+```yaml
+checks:
+  - id: my-pattern.owners
+    run: .ilk/bin/owners.sh
+    findings: jsonl
+    fix: "Add an `owner:` to each document named above."
+```
+
+```sh
+printf '{"path":"%s","line":%d,"message":"%s"}\n' "$file" 1 "no owner:"
+exit 1
+```
+
+`message` is required; `path` and `line` are optional. They appear in `ilk check`
+and its `--json` output exactly as a builtin's findings do. A line that is not such
+an object is skipped with a warning naming the line, so a stray `echo` costs a
+warning, not the check. Stderr is kept as the check's output. The exit code still
+decides pass or fail: findings from a script that exits 0 are reported with a
+warning, and a script that exits 1 without printing any gets a generic finding.
 
 ### A note on `builtin.stale`
 
@@ -268,13 +324,49 @@ name refuse to plan, rather than one silently winning.
 ```yaml
 commands:
   - name: report
-    summary: "Print the coverage report: ilk my-pattern report [--format json]"
+    summary: Print the coverage report
+    args:
+      - {name: package, required: true, usage: the package to report on}
+      - {name: more, variadic: true, usage: further packages}
+    flags:
+      - {name: format, usage: "text or html"}
+      - {name: open, short: o, type: bool, usage: open the report when it is written}
+      - {name: threshold, type: int, default: "80", usage: the coverage to report against}
+    examples:
+      - ilk my-pattern report ./internal/payments
+      - ilk my-pattern report ./internal/payments --format html -o
+    json: true          # the script honours ILK_OUTPUT=json
     run: ./scripts/report.sh
 ```
 
-Available as `ilk my-pattern report`. Arguments are passed through, shell-quoted. The
-script runs from the repository root with `ILK_LAYER`, `ILK_REPO_ROOT` and
-`ILK_VAR_<NAME>` in the environment.
+Available as `ilk my-pattern report`. ilk builds a real command from the
+declaration, so the layer gets what built-in commands have: a usage line made from
+`args`, `--help` with the flags and examples, shell completion, and usage errors
+(exit 2) for a missing argument, an extra one, an unknown flag or an `int` flag that
+is not a number — all before the script runs.
+
+What the script receives:
+
+- **Arguments** as positional parameters, shell-quoted, after anything in `run:`.
+  `required: true` arguments come first; one `variadic: true` argument may come
+  last and takes the rest. An argument that starts with `-` goes after `--`.
+- **Flags** as `ILK_FLAG_<NAME>`, upper-cased with dashes as underscores. A `bool`
+  is `1` or `0`. A `string` or `int` is the value given, or `default:` when it was
+  not given, or empty. Every declared flag is set, given or not, so
+  `${ILK_FLAG_FORMAT:-text}` is all a script needs. `type:` is `bool`, `string`
+  (the default) or `int`; `short:` is one letter.
+- **ilk's own flags never.** `--json` becomes `ILK_OUTPUT=json` and `-C` chooses the
+  repository the script runs in. A layer cannot declare `--json`, `--dir`, `--help`,
+  `-C` or `-h`.
+- `ILK_LAYER`, `ILK_REPO_ROOT`, `ILK_OUTPUT` and `ILK_VAR_<NAME>`. The script runs
+  from the repository root.
+
+`json: true` says the script prints JSON when `ILK_OUTPUT=json`. A command without it
+refuses `--json` with exit 2 and the error code `json_unsupported`, rather than
+answering a caller who asked for JSON with text. Declare it only when the script
+honours it.
+
+The script's own exit code is passed through unchanged.
 
 Built-in verbs are never shadowed: a layer named `check` cannot take over `ilk check`.
 

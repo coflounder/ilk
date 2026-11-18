@@ -44,7 +44,7 @@ A fabricated evidence section is worse than an empty one, because it is trusted.
 ## Doing the review
 
 ```
-ilk check --only hygiene.wip,hygiene.owner,hygiene.evidence
+ilk check --only plan-hygiene.wip,plan-hygiene.owner,plan-hygiene.evidence
 ilk blueprint next        # if this repository has the blueprint layer
 ```
 

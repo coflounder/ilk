@@ -5,6 +5,9 @@ facets:
   arc: context
   kind: integration
 ilk: ">=0.2.0"
+examples:
+  - ilk session-summaries list --query checkout
+  - ilk session-summaries read claude-code 5f2c9e
 provides: [sessions.summaries]
 files:
   - src: bin/session-summaries.py
@@ -33,19 +36,38 @@ hooks:
     blocking: true
     run: python3 .ilk/bin/session-summaries.py checkpoint
 checks:
-  - id: sessions.runtime
+  - id: session-summaries.runtime
     title: Session summary prerequisites are available
     run: python3 .ilk/bin/session-summaries.py doctor
     fix: Install Python 3.10 or newer and uv, and run this layer in a Git working tree. Run `ilk mcp run session-summaries` once to prepare the pinned MCP SDK environment.
 commands:
   - name: list
-    summary: "List or search summaries: ilk session-summaries list [--query TEXT] [--limit N]"
-    run: python3 .ilk/bin/session-summaries.py list
+    summary: List or search summaries
+    flags:
+      - {name: query, usage: literal text to search for}
+      - {name: limit, type: int, default: "20", usage: the most summaries to return}
+    examples:
+      - ilk session-summaries list
+      - ilk session-summaries list --query checkout --limit 5
+    json: true
+    run: python3 .ilk/bin/session-summaries.py list --query "$ILK_FLAG_QUERY" --limit "$ILK_FLAG_LIMIT"
   - name: read
-    summary: "Read a summary and its publication status: ilk session-summaries read HARNESS SESSION"
+    summary: Read a summary and its publication status
+    args:
+      - {name: harness, required: true, usage: "the agent that wrote it, e.g. claude-code or codex"}
+      - {name: session, required: true, usage: the session id}
+    examples:
+      - ilk session-summaries read claude-code 5f2c9e
+    json: true
     run: python3 .ilk/bin/session-summaries.py read
   - name: save
-    summary: "Publish a summary JSON file or stage a requested checkpoint: ilk session-summaries save FILE"
+    summary: Publish a summary JSON file or stage a requested checkpoint
+    args:
+      - {name: file, required: true, usage: "the summary as a JSON file, or - for stdin"}
+    examples:
+      - ilk session-summaries save summary.json
+      - ilk session-summaries save - < summary.json
+    json: true
     run: python3 .ilk/bin/session-summaries.py save
 contribution:
   repo: coflounder/ilk

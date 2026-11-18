@@ -5,6 +5,8 @@ facets:
   arc: execution
   kind: harness
 ilk: ">=0.2.0"
+examples:
+  - ilk dev-loops run 'claude -p "make the failing tests pass"' --gate 'go test ./...'
 
 requires:
   - test.command
@@ -47,7 +49,15 @@ skills:
 
 commands:
   - name: run
-    summary: "Loop a command until the gate passes: ilk dev-loops run '<command>' [--gate '<command>'] [--max N]"
+    summary: Loop a command until the gate passes
+    args:
+      - {name: command, required: true, usage: "the command each attempt runs, quoted as one argument"}
+    flags:
+      - {name: gate, usage: "the command that decides completion (default: the gate variable)"}
+      - {name: max, type: int, usage: "how many attempts before giving up (default: the max_iterations variable)"}
+    examples:
+      - ilk dev-loops run 'claude -p "make the failing tests pass"'
+      - ilk dev-loops run './fix-lint.sh' --gate 'npm run lint' --max 5
     run: .ilk/bin/ilk-loop.sh
 
 contribution:

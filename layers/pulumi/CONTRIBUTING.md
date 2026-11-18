@@ -11,7 +11,7 @@ What this layer wants from a proposal:
     separate layer. Either way we would rather hear it than have every adopter
     quietly rediscover it.
 
-  - If `infra.no-plaintext-secrets` fired on something that was not a secret, send
+  - If `pulumi.no-plaintext-secrets` fired on something that was not a secret, send
     the key name and nothing else. **Never paste the value**, real or redacted. The
     check reads key names because that is the only signal a file carries, and the
     list of credential-shaped names is exactly the kind of thing that only improves
@@ -37,13 +37,13 @@ What this layer wants from a proposal:
 
 ## What is deliberately untested
 
-`infra.preview` has no case in `test/checks.yaml`, and cannot have one.
+`pulumi.preview` has no case in `test/checks.yaml`, and cannot have one.
 
 The assertion harness runs in a sandbox with no credentials, so the check skips —
 and `expect:` accepts only `pass` or `fail`. Asserting it would mean either
 weakening the check until it runs without a backend, or asserting something other
 than what the check does. Both are worse than the gap. `ilk layer test --strict`
-will name `infra.preview` as unasserted; that is correct, and it should stay named
+will name `pulumi.preview` as unasserted; that is correct, and it should stay named
 rather than silenced.
 
 The two file-shape checks are asserted in both directions, which is what covers

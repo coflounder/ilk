@@ -23,9 +23,9 @@ fi
 case "$mode" in
 open)
 	kind=question
-	if [ "${1:-}" = --decision ]; then
+	# ilk parses --decision and hands it over as ILK_FLAG_DECISION.
+	if [ "${ILK_FLAG_DECISION:-0}" = 1 ]; then
 		kind=decision
-		shift
 	fi
 	title=$*
 	if [ -z "$title" ]; then
@@ -173,12 +173,9 @@ list)
 	[ -d "$dir" ] || { echo "ilk ask-human: no $dir/ directory" >&2; exit 1; }
 
 	show_all=0
-	for arg in "$@"; do
-		case "$arg" in
-		--all) show_all=1 ;;
-		*) echo "ilk ask-human list: unknown argument $arg" >&2; exit 2 ;;
-		esac
-	done
+	if [ "${ILK_FLAG_ALL:-0}" = 1 ]; then
+		show_all=1
+	fi
 
 	found=0
 	# Blocking first: those are the ones stopping work.

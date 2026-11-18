@@ -5,6 +5,8 @@ facets:
   arc: quality
   kind: gate
 ilk: ">=0.2.0"
+examples:
+  - ilk check --only visual-qa
 
 requires:
   - record.plans
@@ -43,7 +45,7 @@ skills:
     src: skills/capture-ui-evidence.md
 
 checks:
-  - id: visual.evidence
+  - id: visual-qa.evidence
     kind: builtin.section
     title: Interface work shows what it looks like
     fix: "Add an `## Evidence` section linking the screenshots you captured, one per acceptance criterion that describes something visible. `ilk check` verifies the files exist; a person still has to look at them, which is the point — nobody can automate whether a layout is right."
@@ -55,7 +57,7 @@ checks:
         ui: "true"
       exempt: [README.md]
 
-  - id: visual.evidence-exists
+  - id: visual-qa.evidence-exists
     kind: builtin.links
     title: Linked screenshots actually exist
     fix: "Capture the screenshot and commit it, or fix the path. A link to a screenshot nobody took is worse than no link — it reads as evidence."

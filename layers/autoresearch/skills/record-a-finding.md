@@ -88,7 +88,7 @@ where nobody will mistake it for a checked fact.
 ## Before you call it recorded
 
 ```
-ilk check --only research.frontmatter,research.sources,research.falsifiable,research.fresh
+ilk check --only autoresearch.frontmatter,autoresearch.sources,autoresearch.falsifiable,autoresearch.fresh
 ```
 
 Then read the `## Finding` section as somebody who was not in the session. Most

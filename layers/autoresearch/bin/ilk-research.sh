@@ -93,7 +93,7 @@ examine() {
 	[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;;
 	"")
 		# Silent for `due`: a finding with no date is not expiring soon, it is
-		# unmeasurable, and research.fresh is where that is said.
+		# unmeasurable, and autoresearch.fresh is where that is said.
 		[ "$mode" = expiry ] || return 0
 		echo "$file: no \`expires:\` date, so nothing can ever mark it out of date"
 		return 0
