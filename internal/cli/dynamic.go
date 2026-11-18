@@ -34,6 +34,7 @@ func attachLayerCommands(root *cobra.Command) {
 		}
 	}
 
+	grouped := false
 	for _, l := range p.Layers {
 		m := l.Loaded.Manifest
 		if len(m.Commands) == 0 {
@@ -48,6 +49,13 @@ func attachLayerCommands(root *cobra.Command) {
 			Short: m.Summary,
 			Long:  fmt.Sprintf("Commands provided by the %s layer.\n\n%s", m.ID, m.Summary),
 		}
+		// The heading exists only when a layer here ships commands; cobra prints
+		// a group's title even when nothing is under it.
+		if !grouped {
+			root.AddGroup(&cobra.Group{ID: groupLayerCmds, Title: "LAYER COMMANDS"})
+			grouped = true
+		}
+		group.GroupID = groupLayerCmds
 		for _, c := range m.Commands {
 			group.AddCommand(newLayerRunCmd(l, c.Name, c.Summary, c.Run))
 		}

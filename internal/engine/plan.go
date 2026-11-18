@@ -172,8 +172,8 @@ func (p *Project) Plan(opts PlanOptions) (*Plan, error) {
 
 	for id, missing := range p.MissingRequirements() {
 		pl.Warnings = append(pl.Warnings, fmt.Sprintf(
-			"%s requires %s, which nothing supplies — set it under `capabilities:` in .ilk/config.yaml, or add a layer that provides it",
-			id, strings.Join(missing, ", ")))
+			"%s requires %s, which nothing supplies — set it with `ilk config set %s <value>`, or add a layer that provides it",
+			id, strings.Join(missing, ", "), missing[0]))
 	}
 	sort.Strings(pl.Warnings)
 

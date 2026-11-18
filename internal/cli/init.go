@@ -48,6 +48,9 @@ func newInitCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Set this repository up to work well with coding agents",
+		Example: `  ilk init
+  ilk init --profile standard --test-command "go test ./..." --yes
+  ilk init --agents claude-code,codex --no-apply`,
 		Long: `Create .ilk/, add a starting set of layers, and apply them.
 
 With no flags this gives you a project record (what is true, what is intended,

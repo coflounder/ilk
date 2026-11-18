@@ -221,7 +221,7 @@ func runOne(p *engine.Project, r registered, caps map[string]string, opts Option
 	if r.check.Requires != "" {
 		if _, ok := caps[r.check.Requires]; !ok {
 			res.Status = StatusSkip
-			res.Reason = fmt.Sprintf("needs the %s capability — set it under `capabilities:` in .ilk/config.yaml to enable this check", r.check.Requires)
+			res.Reason = fmt.Sprintf("needs the %s capability — `ilk config set %s \"<command>\"` enables this check", r.check.Requires, r.check.Requires)
 			res.Duration = time.Since(start)
 			return res
 		}

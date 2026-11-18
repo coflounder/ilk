@@ -26,6 +26,9 @@ func newContributeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "contribute [layer]",
 		Short: "Send what this repository learned about a layer back to its maintainer",
+		Example: `  ilk contribute record
+  ilk contribute record --submit --yes
+  ilk contribute status`,
 		Long: `Draft a proposal for a layer's maintainer, from evidence ilk already holds.
 
 ilk knows what each layer delivered and what the repository decided it should say
@@ -142,6 +145,8 @@ func newContributeStatusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
 		Short: "Show, for every layer here, what there is to send back",
+		Example: `  ilk contribute status
+  ilk contribute status --json`,
 		Long: `Survey every layer here at once.
 
 Useful periodically rather than per-layer: contributing is the kind of task that never

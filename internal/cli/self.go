@@ -26,8 +26,9 @@ const Module = "github.com/coflounder/ilk"
 // different things they touch — an ambiguity rustup resolved the same way.
 func newSelfCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "self",
-		Short: "Act on the ilk binary itself, rather than on a repository",
+		Use:     "self",
+		Short:   "Act on the ilk binary itself, rather than on a repository",
+		Example: `  ilk self update --path ../ilk`,
 	}
 	cmd.AddCommand(newSelfUpdateCmd())
 	return cmd
@@ -51,6 +52,8 @@ func newSelfUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Rebuild ilk from a source checkout and replace the running binary",
+		Example: `  ilk self update --path ../ilk
+  ilk self update --path . --dest ~/bin/ilk`,
 		Long: `Rebuild ilk from source and install it over the binary you are running.
 
 This changes the tool. ` + "`ilk upgrade`" + ` changes a repository: it re-resolves the

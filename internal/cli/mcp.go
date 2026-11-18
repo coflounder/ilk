@@ -24,6 +24,8 @@ func newMCPCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "mcp",
 		Short: "Run the MCP servers layers declared",
+		Example: `  ilk mcp list
+  ilk mcp run session-summaries`,
 	}
 	cmd.AddCommand(newMCPRunCmd(), newMCPListCmd())
 	return cmd
@@ -31,9 +33,10 @@ func newMCPCmd() *cobra.Command {
 
 func newMCPRunCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "run <name>",
-		Short: "Start a declared MCP server, stdio attached",
-		Args:  requireArgs(1, "ilk mcp run <name>"),
+		Use:     "run <name>",
+		Short:   "Start a declared MCP server, stdio attached",
+		Example: `  ilk mcp run session-summaries`,
+		Args:    requireArgs(1, "ilk mcp run <name>"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 			p, err := project()
@@ -97,7 +100,9 @@ func newMCPListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
 		Short: "Show which layers declared which MCP servers",
-		Args:  cobra.NoArgs,
+		Example: `  ilk mcp list
+  ilk mcp list --json`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			p, err := project()
 			if err != nil {

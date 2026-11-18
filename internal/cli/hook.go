@@ -22,6 +22,8 @@ func newHookCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "hook",
 		Short: "Run the hooks layers registered for a lifecycle event",
+		Example: `  ilk hook list
+  ilk hook run pre-commit`,
 	}
 	cmd.AddCommand(newHookRunCmd(), newHookListCmd())
 	return cmd
@@ -32,6 +34,8 @@ func newHookRunCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "run <event>",
 		Short: "Run every hook registered for an event",
+		Example: `  ilk hook run pre-commit
+  ilk hook run turn-end --target claude-code`,
 		Long: "Events: " + strings.Join(manifest.Events, ", ") + `
 
 Blocking hooks fail the run when their command exits non-zero, which is what
@@ -135,7 +139,9 @@ func newHookListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
 		Short: "Show which hooks are registered for which events",
-		Args:  cobra.NoArgs,
+		Example: `  ilk hook list
+  ilk hook list --json`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			p, err := project()
 			if err != nil {

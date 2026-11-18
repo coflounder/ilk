@@ -9,8 +9,19 @@ agent; a layer's defaults do not fit; or the instruction budget needs deciding.
 
 ## Everything lives in `.ilk/config.yaml`
 
-It is the desired state, and editing it by hand then running `ilk apply` is a
-first-class way to work — the commands below are conveniences over the same file.
+It is the desired state. `ilk config` reads and changes it from the command line and
+reconciles the repository in the same step, showing the plan first:
+
+```
+ilk config                                   # every capability and variable, and its source
+ilk config get test.command
+ilk config set test.command "go test ./..."  # prints old → new and the checks it enables
+ilk config unset lint.command
+```
+
+With no terminal to confirm on, a change that touches files exits 3 and writes
+nothing; re-run it with `--yes`. Editing the file by hand and running `ilk apply`
+still works the same way.
 
 ```yaml
 version: 1
@@ -23,7 +34,7 @@ layers:
   - id: ilk/record
     version: 0.1.0
     vars:
-      docs_dir: docs
+      plans_dir: intent
 budget:
   instructions: 1500
 ```
@@ -37,10 +48,9 @@ what language it is written in. `gates` needs `test.command`; anything that
 supplies it satisfies the requirement.
 
 ```
-ilk add gates --set test.command="pytest -q"
+ilk config set test.command "pytest -q"
+ilk add gates --set test.command="pytest -q"   # or while adding the layer that needs it
 ```
-
-or add it to `capabilities:` directly and `ilk apply`.
 
 A check that needs a capability nobody supplies **skips** rather than fails, and says
 so. If `ilk check` shows a skipped check you wanted, this is why.
@@ -68,10 +78,12 @@ deliver. Some can deliver none, and that is worth knowing rather than assuming.
 ## Layer variables
 
 ```
-ilk info record                 # shows each variable, its default and meaning
+ilk info record                       # shows each variable, its default and meaning
+ilk config set record.plans_dir intent
+ilk config unset record.plans_dir     # back to the default
 ```
 
-Set them per layer under `vars:` in `.ilk/config.yaml`, then `ilk apply`. Changing a
+A variable's key is `<layer>.<variable>`. Changing a
 variable that renames a directory does **not** move existing files — ilk will create
 the new directory and leave the old one, because moving your content is not its
 decision. Move it yourself, then apply.

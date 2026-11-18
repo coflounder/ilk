@@ -58,6 +58,9 @@ just at creation. Adding one shows you the whole change before it happens, and
 removing it takes away exactly what it added.
 
 Start with ` + "`ilk init`" + `.`,
+		Example: `  ilk init
+  ilk add gates --set test.command="go test ./..."
+  ilk check`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Version:       version.String(),
@@ -70,33 +73,49 @@ Start with ` + "`ilk init`" + `.`,
 	root.PersistentFlags().StringVarP(&flagDir, "dir", "C", "", "run as if ilk was started in this directory")
 	flagJSON, flagDir = preJSON, preDir
 
+	// Commands are listed in the order they are added, which is the order a
+	// newcomer meets them, rather than alphabetically.
+	cobra.EnableCommandSorting = false
 	root.AddCommand(
 		newInitCmd(),
+		newStatusCmd(),
+		newBriefCmd(),
+
+		newSearchCmd(),
+		newInfoCmd(),
 		newAddCmd(),
 		newRmCmd(),
 		newUpgradeCmd(),
+		newListCmd(),
 		newPlanCmd(),
 		newApplyCmd(),
-		newStatusCmd(),
-		newListCmd(),
-		newInfoCmd(),
+
 		newCheckCmd(),
-		newBriefCmd(),
 		newDoctorCmd(),
-		newSelfCmd(),
+
+		newConfigCmd(),
 		newAgentsCmd(),
+		newBaselineCmd(),
+
+		newContributeCmd(),
+		newMirrorCmd(),
+
+		newLayerCmd(),
+
 		newHookCmd(),
 		newMCPCmd(),
-		newLayerCmd(),
-		newBaselineCmd(),
-		newSearchCmd(),
-		newMirrorCmd(),
-		newContributeCmd(),
+		newSelfCmd(),
 	)
+	root.AddCommand(newHelpTopics()...)
+	root.SetUsageTemplate(usageTemplate)
+	root.SetOut(out)
+	root.SetErr(errOut)
+	addGroups(root)
 
 	// Layer-provided subcommands are attached last, so a layer can never shadow a
 	// built-in verb.
 	attachLayerCommands(root)
+	addPlumbingGroup(root)
 	markUsageErrors(root)
 
 	return root

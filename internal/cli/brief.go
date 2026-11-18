@@ -12,6 +12,8 @@ func newBriefCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "brief",
 		Short: "Print the packet a session should start with",
+		Example: `  ilk brief
+  ilk brief --full --json`,
 		Long: `Assemble what an agent needs to know before doing anything here: the
 directory contract, the layers in force, the skills available, the commands that
 verify claims, and whether the repository currently validates.

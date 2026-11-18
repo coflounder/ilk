@@ -83,6 +83,10 @@ ilk add @plans                   # a bundle: several layers that go together
 ilk add gh:someone/memory --replace  # swap out the layer already doing this job
 ilk rm gates             # removes exactly what it added
 
+ilk config                       # capabilities and layer variables, and where each comes from
+ilk config set test.command "go test ./..."   # shows old → new and what it enables
+ilk config set record.plans_dir intent        # a layer variable; reconciles in the same step
+
 ilk add gh:someone/their-layer   # community layers, same interface
 ilk agents add cursor            # generate config for another agent
 
@@ -92,7 +96,8 @@ ilk baseline list                # files exempt from a layer's checks, and why
 ```
 
 Every command takes `--json`. Agents are first-class consumers of this tool, not an
-afterthought.
+afterthought. `ilk help exit-codes`, `ilk help json` and `ilk help environment`
+describe the contract scripts and agents can rely on.
 
 ## What a layer is
 
