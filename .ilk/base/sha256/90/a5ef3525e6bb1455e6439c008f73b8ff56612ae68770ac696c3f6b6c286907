@@ -17,6 +17,7 @@ deciding whether a published layer is worth taking on.
 ## Look before you add
 
 ```
+ilk search [terms]      # layers and bundles you could add
 ilk info <ref>
 ```
 
@@ -42,7 +43,7 @@ Read four things, in this order:
 ilk add <ref>                                   # shows the plan, asks before writing
 ilk add <ref> --set test.command="go test ./..."  # supply a capability at the same time
 ilk add <ref> --var docs_dir=documentation        # override a layer variable
-ilk add <ref> --no-apply                          # print the plan and write nothing
+ilk add <ref> --dry-run                           # print the plan and write nothing
 ```
 
 **Read the plan before answering.** It lists every file, every fenced block, and every
@@ -93,5 +94,5 @@ whole point of the ownership modes.
   path, and `ilk check` will report the result as drift for ever.
 - Do not add several layers at once when evaluating. One at a time, with `ilk check`
   in between, tells you which one caused what.
-- Do not pass `--force` to make a layer fit. A conflict when you add one means the
+- Do not pass `--on-conflict take-layer` to make a layer fit. A conflict when you add one means the
   layer wants a file that already exists and is not ilk's — decide deliberately.

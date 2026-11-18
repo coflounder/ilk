@@ -25,7 +25,7 @@ const DefaultInstructionBudget = 1500
 // Config is .ilk/config.yaml.
 type Config struct {
 	Version      int               `yaml:"version"`
-	Targets      []string          `yaml:"targets"`
+	Agents       []string          `yaml:"agents"`
 	Capabilities map[string]string `yaml:"capabilities,omitempty"`
 	Layers       []LayerRef        `yaml:"layers"`
 	Budget       Budget            `yaml:"budget,omitempty"`
@@ -51,7 +51,7 @@ type LayerRef struct {
 func Default() *Config {
 	return &Config{
 		Version:      1,
-		Targets:      []string{"claude-code"},
+		Agents:       []string{"claude-code"},
 		Capabilities: map[string]string{},
 		Layers:       []LayerRef{},
 		Budget:       Budget{Instructions: DefaultInstructionBudget},
@@ -192,7 +192,7 @@ func (c *Config) mergeInto(existing []byte) ([]byte, error) {
 		setKey(root, key, fresh.Content[i+1])
 	}
 	// Drop managed keys that no longer have a value (e.g. capabilities emptied).
-	managed := map[string]bool{"version": true, "targets": true, "capabilities": true, "layers": true, "budget": true}
+	managed := map[string]bool{"version": true, "agents": true, "capabilities": true, "layers": true, "budget": true}
 	freshKeys := map[string]bool{}
 	for i := 0; i+1 < len(fresh.Content); i += 2 {
 		freshKeys[fresh.Content[i].Value] = true
@@ -312,9 +312,9 @@ func (c *Config) Remove(id string) bool {
 	return false
 }
 
-// HasTarget reports whether a target is enabled.
-func (c *Config) HasTarget(name string) bool {
-	for _, t := range c.Targets {
+// HasAgent reports whether a target is enabled.
+func (c *Config) HasAgent(name string) bool {
+	for _, t := range c.Agents {
 		if t == name {
 			return true
 		}
@@ -322,21 +322,21 @@ func (c *Config) HasTarget(name string) bool {
 	return false
 }
 
-// AddTarget enables a target if it is not already enabled.
-func (c *Config) AddTarget(name string) bool {
-	if c.HasTarget(name) {
+// AddAgent enables a target if it is not already enabled.
+func (c *Config) AddAgent(name string) bool {
+	if c.HasAgent(name) {
 		return false
 	}
-	c.Targets = append(c.Targets, name)
-	sort.Strings(c.Targets)
+	c.Agents = append(c.Agents, name)
+	sort.Strings(c.Agents)
 	return true
 }
 
-// RemoveTarget disables a target.
-func (c *Config) RemoveTarget(name string) bool {
-	for i, t := range c.Targets {
+// RemoveAgent disables a target.
+func (c *Config) RemoveAgent(name string) bool {
+	for i, t := range c.Agents {
 		if t == name {
-			c.Targets = append(c.Targets[:i], c.Targets[i+1:]...)
+			c.Agents = append(c.Agents[:i], c.Agents[i+1:]...)
 			return true
 		}
 	}

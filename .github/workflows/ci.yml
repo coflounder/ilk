@@ -158,7 +158,7 @@ jobs:
 
           "$bin" rm gates -y
           "$bin" rm record -y
-          "$bin" agents remove claude-code -y
+          "$bin" agents rm claude-code -y
           test "$(cat README.md)" = "$(printf '# Sample\n\nProse a human wrote.')"
 
       # Landing in a repository that already has documentation must not open

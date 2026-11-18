@@ -81,7 +81,7 @@ type File struct {
 	// the common ancestor a three-way merge needs.
 	//
 	// It differs from Hash whenever the file legitimately diverges from what the
-	// layer produces — after a merge, or after `--accept`. Collapsing the two
+	// layer produces — after a merge, or after `--on-conflict keep-mine`. Collapsing the two
 	// would make the next apply mistake an agreed divergence for "unchanged since
 	// ilk wrote it" and overwrite it.
 	Delivered string `json:"delivered,omitempty"`

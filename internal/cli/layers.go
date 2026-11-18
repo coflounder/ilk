@@ -28,9 +28,9 @@ func newAddCmd() *cobra.Command {
 		set        []string
 		vars       []string
 		yes        bool
-		force      bool
+		onConflict string
 		allowExec  bool
-		noApply    bool
+		dryRun     bool
 		noBaseline bool
 		replace    bool
 	)
@@ -50,9 +50,14 @@ one owner of each skill, check and name. Adding a layer that does a job one
 already here does is refused; --replace swaps the old layer out in the same plan.`,
 		Example: `  ilk add gates --set test.command="go test ./..."
   ilk add @plans
+  ilk add blueprint --dry-run
   ilk add gh:acme/llm-wiki --replace`,
 		Args: requireArgs(1, "ilk add <layer>"),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			opts, err := conflictOptions(onConflict)
+			if err != nil {
+				return err
+			}
 			p, err := project()
 			if err != nil {
 				return err
@@ -213,13 +218,14 @@ already here does is refused; --replace swaps the old layer out in the same plan
 			if err != nil {
 				return err
 			}
-			pl, err := next.Plan(engine.PlanOptions{Force: force, Prune: true, NoBaseline: noBaseline})
+			opts.Prune, opts.NoBaseline = true, noBaseline
+			pl, err := next.Plan(opts)
 			if err != nil {
 				return err
 			}
 
 			if flagJSON {
-				if !noApply {
+				if !dryRun {
 					if err := p.Config.Save(p.Repo.Root); err != nil {
 						return err
 					}
@@ -246,8 +252,8 @@ already here does is refused; --replace swaps the old layer out in the same plan
 			printPlan(pl, false)
 			printBaselines(next, pl)
 
-			if noApply {
-				printf("\n%s\n", sty.dim("Nothing written. Re-run without --no-apply to add it."))
+			if dryRun {
+				printf("\n%s\n", sty.dim("Nothing written. Re-run without --dry-run to add it."))
 				return nil
 			}
 			if ok, err := approve(yes, "\nApply?"); !ok {
@@ -274,9 +280,9 @@ already here does is refused; --replace swaps the old layer out in the same plan
 	cmd.Flags().StringSliceVar(&vars, "var", nil, "set a layer variable, e.g. --var docs_dir=documentation (one layer only)")
 	cmd.Flags().StringSliceVar(&set, "set", nil, "set a repository capability, e.g. --set test.command=\"go test ./...\"")
 	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "apply without confirming")
-	cmd.Flags().BoolVar(&force, "force", false, "overwrite files edited since ilk wrote them")
+	addOnConflictFlag(cmd, &onConflict)
 	cmd.Flags().BoolVar(&allowExec, "allow-exec", false, "consent to layers that ship scripts or command-based checks")
-	cmd.Flags().BoolVar(&noApply, "no-apply", false, "show the plan and change nothing")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show the plan and change nothing")
 	cmd.Flags().BoolVar(&noBaseline, "no-baseline", false, "check files that already exist in this layer's directories, instead of exempting them")
 	cmd.Flags().BoolVar(&replace, "replace", false, "remove the layers already here that do the same job")
 	return cmd
@@ -308,19 +314,26 @@ func sourceFor(ref, id string) string {
 }
 
 func newRmCmd() *cobra.Command {
-	var yes, force bool
+	var yes, dryRun bool
+	var onConflict string
 	cmd := &cobra.Command{
 		Use:   "rm <layer>",
 		Short: "Remove a layer and everything it added",
 		Example: `  ilk rm gates
+  ilk rm gates --dry-run
   ilk rm gates --yes`,
 		Long: `Remove a layer from this repository.
 
 Files ilk fully owns are deleted; fenced blocks are removed from files it only
 partly owns; files it merely seeded are left in place, because they are yours by
-then. Anything you edited after ilk wrote it is reported and left alone.`,
+then. Anything you edited after ilk wrote it is reported and left alone, unless
+--on-conflict take-layer says to remove it anyway.`,
 		Args: requireArgs(1, "ilk rm <layer>"),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			opts, err := conflictOptions(onConflict)
+			if err != nil {
+				return err
+			}
 			p, err := project()
 			if err != nil {
 				return err
@@ -336,23 +349,30 @@ then. Anything you edited after ilk wrote it is reported and left alone.`,
 			if err != nil {
 				return err
 			}
-			pl, err := next.Plan(engine.PlanOptions{Force: force, Prune: true})
+			opts.Prune = true
+			pl, err := next.Plan(opts)
 			if err != nil {
 				return err
 			}
 
 			if flagJSON {
-				if err := p.Config.Save(p.Repo.Root); err != nil {
-					return err
-				}
-				if err := next.Apply(pl); err != nil {
-					return err
+				if !dryRun {
+					if err := p.Config.Save(p.Repo.Root); err != nil {
+						return err
+					}
+					if err := next.Apply(pl); err != nil {
+						return err
+					}
 				}
 				return emitJSON(planJSON(pl))
 			}
 
 			printf("%s %s\n\n", sty.bold("rm"), id)
 			printPlan(pl, false)
+			if dryRun {
+				printf("\n%s\n", sty.dim("Nothing removed. Re-run without --dry-run to remove it."))
+				return nil
+			}
 			if ok, err := approve(yes, "\nApply?"); !ok {
 				if err != nil {
 					return err
@@ -371,24 +391,33 @@ then. Anything you edited after ilk wrote it is reported and left alone.`,
 		},
 	}
 	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "apply without confirming")
-	cmd.Flags().BoolVar(&force, "force", false, "remove files even if they were edited after ilk wrote them")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show the plan and change nothing")
+	addOnConflictFlag(cmd, &onConflict)
 	return cmd
 }
 
 func newUpgradeCmd() *cobra.Command {
-	var yes, force, noMerge, markers, accept bool
+	var yes, dryRun bool
+	var onConflict string
 	cmd := &cobra.Command{
 		Use:   "upgrade [layer]",
 		Short: "Re-resolve layers and apply any changes they bring",
 		Example: `  ilk upgrade
-  ilk upgrade record --yes`,
+  ilk upgrade record --yes
+  ilk upgrade --dry-run
+  ilk upgrade --on-conflict markers`,
 		Long: `Move this repository's layers to whatever their source now resolves to.
 
 A file you have edited since ilk wrote it is merged rather than overwritten: where
 your changes and the layer's touch different parts, both survive. Where they
-genuinely collide, ilk refuses and says where.`,
+genuinely collide, ilk refuses and says where. --on-conflict chooses otherwise;
+` + "`ilk apply --help`" + ` lists the choices.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			opts, err := conflictOptions(onConflict)
+			if err != nil {
+				return err
+			}
 			p, err := project()
 			if err != nil {
 				return err
@@ -413,18 +442,30 @@ genuinely collide, ilk refuses and says where.`,
 				p.Config.Set(ref)
 			}
 
-			pl, err := p.Plan(engine.PlanOptions{Force: force, Prune: true, NoMerge: noMerge, MergeMarkers: markers, Accept: accept})
+			opts.Prune = true
+			pl, err := p.Plan(opts)
 			if err != nil {
 				return err
 			}
 			if flagJSON {
-				if err := p.Config.Save(p.Repo.Root); err != nil {
-					return err
-				}
-				if err := p.Apply(pl); err != nil {
-					return err
+				if !dryRun {
+					if err := p.Config.Save(p.Repo.Root); err != nil {
+						return err
+					}
+					if err := p.Apply(pl); err != nil {
+						return err
+					}
 				}
 				return emitJSON(planJSON(pl))
+			}
+			if dryRun {
+				if pl.Empty() && len(pl.Conflicts()) == 0 {
+					println(sty.dim("Every layer is already at the version it resolves to. Nothing written."))
+					return nil
+				}
+				printPlan(pl, false)
+				printf("\n%s\n", sty.dim("Nothing written. Re-run without --dry-run to upgrade."))
+				return nil
 			}
 			if pl.Empty() && len(pl.Conflicts()) == 0 {
 				// A new version whose content happens to be identical still moved.
@@ -459,10 +500,8 @@ genuinely collide, ilk refuses and says where.`,
 		},
 	}
 	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "apply without confirming")
-	cmd.Flags().BoolVar(&force, "force", false, "overwrite files edited since ilk wrote them")
-	cmd.Flags().BoolVar(&noMerge, "no-merge", false, "refuse edited files instead of merging into them")
-	cmd.Flags().BoolVar(&markers, "merge-markers", false, "write conflict markers into files that cannot merge cleanly")
-	cmd.Flags().BoolVar(&accept, "accept", false, "keep what is on disk and record it as ilk's new baseline")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show the plan and change nothing")
+	addOnConflictFlag(cmd, &onConflict)
 	return cmd
 }
 
@@ -478,47 +517,28 @@ type layerJSON struct {
 }
 
 func newListCmd() *cobra.Command {
-	var available bool
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List the layers in this repository, or everything available",
+		Short: "List the layers in this repository",
+		Long: `List the layers this repository has adopted.
+
+To find layers you could add, use ` + "`ilk search`" + `.`,
 		Example: `  ilk list
-  ilk list --available --json`,
+  ilk list --json`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			var rows []layerJSON
-
-			adopted := map[string]bool{}
-			if p, err := project(); err == nil {
-				for _, l := range p.Layers {
-					adopted[l.ID()] = true
-					rows = append(rows, layerJSON{
-						ID: l.ID(), Version: l.Loaded.Manifest.Version,
-						Summary: l.Loaded.Manifest.Summary, Facets: l.Loaded.Manifest.Facets,
-						Adopted: true, Requires: l.Loaded.Manifest.Requires,
-						Provides: l.Loaded.Manifest.Provides.Names(), Source: l.Loaded.Source,
-					})
-				}
-			} else if !available {
+			p, err := project()
+			if err != nil {
 				return err
 			}
-
-			if available {
-				builtins, err := layer.Builtins()
-				if err != nil {
-					return err
-				}
-				for _, b := range builtins {
-					if adopted[b.Manifest.ID] {
-						continue
-					}
-					rows = append(rows, layerJSON{
-						ID: b.Manifest.ID, Version: b.Manifest.Version,
-						Summary: b.Manifest.Summary, Facets: b.Manifest.Facets,
-						Requires: b.Manifest.Requires, Provides: b.Manifest.Provides.Names(),
-						Source: "builtin",
-					})
-				}
+			rows := []layerJSON{}
+			for _, l := range p.Layers {
+				rows = append(rows, layerJSON{
+					ID: l.ID(), Version: l.Loaded.Manifest.Version,
+					Summary: l.Loaded.Manifest.Summary, Facets: l.Loaded.Manifest.Facets,
+					Adopted: true, Requires: l.Loaded.Manifest.Requires,
+					Provides: l.Loaded.Manifest.Provides.Names(), Source: l.Loaded.Source,
+				})
 			}
 
 			sort.Slice(rows, func(i, j int) bool { return rows[i].ID < rows[j].ID })
@@ -527,26 +547,18 @@ func newListCmd() *cobra.Command {
 			}
 
 			if len(rows) == 0 {
-				println(sty.dim("No layers here yet. `ilk list --available` shows what you can add."))
+				println(sty.dim("No layers here yet. `ilk search` shows what you can add."))
 				return nil
 			}
 			for _, r := range rows {
-				mark := sty.dim("  ")
-				if r.Adopted {
-					mark = sty.green("✓ ")
-				}
-				printf("%s%-24s %-8s %s\n", mark, r.ID, sty.dim(r.Version), r.Summary)
+				printf("%s%-24s %-8s %s\n", sty.green("✓ "), r.ID, sty.dim(r.Version), r.Summary)
 				if len(r.Requires) > 0 {
 					printf("    %s %s\n", sty.dim("requires"), sty.dim(strings.Join(r.Requires, ", ")))
 				}
 			}
-			if available {
-				printf("\n%s\n", sty.dim("add one with `ilk add <name>`; community layers work too: `ilk add gh:owner/repo`"))
-			}
 			return nil
 		},
 	}
-	cmd.Flags().BoolVar(&available, "available", false, "include layers this repository does not have yet")
 	return cmd
 }
 

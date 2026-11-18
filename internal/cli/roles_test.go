@@ -33,7 +33,7 @@ func emptyRepo(t *testing.T) string {
 	root := t.TempDir()
 	mustMkdir(t, filepath.Join(root, ".ilk"))
 	cfg := config.Default()
-	cfg.Targets = nil
+	cfg.Agents = nil
 	if err := cfg.Save(root); err != nil {
 		t.Fatal(err)
 	}

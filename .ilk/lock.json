@@ -279,7 +279,7 @@
       "kind": "layer",
       "version": "0.3.0",
       "source": "builtin",
-      "digest": "sha256:8014cb758c570099c4d207a33814c8762232f967be50be18dcc093c5acf9a69a",
+      "digest": "sha256:adf732cc8bd5358d70987f1b02c5c03c0da96536503eaeb56508bd8134d902c8",
       "files": [
         {
           "path": ".ilk/bin/ilk-propose.sh",
@@ -299,16 +299,16 @@
         {
           "path": ".agents/skills/add-a-layer/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:c6a8dbb9c393fc8685bd2cc63cafe3a27510f2eab573eeb416a0c4ca25040a55",
-          "delivered": "sha256:c6a8dbb9c393fc8685bd2cc63cafe3a27510f2eab573eeb416a0c4ca25040a55",
+          "hash": "sha256:90a5ef3525e6bb1455e6439c008f73b8ff56612ae68770ac696c3f6b6c286907",
+          "delivered": "sha256:90a5ef3525e6bb1455e6439c008f73b8ff56612ae68770ac696c3f6b6c286907",
           "created_file": true,
           "owner": "target:agents-md"
         },
         {
           "path": ".agents/skills/apply-ilk-changes/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:112477d1c0173cd497be3e880141e8dd7cfc3786d9c4f5bb868f6bc1f4a7a944",
-          "delivered": "sha256:112477d1c0173cd497be3e880141e8dd7cfc3786d9c4f5bb868f6bc1f4a7a944",
+          "hash": "sha256:ea0c99e75c6f82ee918898bb391099a84c589c23206ab602c138edebdb4acbd6",
+          "delivered": "sha256:ea0c99e75c6f82ee918898bb391099a84c589c23206ab602c138edebdb4acbd6",
           "created_file": true,
           "owner": "target:agents-md"
         },
@@ -323,16 +323,16 @@
         {
           "path": ".agents/skills/configure-ilk/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:133794c2eed74395dff95b4672d9e96524ccb50f707be0845b4e49f88502be11",
-          "delivered": "sha256:133794c2eed74395dff95b4672d9e96524ccb50f707be0845b4e49f88502be11",
+          "hash": "sha256:135532ceb3584fc5d5ce49f6d83f660375bb0767d5aa5b18b8ccd314269fcb1a",
+          "delivered": "sha256:135532ceb3584fc5d5ce49f6d83f660375bb0767d5aa5b18b8ccd314269fcb1a",
           "created_file": true,
           "owner": "target:agents-md"
         },
         {
           "path": ".agents/skills/contribute-upstream/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:3ea5f7e21642effa652a60425f347274ca10cea2fa33f6370baa1c0f632eb1f3",
-          "delivered": "sha256:3ea5f7e21642effa652a60425f347274ca10cea2fa33f6370baa1c0f632eb1f3",
+          "hash": "sha256:a6dcb51c544dd51cb31346c2fcf7eee94aeaf17a401cb19f1d0de156f15bfc37",
+          "delivered": "sha256:a6dcb51c544dd51cb31346c2fcf7eee94aeaf17a401cb19f1d0de156f15bfc37",
           "created_file": true,
           "owner": "target:agents-md"
         },
@@ -347,8 +347,8 @@
         {
           "path": ".agents/skills/resolve-an-ilk-conflict/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:c0e382f7b9510febc456de119843cbdc2a67f059a639cb6e9a1aa4d58ae43230",
-          "delivered": "sha256:c0e382f7b9510febc456de119843cbdc2a67f059a639cb6e9a1aa4d58ae43230",
+          "hash": "sha256:2c00162bd608ceba9e8eba2833d3ad358566adb4c6b33d9862009e750e06c00f",
+          "delivered": "sha256:2c00162bd608ceba9e8eba2833d3ad358566adb4c6b33d9862009e750e06c00f",
           "created_file": true,
           "owner": "target:agents-md"
         },

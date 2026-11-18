@@ -18,17 +18,12 @@ import (
 // knew. The repositories using it in anger know more, and until now had nowhere to
 // put it.
 func newContributeCmd() *cobra.Command {
-	var (
-		submit  bool
-		yes     bool
-		timeout time.Duration
-	)
 	cmd := &cobra.Command{
-		Use:   "contribute [layer]",
+		Use:   "contribute",
 		Short: "Send what this repository learned about a layer back to its maintainer",
-		Example: `  ilk contribute record
-  ilk contribute record --submit --yes
-  ilk contribute status`,
+		Example: `  ilk contribute status
+  ilk contribute draft record
+  ilk contribute submit record --yes`,
 		Long: `Draft a proposal for a layer's maintainer, from evidence ilk already holds.
 
 ilk knows what each layer delivered and what the repository decided it should say
@@ -41,41 +36,87 @@ quirk of one repository is a judgement, and the two sections carrying it are lef
 marked TODO(you). A proposal is not submitted until they are written — a maintainer
 receiving diffs with no case attached learns to ignore the whole channel.
 
-    ilk contribute gh-projects              draft the proposal
-    ilk contribute gh-projects --submit     open it upstream once the case is written`,
+    ilk contribute status                   what every layer here has to send back
+    ilk contribute draft gh-projects        draft the proposal
+    ilk contribute submit gh-projects       open it upstream once the case is written`,
+	}
+	cmd.AddCommand(newContributeStatusCmd(), newContributeDraftCmd(), newContributeSubmitCmd())
+	return cmd
+}
+
+// contributionFor finds the layer a draft or submit is about and gathers its
+// evidence. With no layer named, a repository with exactly one layer means that one.
+func contributionFor(args []string) (*engine.Project, *engine.ResolvedLayer, *contrib.Proposal, error) {
+	p, err := project()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	id := ""
+	if len(args) == 1 {
+		id = args[0]
+	}
+	l, err := contrib.Find(p, id)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	prop, err := contrib.Build(p, l)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return p, l, prop, nil
+}
+
+func newContributeDraftCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "draft [layer]",
+		Short: "Draft a proposal for a layer's maintainer from this repository's evidence",
+		Example: `  ilk contribute draft record
+  ilk contribute draft gh-projects --json`,
+		Long: `Gather what this repository changed in a layer, and where the layer fought it,
+into a proposal document. The two sections that make the case are left marked
+TODO(you) for you to write before ` + "`ilk contribute submit`" + ` will send it.
+
+With --json the proposal's evidence is printed and no document is written.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			p, err := project()
+			p, l, prop, err := contributionFor(args)
 			if err != nil {
 				return err
 			}
-			id := ""
-			if len(args) == 1 {
-				id = args[0]
-			}
-			l, err := contrib.Find(p, id)
-			if err != nil {
-				return err
-			}
-			prop, err := contrib.Build(p, l)
-			if err != nil {
-				return err
-			}
-
-			if submit {
-				return runSubmit(p, l, prop, yes, timeout)
-			}
-
 			if flagJSON {
 				return emitJSON(prop)
 			}
 			return runDraft(p, l, prop)
 		},
 	}
-	cmd.Flags().BoolVar(&submit, "submit", false, "open the drafted proposal upstream")
+}
+
+func newContributeSubmitCmd() *cobra.Command {
+	var (
+		yes     bool
+		timeout time.Duration
+	)
+	cmd := &cobra.Command{
+		Use:   "submit [layer]",
+		Short: "Open a drafted proposal upstream, once its case is written",
+		Example: `  ilk contribute submit record
+  ilk contribute submit record --yes`,
+		Long: `Open the drafted proposal as a pull request against the layer's repository,
+using the submit command the layer declares under contribution:.
+
+Nothing is sent while the proposal still has TODO(you) sections or anything that
+must not leave this repository.`,
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			p, l, prop, err := contributionFor(args)
+			if err != nil {
+				return err
+			}
+			return runSubmit(p, l, prop, yes, timeout)
+		},
+	}
 	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "submit without confirming")
 	cmd.Flags().DurationVar(&timeout, "timeout", 5*time.Minute, "how long to give the submit command")
-	cmd.AddCommand(newContributeStatusCmd())
 	return cmd
 }
 
@@ -102,7 +143,7 @@ func runDraft(p *engine.Project, l *engine.ResolvedLayer, prop *contrib.Proposal
 	}
 	printf("\n%s\n", sty.bold("Next"))
 	printf("  %-42s %s\n", "write the two TODO(you) sections", sty.dim("the case, which no tool can make"))
-	printf("  %-42s %s\n", "ilk contribute "+prop.Layer+" --submit", sty.dim("open it upstream"))
+	printf("  %-42s %s\n", "ilk contribute submit "+prop.Layer, sty.dim("open it upstream"))
 	return nil
 }
 
@@ -209,7 +250,7 @@ outcome of using them for a year.`,
 				println(sty.dim("Every layer here is being used exactly as it shipped."))
 				return nil
 			}
-			printf("\n  %s\n", sty.dim("ilk contribute <layer>  drafts a proposal from this evidence"))
+			printf("\n  %s\n", sty.dim("ilk contribute draft <layer>  drafts a proposal from this evidence"))
 			return nil
 		},
 	}

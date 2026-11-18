@@ -82,7 +82,7 @@ try {
   assert.equal((await call('session_summaries_list', {})).summaries.length, 1);
   await emit('session_shutdown', { reason: 'exit' });
   loaded = undefined;
-  run(binary, 'agents', 'remove', 'pi', '-y');
+  run(binary, 'agents', 'rm', 'pi', '-y');
   await assert.rejects(readFile(extension));
   console.log('Pi: real extension loader, persistent MCP tools, checkpoint continuation, missed/aborted turns, reload and removal passed');
 } finally {

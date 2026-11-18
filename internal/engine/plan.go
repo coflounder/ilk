@@ -111,7 +111,7 @@ func (p *Plan) Empty() bool { return len(p.Changes()) == 0 }
 // PlanOptions tunes reconciliation.
 type PlanOptions struct {
 	// Force overwrites files a human has edited since ilk wrote them. It is the
-	// escape hatch for "yes, I know, take it back".
+	// escape hatch for "yes, I know, take it back": --on-conflict take-layer.
 	Force bool
 	// Prune removes artifacts recorded in the lockfile that are no longer
 	// desired. It is on for every command except a targeted adopt, where
@@ -122,14 +122,17 @@ type PlanOptions struct {
 	// wants to be held to the new rules immediately.
 	NoBaseline bool
 	// NoMerge refuses any file that has been edited since ilk wrote it, instead
-	// of attempting a three-way merge against what ilk last wrote.
+	// of attempting a three-way merge against what ilk last wrote:
+	// --on-conflict refuse.
 	NoMerge bool
 	// MergeMarkers writes conflicted regions with git-style markers rather than
-	// leaving the file alone, for somebody who would rather resolve in place.
+	// leaving the file alone, for somebody who would rather resolve in place:
+	// --on-conflict markers.
 	MergeMarkers bool
 	// Accept records what is on disk as ilk's new common ancestor, leaving the
 	// content alone. It is how somebody says "my version is the truth now" after
-	// resolving a conflict by hand — the counterpart to Force.
+	// resolving a conflict by hand — the counterpart to Force:
+	// --on-conflict keep-mine.
 	Accept bool
 }
 
@@ -259,7 +262,7 @@ func (p *Project) planOne(d Desired, files *fileCache, opts PlanOptions) (Action
 				return a, nil
 			}
 			a.Op = OpConflict
-			a.Note = "exists but ilk did not write it — move it aside, or re-run with --force to let ilk take ownership"
+			a.Note = "exists but ilk did not write it — move it aside, or re-run with --on-conflict take-layer to let ilk take ownership"
 			return a, nil
 		}
 
@@ -427,7 +430,7 @@ func (p *Project) planSymlinkRemoval(a Action, f lock.File, opts PlanOptions) Ac
 	}
 	if lock.Hash(target) != f.Hash && !opts.Force {
 		a.Op = OpConflict
-		a.Note = "repointed since ilk wrote it — left in place; delete it yourself, or re-run with --force"
+		a.Note = "repointed since ilk wrote it — left in place; delete it yourself, or re-run with --on-conflict take-layer"
 		return a
 	}
 	a.Op = OpDelete
@@ -454,7 +457,7 @@ func (p *Project) planSymlink(a Action, d Desired, locked lock.File, isLocked bo
 
 	if info.Mode()&os.ModeSymlink == 0 {
 		// Something real occupies the path. Overwriting it would destroy content
-		// ilk did not write, which --force is deliberately not a licence for here:
+		// ilk did not write, which take-layer is deliberately not a licence for here:
 		// there is no ancestor to fall back on and nothing to merge.
 		a.Op = OpConflict
 		a.Note = "exists and is not a symlink — move it aside; ilk will not replace a real file with a link"
@@ -471,12 +474,12 @@ func (p *Project) planSymlink(a Action, d Desired, locked lock.File, isLocked bo
 	}
 	if !isLocked && !opts.Force {
 		a.Op = OpConflict
-		a.Note = "a symlink ilk did not write is already here — remove it, or re-run with --force to let ilk take ownership"
+		a.Note = "a symlink ilk did not write is already here — remove it, or re-run with --on-conflict take-layer to let ilk take ownership"
 		return a, nil
 	}
 	if isLocked && lock.Hash(target) != locked.Hash && !opts.Force {
 		a.Op = OpConflict
-		a.Note = "repointed since ilk wrote it — left alone; re-run with --force to reset it"
+		a.Note = "repointed since ilk wrote it — left alone; re-run with --on-conflict take-layer to reset it"
 		return a, nil
 	}
 	a.Op = OpUpdate
@@ -542,7 +545,7 @@ func (p *Project) planRemovals(desiredKeys map[string]bool, files *fileCache, op
 			}
 			if lock.Hash(current) != e.file.Hash && !opts.Force {
 				a.Op = OpConflict
-				a.Note = "edited since ilk wrote it — left in place; delete it yourself, or re-run with --force"
+				a.Note = "edited since ilk wrote it — left in place; delete it yourself, or re-run with --on-conflict take-layer"
 				break
 			}
 			a.Op = OpDelete
@@ -569,7 +572,7 @@ func (p *Project) planRemovals(desiredKeys map[string]bool, files *fileCache, op
 			}
 			if e.file.Hash != "" && lock.Hash(body) != e.file.Hash && !opts.Force {
 				a.Op = OpConflict
-				a.Note = "the block was edited by hand — left in place; re-run with --force to remove it anyway"
+				a.Note = "the block was edited by hand — left in place; re-run with --on-conflict take-layer to remove it anyway"
 				break
 			}
 			updated, _, err := fence.Remove(current, style, marker)

@@ -158,7 +158,7 @@ ilk.yaml            # desired state — human/agent editable, committed
 ```yaml
 # ilk.yaml
 version: 1
-targets: [claude-code, cursor, codex]     # agent projections to generate
+agents: [claude-code, cursor, codex]      # agent projections to generate
 capabilities:
   test.command: "pytest -q"
   lint.command: "ruff check ."

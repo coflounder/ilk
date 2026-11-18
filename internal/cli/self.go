@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Module is the import path `ilk self update` expects to find at --path.
+// Module is the import path `ilk self build` expects to find at --path.
 // Building some other project over the ilk binary would be a confusing way to
 // lose an afternoon, so the source is identified before the toolchain is invoked.
 const Module = "github.com/coflounder/ilk"
@@ -28,13 +28,13 @@ func newSelfCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "self",
 		Short:   "Act on the ilk binary itself, rather than on a repository",
-		Example: `  ilk self update --path ../ilk`,
+		Example: `  ilk self build --path ../ilk`,
 	}
-	cmd.AddCommand(newSelfUpdateCmd())
+	cmd.AddCommand(newSelfBuildCmd())
 	return cmd
 }
 
-// newSelfUpdateCmd rebuilds ilk from a source checkout and replaces the running
+// newSelfBuildCmd rebuilds ilk from a source checkout and replaces the running
 // binary with the result.
 //
 // It exists because of a trap the project documents about itself: the built-in
@@ -42,7 +42,7 @@ func newSelfCmd() *cobra.Command {
 // templates. "Rebuild the binary" and "update the layers this repository uses"
 // are the same act for record, gates and toolkit, and nothing said so at
 // the command line until now.
-func newSelfUpdateCmd() *cobra.Command {
+func newSelfBuildCmd() *cobra.Command {
 	var (
 		path    string
 		dest    string
@@ -50,20 +50,20 @@ func newSelfUpdateCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "update",
+		Use:   "build",
 		Short: "Rebuild ilk from a source checkout and replace the running binary",
-		Example: `  ilk self update --path ../ilk
-  ilk self update --path . --dest ~/bin/ilk`,
+		Example: `  ilk self build --path ../ilk
+  ilk self build --path . --dest ~/bin/ilk`,
 		Long: `Rebuild ilk from source and install it over the binary you are running.
 
 This changes the tool. ` + "`ilk upgrade`" + ` changes a repository: it re-resolves the
 layers that repository has, and never touches the binary.
 
-The two are related, because the built-in layers — record, quality-gates and
-toolkit — are compiled into the binary. Updating ilk is therefore how a repository
+The two are related, because the built-in layers — record, gates and toolkit —
+are compiled into the binary. Rebuilding ilk is therefore how a repository
 gets new built-in layer content, and ` + "`ilk upgrade`" + ` is how it takes delivery:
 
-    ilk self update --path ../ilk    # rebuild this binary from that checkout
+    ilk self build --path ../ilk     # rebuild this binary from that checkout
     ilk upgrade                      # reconcile this repository to what it embeds
 
 The working tree is built as it stands, uncommitted changes included. That is the
@@ -80,11 +80,11 @@ point: this is the loop for developing ilk, not a way to fetch a release.`,
 
 			goBin, err := exec.LookPath("go")
 			if err != nil {
-				return fmt.Errorf("`ilk self update` builds from source and needs the Go toolchain, which is not on PATH\n" +
+				return fmt.Errorf("`ilk self build` builds from source and needs the Go toolchain, which is not on PATH\n" +
 					"  fix: install Go, or use a released binary instead")
 			}
 
-			target, err := updateTarget(dest)
+			target, err := buildTarget(dest)
 			if err != nil {
 				return err
 			}
@@ -95,7 +95,7 @@ point: this is the loop for developing ilk, not a way to fetch a release.`,
 			// Build beside the destination rather than in a temp directory: the
 			// swap below is a rename, and a rename is only atomic within one
 			// filesystem.
-			staged, err := os.CreateTemp(filepath.Dir(target), ".ilk-update-*")
+			staged, err := os.CreateTemp(filepath.Dir(target), ".ilk-build-*")
 			if err != nil {
 				return fmt.Errorf("cannot write next to %s: %w", target, err)
 			}
@@ -146,7 +146,7 @@ point: this is the loop for developing ilk, not a way to fetch a release.`,
 				})
 			}
 
-			printf("%s %s\n", sty.bold("update"), target)
+			printf("%s %s\n", sty.bold("build"), target)
 			printf("  %s %s", sty.dim("from:"), sty.dim(src))
 			if rev != "" {
 				printf(" %s", sty.dim("("+rev+")"))
@@ -161,7 +161,7 @@ point: this is the loop for developing ilk, not a way to fetch a release.`,
 				printf("\n%s %s %s\n", sty.green("rebuilt."), after, sty.dim("(identical binary)"))
 			}
 			if changed {
-				printUpdateNextSteps()
+				printBuildNextSteps()
 			}
 			return nil
 		},
@@ -209,10 +209,10 @@ func verifyIlkSource(src string, skip bool) error {
 		"  fix: point --path at an ilk checkout, or pass --no-verify-source if you mean it", src, Module)
 }
 
-// updateTarget resolves what to overwrite: an explicit --dest, or the running
+// buildTarget resolves what to overwrite: an explicit --dest, or the running
 // binary. A symlinked entry resolves to the file behind it, so updating through
 // a shim replaces the binary rather than the link.
-func updateTarget(dest string) (string, error) {
+func buildTarget(dest string) (string, error) {
 	if dest != "" {
 		abs, err := filepath.Abs(dest)
 		if err != nil {
@@ -266,9 +266,9 @@ func gitDescribe(dir string) string {
 	return out
 }
 
-// printUpdateNextSteps names the step that is easy to forget: a new binary means
+// printBuildNextSteps names the step that is easy to forget: a new binary means
 // new built-in layers, and no repository has taken delivery of them yet.
-func printUpdateNextSteps() {
+func printBuildNextSteps() {
 	printf("\n%s\n", sty.dim("The built-in layers ship inside this binary. Repositories using them"))
 	printf("%s\n", sty.dim("are a version behind until they reconcile:"))
 	printf("  %-28s %s\n", "ilk upgrade", sty.dim("in each repository, to take delivery"))

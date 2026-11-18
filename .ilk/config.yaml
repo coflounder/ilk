@@ -12,7 +12,7 @@
 #     lint.command: golangci-lint run
 #     build.command: go build ./...
 version: 1
-targets:
+agents:
   - claude-code
   - codex
   - pi

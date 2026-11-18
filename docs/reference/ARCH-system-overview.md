@@ -75,8 +75,8 @@ load-bearing:
   common ancestor a three-way merge needs.
 
 They diverge whenever a file legitimately differs from what the layer produces: after
-a merge, or after `--accept`. Collapsing them — which an earlier version did — makes
-the next apply mistake an agreed divergence for "unchanged since ilk wrote it" and
+a merge, or after `--on-conflict keep-mine`. Collapsing them — which an earlier
+version did — makes the next apply mistake an agreed divergence for "unchanged since ilk wrote it" and
 overwrite it, silently destroying the merge it had just performed. `reconcileArtifact`
 in `internal/engine/reconcile.go` is the single place that decision is made.
 

@@ -55,13 +55,13 @@ func coreChecks() []manifest.Check {
 			ID:    "ilk.drift",
 			Kind:  "builtin.drift",
 			Title: "Generated files match what ilk would write",
-			Fix:   "Keep your version with `ilk apply --accept`, or restore ilk's with `ilk apply --force`. If the edit belongs to you rather than the layer, move it outside the ilk:begin/ilk:end markers first.",
+			Fix:   "Keep your version with `ilk apply --on-conflict keep-mine`, or restore ilk's with `ilk apply --on-conflict take-layer`. If the edit belongs to you rather than the layer, move it outside the ilk:begin/ilk:end markers first.",
 		},
 		{
 			ID:    "ilk.conflicts",
 			Kind:  "builtin.conflicts",
 			Title: "No unresolved merge conflicts are left in ilk's files",
-			Fix:   "Open the file, pick the version you want, and delete the <<<<<<< / ======= / >>>>>>> lines. Then run `ilk apply --accept` so ilk records your resolution as the new baseline.",
+			Fix:   "Open the file, pick the version you want, and delete the <<<<<<< / ======= / >>>>>>> lines. Then run `ilk apply --on-conflict keep-mine` so ilk records your resolution as the new baseline.",
 		},
 		{
 			ID:    "ilk.budget",
@@ -613,7 +613,7 @@ func checkDrift(p *engine.Project, _ map[string]any) ([]Finding, error) {
 
 // ------------------------------------------------------------------ conflicts
 
-// checkConflicts finds files where `--merge-markers` wrote both versions and
+// checkConflicts finds files where `--on-conflict markers` wrote both versions and
 // nobody has chosen between them yet.
 //
 // Writing markers is a deliberate escape hatch, but a half-resolved file is worse
@@ -637,7 +637,7 @@ func checkConflicts(p *engine.Project, _ map[string]any) ([]Finding, error) {
 					findings = append(findings, Finding{
 						Path:    f.Path,
 						Line:    i + 1,
-						Message: "unresolved merge conflict left by --merge-markers",
+						Message: "unresolved merge conflict left by --on-conflict markers",
 					})
 					break
 				}

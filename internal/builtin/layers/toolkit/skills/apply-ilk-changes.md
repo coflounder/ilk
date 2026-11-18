@@ -77,7 +77,7 @@ hooks silently skip. A gate you believe is running and is not is worse than no g
 
 - Do not edit generated files to make a plan empty. `ilk apply` is how you change
   them; editing them is how you create drift.
-- Do not reach for `--force` because a plan refused something. Read the refusal — it
-  names the fix, and `--force` discards work.
+- Do not reach for `--on-conflict take-layer` because a plan refused something. Read
+  the refusal — it names the fix, and `take-layer` discards work.
 - Do not commit with a plan outstanding. A repository whose generated files disagree
   with its config sends every later session a mixed message.

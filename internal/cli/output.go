@@ -156,8 +156,8 @@ func printPlan(pl *engine.Plan, showUnchanged bool) {
 	if len(conflicts) > 0 {
 		printf("\n  %s %d artifact(s) left untouched because your edits would be lost.\n",
 			sty.red("refused:"), len(conflicts))
-		printf("  %s\n", sty.dim("Each says how to proceed. --merge-markers writes both versions into the file;"))
-		printf("  %s\n", sty.dim("--force discards your version."))
+		printf("  %s\n", sty.dim("Each says how to proceed. --on-conflict markers writes both versions into the file;"))
+		printf("  %s\n", sty.dim("--on-conflict take-layer discards your version."))
 	}
 }
 

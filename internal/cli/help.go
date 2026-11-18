@@ -168,7 +168,7 @@ root as its working directory and the rest of ilk's environment passed through.
     ILK_MIRROR_ID, ILK_MIRROR_TITLE, ILK_MIRROR_STATUS, ILK_MIRROR_DOC_ID,
     ILK_MIRROR_PATH     the item being created or updated
 
-  Contribution submit commands (ilk contribute --submit):
+  Contribution submit commands (ilk contribute submit):
     ILK_LAYER, ILK_REPO_ROOT, ILK_VAR_<NAME>
     ILK_PROPOSAL_PATH, ILK_PROPOSAL_TITLE, ILK_PROPOSAL_BRANCH,
     ILK_PROPOSAL_FROM, ILK_PROPOSAL_SLUG
@@ -184,6 +184,7 @@ To choose the repository, use -C/--dir; there is no environment variable for it.
 var errorCodes = []struct{ code, exit, meaning string }{
 	{"usage", "2", "a wrong command, flag or argument"},
 	{"unknown_layer", "2", "a layer reference that resolves to nothing"},
+	{"invalid_on_conflict", "2", "an --on-conflict value that is not merge, markers, keep-mine, take-layer or refuse"},
 	{"unknown_config_key", "2", "a config key that is neither a capability nor a layer variable here"},
 	{"invalid_config_key", "2", "a key spelled like neither a capability nor <layer>.<variable>"},
 	{"confirmation_required", "3", "a change that needed a yes nobody could give"},
@@ -203,7 +204,8 @@ func jsonTopic() string {
 Stdout carries the result and nothing else: the plan, the list, the document.
 Warnings, notes and prompts go to stderr. Commands that change the repository
 (add, rm, upgrade, config set) make the change under --json without asking, and
-emit the plan they applied.
+emit the plan they applied. add, rm, upgrade and apply take --dry-run, which emits
+the plan and changes nothing.
 
 When a command fails, stdout holds whatever it had already emitted, and stderr
 holds one JSON object:

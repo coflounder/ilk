@@ -57,12 +57,12 @@ ilk brief                        # the packet a session should start with
 ilk check                        # validate; every failure prints its fix
 ilk status                       # what this repository has, and what has drifted
 
-ilk list --available             # layers you can add
-ilk info gates           # what a layer contains, before adding it
+ilk search                       # layers you can add
+ilk info gates                   # what a layer contains, before adding it
 ilk add gates --set test.command="go test ./..."
-ilk rm gates           # removes exactly what it added
+ilk rm gates                     # removes exactly what it added
 
-ilk add gh:someone/their-layer # community layers, same interface
+ilk add gh:someone/their-layer   # community layers, same interface
 ilk agents add cursor            # generate config for another agent
 ```
 

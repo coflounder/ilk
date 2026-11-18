@@ -561,7 +561,7 @@ func (p *Project) targetDesired() ([]Desired, error) {
 	if err != nil {
 		return nil, err
 	}
-	ts, err := targets.Resolve(p.Config.Targets)
+	ts, err := targets.Resolve(p.Config.Agents)
 	if err != nil {
 		return nil, err
 	}

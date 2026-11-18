@@ -79,8 +79,8 @@ it wants to hear about. From a repository that has one:
 
 ```sh
 ilk contribute status                    what there is to send back, across every layer
-ilk contribute <layer>                   draft it, with the evidence gathered
-ilk contribute <layer> --submit          open it upstream
+ilk contribute draft <layer>             draft it, with the evidence gathered
+ilk contribute submit <layer>            open it upstream
 ```
 
 The guidelines are per-layer on purpose. What is useful to know about `dev-loops` (what

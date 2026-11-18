@@ -41,7 +41,7 @@ func newInitCmd() *cobra.Command {
 		lintCmd    string
 		buildCmd   string
 		yes        bool
-		noApply    bool
+		dryRun     bool
 		noBaseline bool
 	)
 
@@ -50,7 +50,7 @@ func newInitCmd() *cobra.Command {
 		Short: "Set this repository up to work well with coding agents",
 		Example: `  ilk init
   ilk init --profile standard --test-command "go test ./..." --yes
-  ilk init --agents claude-code,codex --no-apply`,
+  ilk init --agents claude-code,codex --dry-run`,
 		Long: `Create .ilk/, add a starting set of layers, and apply them.
 
 With no flags this gives you a project record (what is true, what is intended,
@@ -75,7 +75,7 @@ nothing to choose.`,
 
 			cfg := config.Default()
 			if len(agents) > 0 {
-				cfg.Targets = nil
+				cfg.Agents = nil
 				for _, a := range agents {
 					if a == "none" {
 						continue
@@ -83,7 +83,7 @@ nothing to choose.`,
 					if _, err := targets.Get(a); err != nil {
 						return err
 					}
-					cfg.AddTarget(a)
+					cfg.AddAgent(a)
 				}
 			}
 			for name, value := range map[string]string{
@@ -110,11 +110,13 @@ nothing to choose.`,
 				cfg.Set(config.LayerRef{ID: loaded.Manifest.ID, Version: loaded.Manifest.Version})
 			}
 
-			if err := os.MkdirAll(r.IlkPath(), 0o755); err != nil {
-				return err
-			}
-			if err := cfg.Save(r.Root); err != nil {
-				return err
+			if !dryRun {
+				if err := os.MkdirAll(r.IlkPath(), 0o755); err != nil {
+					return err
+				}
+				if err := cfg.Save(r.Root); err != nil {
+					return err
+				}
 			}
 
 			p, err := engine.NewProject(r, cfg, lock.New(), version.String())
@@ -130,7 +132,7 @@ nothing to choose.`,
 				// Like add, rm, upgrade and apply: --json applies, because there is
 				// nobody to answer a prompt. Stopping after the config used to leave a
 				// repository half set up, exit 0, with `init` refusing to run again.
-				if !noApply {
+				if !dryRun {
 					if err := p.Apply(pl); err != nil {
 						return err
 					}
@@ -142,8 +144,8 @@ nothing to choose.`,
 			printPlan(pl, false)
 			printBaselines(p, pl)
 
-			if noApply {
-				printf("\n%s\n", sty.dim("Nothing written except .ilk/config.yaml. Run `ilk apply` when ready."))
+			if dryRun {
+				printf("\n%s\n", sty.dim("Nothing written. Re-run without --dry-run to set the repository up."))
 				return nil
 			}
 			if ok, err := approve(yes, "\nApply?"); !ok {
@@ -172,7 +174,7 @@ nothing to choose.`,
 	cmd.Flags().StringVar(&lintCmd, "lint-command", "", "how this project lints")
 	cmd.Flags().StringVar(&buildCmd, "build-command", "", "how this project builds")
 	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "apply without confirming")
-	cmd.Flags().BoolVar(&noApply, "no-apply", false, "write .ilk/config.yaml but change nothing else")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show the plan and write nothing, not even .ilk/config.yaml")
 	cmd.Flags().BoolVar(&noBaseline, "no-baseline", false, "check files that already exist in the record directories, instead of exempting them")
 	return cmd
 }
@@ -192,7 +194,7 @@ func printNextSteps(p *engine.Project) {
 	printf("\n%s\n", sty.bold("Next"))
 	printf("  %-28s %s\n", "ilk brief", sty.dim("the packet every session should start with"))
 	printf("  %-28s %s\n", "ilk check", sty.dim("validate the repository; failures print their fix"))
-	printf("  %-28s %s\n", "ilk list --available", sty.dim("layers you can add"))
+	printf("  %-28s %s\n", "ilk search", sty.dim("layers you can add"))
 	if len(p.Config.Capabilities) == 0 {
 		printf("\n  %s tell ilk how to verify this project so gates can run:\n", sty.dim("tip"))
 		printf("  %s\n", sty.dim("  ilk add gates --set test.command=\"<your test command>\""))

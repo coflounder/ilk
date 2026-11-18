@@ -81,7 +81,7 @@ func churn(t *testing.T, root, rel string, n int) {
 func project(t *testing.T, root string) *engine.Project {
 	t.Helper()
 	cfg := config.Default()
-	cfg.Targets = nil
+	cfg.Agents = nil
 	p, err := engine.NewProject(&repo.Repo{Root: root}, cfg, lock.New(), "test")
 	if err != nil {
 		t.Fatal(err)

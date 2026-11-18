@@ -208,7 +208,7 @@ func newLayerTestCmd() *cobra.Command {
 
 			r := &repo.Repo{Root: sandbox}
 			cfg := config.Default()
-			cfg.Targets = []string{"claude-code"}
+			cfg.Agents = []string{"claude-code"}
 			// Satisfy requirements with the real layer that provides them wherever
 			// one is built in, rather than with a stub.
 			//
@@ -299,7 +299,7 @@ func newLayerTestCmd() *cobra.Command {
 			// Agent projections are ilk's output, not the layer's. Removing them
 			// too keeps this measuring the thing it claims to measure: whether
 			// *this layer* comes out cleanly.
-			cfg2.Targets = nil
+			cfg2.Agents = nil
 			if err := cfg2.Save(sandbox); err != nil {
 				return err
 			}
