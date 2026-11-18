@@ -21,8 +21,12 @@ ilk search [terms]      # layers and bundles you could add
 ilk info <ref>
 ```
 
-A reference is a built-in name (`record`), a path (`./layers/mine`), or a git source
+A reference is a built-in name (`gates`), a path (`./layers/mine`), or a git source
 (`gh:owner/repo@v1`, `gh:owner/repo/layers/name@v1`).
+
+`record` and `toolkit` are the core tier: already in every repository, so there is
+nothing to add and `ilk rm` refuses them (`core_layer`, exit 2). To change what one
+does, set its variables — `ilk config set record.plans_dir intent`.
 
 Read four things, in this order:
 

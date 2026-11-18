@@ -5,8 +5,8 @@
       "id": "ilk/compound-lessons",
       "kind": "layer",
       "version": "0.2.0",
-      "source": "/home/claude/coflounder/ilk/layers/compound-lessons",
-      "digest": "sha256:de53bbb27998b6996cfac10a4ada44045e235d7024257f8e682b27339b9ad2f3",
+      "source": "builtin",
+      "digest": "sha256:948cba679dd781cf36fe2e3f1106dc6722a34fd1f2d08226de1c993444d63c16",
       "files": [
         {
           "path": "AGENTS.md",
@@ -279,7 +279,7 @@
       "kind": "layer",
       "version": "0.3.0",
       "source": "builtin",
-      "digest": "sha256:14628cc39f13ee2bf9cdfa08fb045b4e65716ca21d0c727bd0330d8d099c8068",
+      "digest": "sha256:8343b85906fde1303bd39be95c02fb93b0bb0816d4faad9ec694643c412c9541",
       "files": [
         {
           "path": ".ilk/bin/ilk-propose.sh",
@@ -299,8 +299,8 @@
         {
           "path": ".agents/skills/add-a-layer/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:66ad45e4170c7269449d31b8342e3e0d293ed27241e7fe06a4f793a08171ad14",
-          "delivered": "sha256:66ad45e4170c7269449d31b8342e3e0d293ed27241e7fe06a4f793a08171ad14",
+          "hash": "sha256:0d00c2edaf88c8b9af2db90754eb9b1c5ae8ac75e31de26e0b3b4f102c2d2031",
+          "delivered": "sha256:0d00c2edaf88c8b9af2db90754eb9b1c5ae8ac75e31de26e0b3b4f102c2d2031",
           "created_file": true,
           "owner": "target:agents-md"
         },

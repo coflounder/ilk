@@ -11,9 +11,10 @@ point in a project's life.
 ilk init
 ```
 
-That gives you a project record, agent instructions, one validator, a session brief,
-a pre-commit hook, and the skills an agent needs to operate ilk itself. No registry,
-no network, nothing to choose.
+That gives you a project record, agent instructions, a credential scan before every
+commit, a session brief, and the skills an agent needs to operate ilk itself — plus
+tests, lint and build as gates once you say how this project tests. No registry, no
+network, nothing to choose.
 
 ---
 
@@ -219,13 +220,28 @@ ilk init --no-baseline                     # or be held to them from the start
 
 ## Layers
 
-`ilk init` gives you three, embedded in the binary so they need no network:
+Five layers are embedded in the binary, so they need no network. Two of them are the
+**core tier**: every repository has them, whether or not `.ilk/config.yaml` lists
+them, and `ilk rm` refuses them.
 
-| Layer | What it does |
+| Core | What it does |
 |---|---|
-| `toolkit` | The skills an agent needs to operate ilk here — add, configure, apply, resolve a conflict, write a layer |
 | `record` | The project record: what is true, what is intended, what happened, plus the checks that keep it honest |
-| `gates` | Tests, lint and build wired into `ilk check`, git hooks and CI |
+| `toolkit` | The skills an agent needs to operate ilk here — add, configure, apply, resolve a conflict, write a layer |
+
+The core tier is implied, so the config lists a core layer only while it carries a
+choice — `ilk config set record.plans_dir intent` adds the entry, and unsetting it
+again takes the entry away. `ilk search` leaves the core out; `ilk info record` still
+describes it.
+
+The other three are the **default tier**: what `ilk init` adds, and ordinary layers
+you can remove. `ilk init --profile minimal` starts with the core tier alone.
+
+| Default | What it does |
+|---|---|
+| `gates` | Tests, lint and build wired into `ilk check`, git hooks and CI (added once `test.command` is set) |
+| `secrets` | A credential scan before every commit, and what to do the day one leaks |
+| `compound-lessons` | Every lesson names the durable change it produced, so "we will be more careful" cannot pass as an outcome |
 
 Additional layers ship alongside in [`layers/`](layers/):
 
@@ -237,7 +253,6 @@ Additional layers ship alongside in [`layers/`](layers/):
 | `ask-human` | A blocking question an agent could not answer stops the checks until a person answers it |
 | `dev-loops` | An agent runs until an objective gate passes, bounded by a ceiling — never until it says it is finished |
 | `visual-qa` | Interface work shows what it looks like: screenshots against the acceptance criteria, no baselines |
-| `compound-lessons` | Every lesson names the durable change it produced, so "we will be more careful" cannot pass as an outcome |
 | `archive` | Superseded documents are archived rather than deleted, and nothing live may cite them |
 | `gh-projects` | A GitHub Project made to match the plan, with an ambiguous match refused rather than guessed |
 | `maintainer` | The receiving end: proposals from repositories using your layers, and a queue that fails when it stops being a promise |

@@ -64,6 +64,21 @@ func errConfirmationRequired(fix string) error {
 	}
 }
 
+// errCoreLayer refuses to add or remove a layer in the core tier. Both are a
+// wrong call rather than a failed one: the layer is already here, and stays.
+func errCoreLayer(name, verb string) error {
+	msg := fmt.Sprintf("%s is a core layer: it is in every repository and cannot be removed", name)
+	if verb == "add" {
+		msg = fmt.Sprintf("%s is a core layer and is already here: every repository has it", name)
+	}
+	return &cliError{
+		Exit:    exitUsage,
+		Code:    "core_layer",
+		Message: msg,
+		Fix:     fmt.Sprintf("to change what it does, set its variables — `ilk info %s` lists them, `ilk config set %s.<variable> <value>` sets one", name, name),
+	}
+}
+
 // classify turns any error into a cliError with an exit code.
 func classify(err error) *cliError {
 	var ce *cliError

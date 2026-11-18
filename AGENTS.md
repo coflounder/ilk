@@ -17,6 +17,10 @@ package map; read it before changing anything that crosses a package boundary.
 
 Non-obvious things that catch people out here:
 
+- **`record` and `toolkit` are the core tier, implied rather than listed.** A project
+  resolves them whether or not `.ilk/config.yaml` names them (`engine.Project.layerRefs`);
+  `ilk layer test` and this package's engine tests switch that off, because a layer's
+  own add/remove round trip cannot be measured with the tier always on.
 - **The built-in layers are embedded, not read from disk.** Editing
   `internal/builtin/layers/**` only takes effect after rebuilding — a stale binary
   silently uses the old templates. `ilk self build --path <checkout>` rebuilds and
@@ -47,7 +51,7 @@ Non-obvious things that catch people out here:
   `{{ index .Caps "record.plans" }}` — because `provides:` carries the path. Six layers
   used to redeclare `plans_dir: plans` with a comment saying it had to match, which is
   exactly the coupling that broke silently.
-- CI runs `ilk layer test` against both built-in layers. They are held to the same
+- CI runs `ilk layer test` against every built-in layer. They are held to the same
   contract as any published layer.
 
 <!-- ilk:begin layer=ilk/gates region=instructions — managed by ilk — edits inside this block are overwritten; run `ilk rm` to remove it -->
