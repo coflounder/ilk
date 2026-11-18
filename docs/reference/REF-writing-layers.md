@@ -67,6 +67,21 @@ Conventional capabilities: `test.command`, `lint.command`, `build.command`,
 An unmet requirement is a warning, not a failure. The layer still lands; checks that
 need the capability skip with a message saying how to supply it.
 
+### One layer per job
+
+Every capability has one provider. Two layers that provide the same capability, or
+that ship the same skill, check id, MCP server, hook name or short name, clash, and
+`ilk plan` refuses them. `ilk add` names the layer already doing the job and offers
+`--replace`, which swaps it out in the same plan.
+
+Some jobs are roles that ilk names, so layers written by different people use the same
+word for them: `role.memory`, `role.agent-loop` and `role.preview`. A layer that fills
+one says `provides: [role.memory]`, and a repository can have one memory layer. Any
+other `role.` name is refused, so a typo can't slip past the check.
+
+Checks, hooks on a shared event and instructions stack: several layers can each add
+their own without clashing.
+
 ## Variables
 
 ```yaml

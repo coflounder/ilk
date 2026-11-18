@@ -9,8 +9,19 @@ import (
 	"github.com/coflounder/ilk/internal/engine"
 	"github.com/coflounder/ilk/internal/layer"
 	"github.com/coflounder/ilk/internal/manifest"
+	"github.com/coflounder/ilk/internal/registry"
 	"github.com/spf13/cobra"
 )
+
+// expandBundle resolves `@name` to its members' references. A variable so tests
+// can supply bundles whose members need no network.
+var expandBundle = registry.Expand
+
+// pending is a layer about to be added.
+type pending struct {
+	ref    string
+	loaded *layer.Loaded
+}
 
 func newAddCmd() *cobra.Command {
 	var (
@@ -21,16 +32,25 @@ func newAddCmd() *cobra.Command {
 		allowExec  bool
 		noApply    bool
 		noBaseline bool
+		replace    bool
 	)
 
 	cmd := &cobra.Command{
-		Use:   "add <layer>",
-		Short: "Add a layer to this repository",
-		Long: `Add a layer and reconcile the repository to it.
+		Use:   "add <layer>... | @<bundle>",
+		Short: "Add layers to this repository",
+		Long: `Add one or more layers and reconcile the repository to them.
 
 A layer reference is a built-in name (` + "`record`" + `), a path (` + "`./layers/mine`" + `),
-or a git source (` + "`gh:owner/repo@v1`" + `). You see the whole change before anything
-is written, and ` + "`ilk rm`" + ` removes exactly what was added.`,
+or a git source (` + "`gh:owner/repo@v1`" + `). A bundle (` + "`@plans`" + `) adds each of its
+layers in one plan; ` + "`ilk search`" + ` lists the bundles. You see the whole change
+before anything is written, and ` + "`ilk rm`" + ` removes exactly what was added.
+
+A repository has one layer for each job: one provider of each capability or role,
+one owner of each skill, check and name. Adding a layer that does a job one
+already here does is refused; --replace swaps the old layer out in the same plan.`,
+		Example: `  ilk add gates --set test.command="go test ./..."
+  ilk add @plans
+  ilk add gh:acme/llm-wiki --replace`,
 		Args: requireArgs(1, "ilk add <layer>"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			p, err := project()
@@ -38,24 +58,125 @@ is written, and ` + "`ilk rm`" + ` removes exactly what was added.`,
 				return err
 			}
 
-			ref := args[0]
-			loaded, err := layer.Resolve(ref, p.Repo.IlkPath("cache"))
-			if err != nil {
-				return err
+			// Expand bundles. A member that is already here is skipped rather
+			// than refused, so adding a bundle completes a partial adoption.
+			type wanted struct {
+				ref        string
+				fromBundle string
 			}
-			m := loaded.Manifest
+			var refs []wanted
+			for _, a := range args {
+				if !registry.IsBundleRef(a) {
+					refs = append(refs, wanted{ref: a})
+					continue
+				}
+				members, err := expandBundle(a)
+				if err != nil {
+					return usageError(err)
+				}
+				for _, m := range members {
+					refs = append(refs, wanted{ref: m, fromBundle: a})
+				}
+			}
+			if len(vars) > 0 && len(refs) > 1 {
+				return usageError(fmt.Errorf("--var sets one layer's variables, and this adds %d layers — add that layer on its own to set them", len(refs)))
+			}
 
-			if _, already := p.Config.Layer(m.ID); already {
-				return fmt.Errorf("%s is already here — use `ilk upgrade %s` to move it to a newer version, or `ilk rm %s` first", m.ID, m.Name(), m.Name())
+			var adding []pending
+			seen := map[string]bool{}
+			var skipped []string
+			for _, w := range refs {
+				loaded, err := layer.Resolve(w.ref, p.Repo.IlkPath("cache"))
+				if err != nil {
+					return err
+				}
+				m := loaded.Manifest
+				if seen[m.ID] {
+					continue
+				}
+				seen[m.ID] = true
+				if _, already := p.Config.Layer(m.ID); already {
+					if w.fromBundle != "" {
+						skipped = append(skipped, m.ID)
+						continue
+					}
+					return fmt.Errorf("%s is already here — use `ilk upgrade %s` to move it to a newer version, or `ilk rm %s` first", m.ID, m.Name(), m.Name())
+				}
+				adding = append(adding, pending{ref: w.ref, loaded: loaded})
+			}
+			if len(adding) == 0 {
+				printf("%s\n", sty.dim("Every layer in that bundle is already here. Nothing to add."))
+				return nil
 			}
 
 			// Executable content from a source ilk did not ship is the one thing
 			// that needs consent rather than a plan preview.
-			if m.NeedsExec() && loaded.Source != "builtin" && !allowExec {
-				return fmt.Errorf("%s runs commands (scripts, checks or subcommands) and comes from %s\n"+
-					"  review it first, then re-run with --allow-exec to consent:\n"+
-					"    ilk info %s\n"+
-					"    ilk add %s --allow-exec", m.ID, loaded.Source, ref, ref)
+			if !allowExec {
+				var needs []string
+				for _, a := range adding {
+					if a.loaded.Manifest.NeedsExec() && a.loaded.Source != "builtin" {
+						needs = append(needs, fmt.Sprintf("%s (from %s)", a.loaded.Manifest.ID, a.loaded.Source))
+					}
+				}
+				if len(needs) > 0 {
+					return &cliError{
+						Exit:    exitFailed,
+						Code:    "exec_consent_required",
+						Message: "these run commands (scripts, checks or subcommands): " + strings.Join(needs, ", "),
+						Fix:     "review them with `ilk info <ref>`, then re-run with --allow-exec to consent",
+					}
+				}
+			}
+
+			// One layer per job. Clashes among the new layers cannot be fixed
+			// by replacing anything, so they are refused outright; a clash with a
+			// layer already here is refused unless --replace says to swap it out.
+			var incoming []*manifest.Layer
+			newIDs := map[string]bool{}
+			for _, a := range adding {
+				incoming = append(incoming, a.loaded.Manifest)
+				newIDs[a.loaded.Manifest.ID] = true
+			}
+			if clashes := engine.FindClashes(incoming); len(clashes) > 0 {
+				ce := &engine.ClashError{Clashes: clashes}
+				return &cliError{Exit: exitFailed, Code: "layer_conflict", Message: ce.Error(), Fix: "add them one at a time and choose which you want"}
+			}
+			all := append([]*manifest.Layer{}, incoming...)
+			for _, l := range p.Layers {
+				all = append(all, l.Loaded.Manifest)
+			}
+			var against []engine.Clash
+			displaced := map[string]bool{}
+			var displacedOrder []string
+			for _, c := range engine.FindClashes(all) {
+				involvesNew := false
+				for _, id := range c.Layers {
+					if newIDs[id] {
+						involvesNew = true
+					}
+				}
+				if !involvesNew {
+					continue
+				}
+				against = append(against, c)
+				for _, id := range c.Layers {
+					if !newIDs[id] && !displaced[id] {
+						displaced[id] = true
+						displacedOrder = append(displacedOrder, id)
+					}
+				}
+			}
+			if len(against) > 0 && !replace {
+				ce := &engine.ClashError{Clashes: against}
+				return &cliError{
+					Exit:    exitFailed,
+					Code:    "layer_conflict",
+					Message: ce.Error(),
+					Fix:     fmt.Sprintf("re-run with --replace to remove %s in the same plan, or keep what is here", strings.Join(displacedOrder, ", ")),
+				}
+			}
+			for _, id := range displacedOrder {
+				p.Config.Remove(id)
 			}
 
 			chosen, err := parseAssignments(vars)
@@ -70,17 +191,23 @@ is written, and ` + "`ilk rm`" + ` removes exactly what was added.`,
 				p.Config.Capabilities[k] = v
 			}
 
-			if _, err := loaded.ResolveVars(chosen); err != nil {
-				return err
+			for _, a := range adding {
+				var layerVars map[string]string
+				if len(adding) == 1 {
+					layerVars = chosen
+				}
+				if _, err := a.loaded.ResolveVars(layerVars); err != nil {
+					return err
+				}
+				m := a.loaded.Manifest
+				p.Config.Set(config.LayerRef{
+					ID:        m.ID,
+					Version:   m.Version,
+					Source:    sourceFor(a.ref, m.ID),
+					Vars:      layerVars,
+					AllowExec: allowExec,
+				})
 			}
-
-			p.Config.Set(config.LayerRef{
-				ID:        m.ID,
-				Version:   m.Version,
-				Source:    sourceFor(ref, m.ID),
-				Vars:      chosen,
-				AllowExec: allowExec,
-			})
 
 			next, err := engine.NewProject(p.Repo, p.Config, p.Lock, p.Version)
 			if err != nil {
@@ -103,9 +230,19 @@ is written, and ` + "`ilk rm`" + ` removes exactly what was added.`,
 				return emitJSON(planJSON(pl))
 			}
 
-			printf("%s %s %s\n", sty.bold("add"), m.ID, sty.dim(m.Version))
-			printf("  %s\n", sty.dim(m.Summary))
-			printf("  %s %s\n\n", sty.dim("source:"), sty.dim(loaded.Source))
+			for _, a := range adding {
+				m := a.loaded.Manifest
+				printf("%s %s %s\n", sty.bold("add"), m.ID, sty.dim(m.Version))
+				printf("  %s\n", sty.dim(m.Summary))
+				printf("  %s %s\n", sty.dim("source:"), sty.dim(a.loaded.Source))
+			}
+			for _, id := range displacedOrder {
+				printf("%s %s %s\n", sty.bold("remove"), id, sty.dim("(replaced)"))
+			}
+			for _, id := range skipped {
+				printf("%s\n", sty.dim("skip "+id+" (already here)"))
+			}
+			printf("\n")
 			printPlan(pl, false)
 			printBaselines(next, pl)
 
@@ -127,18 +264,21 @@ is written, and ` + "`ilk rm`" + ` removes exactly what was added.`,
 				return err
 			}
 			printf("\n%s %s\n", sty.green("added."), summariseCounts(pl))
-			printLayerAfterAdd(m)
+			for _, a := range adding {
+				printLayerAfterAdd(a.loaded.Manifest)
+			}
 			return nil
 		},
 	}
 
-	cmd.Flags().StringSliceVar(&vars, "var", nil, "set a layer variable, e.g. --var docs_dir=documentation")
+	cmd.Flags().StringSliceVar(&vars, "var", nil, "set a layer variable, e.g. --var docs_dir=documentation (one layer only)")
 	cmd.Flags().StringSliceVar(&set, "set", nil, "set a repository capability, e.g. --set test.command=\"go test ./...\"")
 	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "apply without confirming")
 	cmd.Flags().BoolVar(&force, "force", false, "overwrite files edited since ilk wrote them")
-	cmd.Flags().BoolVar(&allowExec, "allow-exec", false, "consent to a layer that ships scripts or command-based checks")
+	cmd.Flags().BoolVar(&allowExec, "allow-exec", false, "consent to layers that ship scripts or command-based checks")
 	cmd.Flags().BoolVar(&noApply, "no-apply", false, "show the plan and change nothing")
 	cmd.Flags().BoolVar(&noBaseline, "no-baseline", false, "check files that already exist in this layer's directories, instead of exempting them")
+	cmd.Flags().BoolVar(&replace, "replace", false, "remove the layers already here that do the same job")
 	return cmd
 }
 

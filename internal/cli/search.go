@@ -58,6 +58,9 @@ context, and whether it runs code.`,
 			}
 
 			if len(entries) == 0 {
+				if printBundles(strings.Join(args, " "), adopted, all) {
+					return nil
+				}
 				if len(args) == 0 {
 					println(sty.dim("Every listed layer is already here. `ilk search --all` shows them anyway."))
 				} else {
@@ -95,10 +98,50 @@ context, and whether it runs code.`,
 				printf("\n")
 			}
 
+			printBundles(strings.Join(args, " "), adopted, all)
 			printf("%s\n", sty.dim("`ilk info <ref>` shows what a layer writes before you add it."))
 			return nil
 		},
 	}
 	cmd.Flags().BoolVar(&all, "all", false, "include layers this repository already has")
 	return cmd
+}
+
+// printBundles lists the bundles that match the query, leaving out those whose
+// every member is already here unless --all asks for them.
+func printBundles(query string, adopted map[string]bool, all bool) bool {
+	bundles, err := registry.Bundles()
+	if err != nil || len(bundles) == 0 {
+		return false
+	}
+	terms := strings.Fields(strings.ToLower(query))
+	var shown []registry.Bundle
+	for _, b := range bundles {
+		haystack := strings.ToLower(b.Ref() + " " + b.Summary + " " + strings.Join(b.Layers, " "))
+		matched := true
+		for _, t := range terms {
+			if !strings.Contains(haystack, t) {
+				matched = false
+				break
+			}
+		}
+		complete := true
+		for _, id := range b.Layers {
+			if !adopted[id] {
+				complete = false
+			}
+		}
+		if matched && (all || !complete) {
+			shown = append(shown, b)
+		}
+	}
+	if len(shown) == 0 {
+		return false
+	}
+	printf("%s\n", sty.bold("Bundles"))
+	for _, b := range shown {
+		printf("  %-24s %s\n", b.Ref(), sty.dim(strings.Join(b.Layers, ", ")))
+		printf("    %s\n\n", b.Summary)
+	}
+	return true
 }

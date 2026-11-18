@@ -79,6 +79,8 @@ ilk search                       # layers you could add
 ilk list --available             # layers you can add
 ilk info gates           # what a layer contains, before adding it
 ilk add gates --set test.command="go test ./..."
+ilk add @plans                   # a bundle: several layers that go together
+ilk add gh:someone/memory --replace  # swap out the layer already doing this job
 ilk rm gates             # removes exactly what it added
 
 ilk add gh:someone/their-layer   # community layers, same interface
