@@ -76,8 +76,8 @@
       "id": "ilk/maintainer",
       "kind": "layer",
       "version": "0.2.0",
-      "source": "/home/claude/coflounder/ilk/layers/maintainer",
-      "digest": "sha256:fec12d4d8d2a406ec3225d83d1798b36513a839c3b7ead8ab94ff70a9f55a1d8",
+      "source": "/home/claude/coflounder/ilk/.ilk/layers/maintainer",
+      "digest": "sha256:3091feeceea1add8901188b392422d7416b55753e1b96b76c93ff09c8a6d600c",
       "vars": {
         "group": "docs",
         "open_max": "12",

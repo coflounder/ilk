@@ -127,5 +127,5 @@ checks:
 
 contribution:
   repo: coflounder/ilk
-  path: layers/maintainer
+  path: .ilk/layers/maintainer
   guidelines: CONTRIBUTING.md
