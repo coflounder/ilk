@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -202,14 +203,9 @@ func loadGit(ref Ref, cacheDir string) (*Loaded, error) {
 		if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
 			return nil, err
 		}
-		args := []string{"clone", "--quiet", "--depth", "1"}
-		if ref.Version != "" {
-			args = append(args, "--branch", ref.Version)
-		}
-		args = append(args, ref.URL, dest)
-		cmd := exec.Command("git", args...)
-		if out, err := cmd.CombinedOutput(); err != nil {
-			return nil, fmt.Errorf("fetching %s: %w\n%s", ref.URL, err, strings.TrimSpace(string(out)))
+		if err := fetchGit(ref, dest); err != nil {
+			os.RemoveAll(dest)
+			return nil, err
 		}
 	}
 
@@ -226,6 +222,42 @@ func loadGit(ref Ref, cacheDir string) (*Loaded, error) {
 		loaded.Digest = "git:" + sha
 	}
 	return loaded, nil
+}
+
+// commitRe matches a full commit id. A ref shaped like one is fetched by id
+// rather than cloned by name: `git clone --branch` takes only branches and tags,
+// and a commit is the one pin that cannot move underneath a repository.
+var commitRe = regexp.MustCompile(`^[0-9a-f]{40}$`)
+
+func fetchGit(ref Ref, dest string) error {
+	run := func(dir string, args ...string) error {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("fetching %s: %w\n%s", ref.URL, err, strings.TrimSpace(string(out)))
+		}
+		return nil
+	}
+	if commitRe.MatchString(ref.Version) {
+		if err := os.MkdirAll(dest, 0o755); err != nil {
+			return err
+		}
+		for _, args := range [][]string{
+			{"init", "--quiet"},
+			{"fetch", "--quiet", "--depth", "1", ref.URL, ref.Version},
+			{"checkout", "--quiet", "FETCH_HEAD"},
+		} {
+			if err := run(dest, args...); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	args := []string{"clone", "--quiet", "--depth", "1"}
+	if ref.Version != "" {
+		args = append(args, "--branch", ref.Version)
+	}
+	return run("", append(args, ref.URL, dest)...)
 }
 
 func gitHeadSHA(dir string) (string, error) {

@@ -6,7 +6,7 @@ Layers that ship alongside ilk but not inside it. Add one with:
 ilk add gh:coflounder/ilk/layers/blueprint
 ```
 
-Pin a version with `@v0.2.0`. Nothing here is added by default — `ilk init` adds only
+Pin a version with `@v0.2.0`, or a commit with its full 40-character id. Nothing here is added by default — `ilk init` adds only
 built-in layers, so a fresh repository still needs no network.
 
 ## What is here
