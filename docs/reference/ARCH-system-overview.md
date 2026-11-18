@@ -52,7 +52,7 @@ Nothing is written until the whole blast radius has been shown.
 | `internal/checks` | The validator runner and the built-in checks. |
 | `internal/mirror` | Reconciling record documents with an external tracker. Owns identity, diffing and refusal; knows no provider. |
 | `internal/contrib` | Turning what a repository learned about a layer into a proposal its maintainer can judge. |
-| `internal/brief` | The session-start packet. |
+| `internal/brief` | The session-start packet: live repository state. It lists skills only when the AGENTS.md skills block is not up to date on disk. |
 | `internal/cli` | Command surface. |
 | `internal/builtin` | Layers embedded in the binary, so `ilk init` needs no network. |
 | `internal/registry` | The layer index, embedded so `ilk search` works offline. |

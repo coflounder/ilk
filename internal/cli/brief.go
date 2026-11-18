@@ -15,8 +15,12 @@ func newBriefCmd() *cobra.Command {
 		Example: `  ilk brief
   ilk brief --full --json`,
 		Long: `Assemble what an agent needs to know before doing anything here: the
-directory contract, the layers in force, the skills available, the commands that
-verify claims, and whether the repository currently validates.
+directory contract, the layers in force, the commands that verify claims, and
+whether the repository currently validates.
+
+The skills are listed only when AGENTS.md does not already list them. An agent
+reads AGENTS.md, so once ` + "`ilk apply`" + ` has written its skills block the brief
+leaves the list out and carries only the repository's live state.
 
 This is what the session-start hook runs. It is computed from the repository, so
 orientation does not depend on whoever wrote the prompt that morning.`,
@@ -109,7 +113,10 @@ func renderBrief(b *brief.Brief) {
 		}
 	}
 
-	if len(b.Skills) > 0 {
+	if b.SkillsIndex != "" {
+		printf("## Procedures available\n\n")
+		printf("Listed under Skills in %s. Read the matching file when its situation applies.\n\n", b.SkillsIndex)
+	} else if len(b.Skills) > 0 {
 		printf("## Procedures available\n\n")
 		printf("Read the matching file when its situation applies. Do not read them all up front.\n\n")
 		for _, s := range b.Skills {
