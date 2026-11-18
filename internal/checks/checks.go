@@ -7,6 +7,7 @@
 package checks
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -48,7 +49,17 @@ type Result struct {
 	Fix      string        `json:"fix,omitempty"`
 	Reason   string        `json:"reason,omitempty"`
 	Output   string        `json:"output,omitempty"`
-	Duration time.Duration `json:"duration_ms"`
+	Duration time.Duration `json:"-"`
+}
+
+// MarshalJSON reports Duration as real milliseconds. A time.Duration marshals as
+// nanoseconds, which a field named duration_ms used to pass off as milliseconds.
+func (r Result) MarshalJSON() ([]byte, error) {
+	type plain Result
+	return json.Marshal(struct {
+		plain
+		DurationMS float64 `json:"duration_ms"`
+	}{plain(r), float64(r.Duration.Microseconds()) / 1000})
 }
 
 // Report is a whole run.

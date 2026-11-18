@@ -100,7 +100,7 @@ nothing to choose.`,
 					return err
 				}
 				if missing := unsatisfied(loaded, cfg); len(missing) > 0 && id != layers[0] {
-					printf("  %s skipping %s — it needs %s (add it later with `ilk add %s`)\n",
+					warnf("  %s skipping %s — it needs %s (add it later with `ilk add %s`)\n",
 						sty.yellow("note"), loaded.Manifest.ID, strings.Join(missing, ", "), loaded.Manifest.Name())
 					continue
 				}

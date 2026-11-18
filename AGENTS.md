@@ -19,7 +19,7 @@ Non-obvious things that catch people out here:
 
 - **The built-in layers are embedded, not read from disk.** Editing
   `internal/builtin/layers/**` only takes effect after rebuilding — a stale binary
-  silently uses the old templates. `ilk update --path <checkout>` rebuilds and
+  silently uses the old templates. `ilk self update --path <checkout>` rebuilds and
   replaces the binary on PATH from anywhere; `ilk upgrade` is the *other* thing,
   and reconciles a repository to what the binary now embeds.
 - **`internal/engine/engine_test.go` is the contract, not a test suite.** It asserts

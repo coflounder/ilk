@@ -113,7 +113,7 @@ func TestErrorsUnderJSONAreJSON(t *testing.T) {
 		exit int
 	}{
 		{[]string{"-C", root, "add", "--json"}, "usage", exitUsage},
-		{[]string{"-C", root, "--json", "info", "no-such-layer-anywhere"}, "failed", exitFailed},
+		{[]string{"-C", root, "--json", "info", "no-such-layer-anywhere"}, "unknown_layer", exitUsage},
 	} {
 		code, _, stderr := invoke(t, tc.args...)
 		if code != tc.exit {
