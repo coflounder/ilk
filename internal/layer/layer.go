@@ -121,7 +121,7 @@ func Resolve(raw, cacheDir string) (*Loaded, error) {
 		if info, statErr := os.Stat(ref.Name); statErr == nil && info.IsDir() {
 			return loadLocal(ref.Name)
 		}
-		return nil, fmt.Errorf("unknown layer %q — `ilk list --available` shows the built-in layers, or use a path or gh:owner/repo", raw)
+		return nil, fmt.Errorf("unknown layer %q — `ilk search` shows the layers you can add, or use a path or gh:owner/repo", raw)
 	case KindLocal:
 		return loadLocal(expandHome(ref.Name))
 	case KindGit:

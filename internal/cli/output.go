@@ -46,7 +46,10 @@ func (s style) yellow(t string) string { return s.wrap("33", t) }
 func (s style) cyan(t string) string   { return s.wrap("36", t) }
 
 func printf(format string, args ...any) { fmt.Fprintf(out, format, args...) }
-func println(args ...any)               { fmt.Fprintln(out, args...) }
+
+// warnf writes to stderr: warnings, progress and notes that are not the result.
+func warnf(format string, args ...any) { fmt.Fprintf(errOut, format, args...) }
+func println(args ...any)              { fmt.Fprintln(out, args...) }
 
 // emitJSON writes a value as indented JSON, which is what every `--json` flag
 // produces. Agents are first-class consumers of this tool, not an afterthought.
@@ -140,8 +143,9 @@ func printPlan(pl *engine.Plan, showUnchanged bool) {
 		}
 	}
 
+	// Warnings go to stderr, so stdout stays the plan and nothing else.
 	for _, w := range pl.Warnings {
-		printf("\n  %s %s\n", sty.yellow("warning"), w)
+		warnf("%s %s\n", sty.yellow("warning:"), w)
 	}
 
 	if merged := countOp(pl, engine.OpMerge); merged > 0 {

@@ -86,7 +86,7 @@ already here does is refused; --replace swaps the old layer out in the same plan
 			seen := map[string]bool{}
 			var skipped []string
 			for _, w := range refs {
-				loaded, err := layer.Resolve(w.ref, p.Repo.IlkPath("cache"))
+				loaded, err := resolveLayer(w.ref, p.Repo.IlkPath("cache"))
 				if err != nil {
 					return err
 				}
@@ -554,7 +554,7 @@ func newInfoCmd() *cobra.Command {
 			if p, err := project(); err == nil {
 				cache = p.Repo.IlkPath("cache")
 			}
-			loaded, err := layer.Resolve(args[0], cache)
+			loaded, err := resolveLayer(args[0], cache)
 			if err != nil {
 				return err
 			}

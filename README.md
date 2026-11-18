@@ -87,7 +87,7 @@ ilk add gh:someone/their-layer   # community layers, same interface
 ilk agents add cursor            # generate config for another agent
 
 ilk upgrade                      # merges layer changes into files you have edited
-ilk update --path ../ilk         # rebuild ilk itself from a source checkout
+ilk self update --path ../ilk    # rebuild ilk itself from a source checkout
 ilk baseline list                # files exempt from a layer's checks, and why
 ```
 

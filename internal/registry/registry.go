@@ -44,6 +44,22 @@ func (e Entry) Ref() string {
 	return e.Source
 }
 
+// Lookup finds a layer in the index by its id (ilk/blueprint) or its short name
+// (blueprint). Only ilk's own index is searched: a short name never resolves to
+// a layer somebody else published.
+func Lookup(name string) (Entry, bool) {
+	idx, err := load()
+	if err != nil {
+		return Entry{}, false
+	}
+	for _, e := range idx.Layers {
+		if e.ID == name || e.Name() == name {
+			return e, true
+		}
+	}
+	return Entry{}, false
+}
+
 // Name is the short name, the last segment of the id.
 func (e Entry) Name() string {
 	if _, after, ok := strings.Cut(e.ID, "/"); ok {

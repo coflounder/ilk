@@ -44,7 +44,7 @@ func toActionJSON(a engine.Action) actionJSON {
 }
 
 func newPlanCmd() *cobra.Command {
-	var force, all, noMerge bool
+	var force, all, noMerge, exitCodeFlag bool
 	cmd := &cobra.Command{
 		Use:   "plan",
 		Short: "Show what `ilk apply` would change, without changing anything",
@@ -57,6 +57,9 @@ func newPlanCmd() *cobra.Command {
 			pl, err := p.Plan(engine.PlanOptions{Force: force, Prune: true, NoMerge: noMerge})
 			if err != nil {
 				return err
+			}
+			if exitCodeFlag && !pl.Empty() {
+				exitCode = exitPending
 			}
 			if flagJSON {
 				return emitJSON(planJSON(pl))
@@ -71,6 +74,7 @@ func newPlanCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&force, "force", false, "plan as if hand-edited files may be overwritten")
 	cmd.Flags().BoolVar(&all, "all", false, "include artifacts that are already up to date")
 	cmd.Flags().BoolVar(&noMerge, "no-merge", false, "refuse edited files instead of merging into them")
+	cmd.Flags().BoolVar(&exitCodeFlag, "exit-code", false, "exit 4 when there are changes to apply, so CI can gate on drift")
 	return cmd
 }
 
@@ -131,7 +135,7 @@ versions into the file, or --force to discard yours.`,
 			printf("\n%s %s\n", sty.green("applied."), summariseCounts(pl))
 			if n := len(pl.Conflicts()); n > 0 {
 				exitCode = 1
-				printf("%s %d artifact(s) skipped — see above.\n", sty.yellow("note:"), n)
+				warnf("%s %d artifact(s) skipped — see above.\n", sty.yellow("note:"), n)
 			}
 			return nil
 		},
@@ -165,6 +169,7 @@ type statusLayer struct {
 }
 
 func newStatusCmd() *cobra.Command {
+	var exitCodeFlag bool
 	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Show this repository's layers and anything that has drifted",
@@ -188,6 +193,9 @@ func newStatusCmd() *cobra.Command {
 				Drift:        []actionJSON{},
 				Warnings:     pl.Warnings,
 				InSync:       pl.Empty(),
+			}
+			if exitCodeFlag && !pl.Empty() {
+				exitCode = exitPending
 			}
 			counts := map[string]int{}
 			for _, e := range p.Lock.Owners {
@@ -247,6 +255,7 @@ func newStatusCmd() *cobra.Command {
 			return nil
 		},
 	}
+	cmd.Flags().BoolVar(&exitCodeFlag, "exit-code", false, "exit 4 when the repository has drifted from its config")
 	return cmd
 }
 

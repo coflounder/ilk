@@ -20,6 +20,7 @@ const (
 	exitFailed               = 1 // it ran, and the work failed: a check, a conflict, an error
 	exitUsage                = 2 // it was called wrongly: unknown command or flag, missing argument
 	exitConfirmationRequired = 3 // it needed a yes it could not ask for; nothing was changed
+	exitPending              = 4 // with --exit-code: the repository is not in sync with its config
 )
 
 // cliError is an error that knows its exit code and a stable, machine-readable
