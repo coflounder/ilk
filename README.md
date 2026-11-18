@@ -262,7 +262,6 @@ Additional layers ship alongside in [`layers/`](layers/):
 | `visual-qa` | Interface work shows what it looks like: screenshots against the acceptance criteria, no baselines |
 | `archive` | Superseded documents are archived rather than deleted, and nothing live may cite them |
 | `gh-projects` | A GitHub Project made to match the plan, with an ambiguous match refused rather than guessed |
-| `maintainer` | The receiving end: proposals from repositories using your layers, and a queue that fails when it stops being a promise |
 
 ```sh
 ilk search planning
@@ -399,10 +398,13 @@ three-way merges into every repository that had tuned the layer — including th
 that proposed it. That is the loop closing: a local fix stops being local, and stops
 being yours to maintain.
 
-The [`maintainer`](layers/maintainer/) layer is the receiving end. Proposals land as
-documents, `ilk check` fails one that has no case or a verdict with no reasons, and the
-open queue has a ceiling — because a queue is a promise, and past a certain length it
-stops being one.
+ilk's own repository runs the receiving end as a repo-local layer,
+[`.ilk/layers/maintainer`](.ilk/layers/maintainer/). Proposals land as documents,
+`ilk check` fails one that has no case or a verdict with no reasons, and the open queue
+has a ceiling — because a queue is a promise, and past a certain length it stops being
+one. It is not in the index: it is how this repository works, not a layer offered to
+others. A repository with layers of its own to receive proposals for can copy it and
+reference it by path, the same way.
 
 ## Working with any agent
 

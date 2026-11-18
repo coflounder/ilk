@@ -29,6 +29,18 @@ ilk add gh:you/monorepo/layers/my-pattern@v1.2.0
 
 There is no registration step and no account.
 
+A layer meant only for the repository it lives in stays there. Keep it under
+`.ilk/layers/` and reference it by path; the config records the source, and nobody
+else is offered it. ilk's own `maintainer` layer works this way:
+
+```yaml
+# .ilk/config.yaml
+layers:
+  - id: ilk/maintainer
+    source: ./.ilk/layers/maintainer
+    allow_exec: true
+```
+
 ---
 
 ## The manifest

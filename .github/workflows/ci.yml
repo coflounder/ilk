@@ -48,7 +48,7 @@ jobs:
       - name: Layer contract
         run: |
           set -e
-          for layer in internal/builtin/layers/*/ layers/*/; do
+          for layer in internal/builtin/layers/*/ layers/*/ .ilk/layers/*/; do
             [ -f "$layer/layer.yaml" ] || continue
             echo "→ $layer"
             ./ilk layer validate "$layer"
@@ -72,7 +72,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           set -e
-          for suite in layers/*/test/run.sh internal/builtin/layers/*/test/run.sh; do
+          for suite in layers/*/test/run.sh internal/builtin/layers/*/test/run.sh .ilk/layers/*/test/run.sh; do
             [ -f "$suite" ] || continue
             echo "→ $suite"
             sh "$suite"
@@ -113,7 +113,7 @@ jobs:
         run: |
           set -e
           missing=()
-          for layer in internal/builtin/layers/*/ layers/*/; do
+          for layer in internal/builtin/layers/*/ layers/*/ .ilk/layers/*/; do
             [ -f "$layer/layer.yaml" ] || continue
             grep -q '^contribution:' "$layer/layer.yaml" || missing+=("$layer (no contribution: block)")
             guidelines=$(sed -n 's/^  guidelines: *//p' "$layer/layer.yaml" | head -1)

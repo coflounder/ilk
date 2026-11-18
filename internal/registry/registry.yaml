@@ -110,13 +110,6 @@ layers:
     for: [any]
     requires: [record.plans]
 
-  - id: ilk/maintainer
-    source: gh:coflounder/ilk/layers/maintainer
-    summary: The receiving end of the flywheel — proposals from repositories using your layers arrive as reviewable documents, and a proposal nobody can judge fails the checks rather than sitting in a queue.
-    arc: operations
-    kind: process
-    for: [library]
-
   - id: ilk/autoresearch
     source: gh:coflounder/ilk/layers/autoresearch
     summary: Findings about the world outside the repository — sourced, falsifiable and dated — so no session pays to derive them twice.

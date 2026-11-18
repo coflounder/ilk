@@ -21,7 +21,6 @@ built-in layers, so a fresh repository still needs no network.
 | [`visual-qa`](visual-qa/) | Interface work shows what it looks like: screenshots against the acceptance criteria, no baselines |
 | [`archive`](archive/) | Superseded documents are archived rather than deleted, and nothing live may cite them |
 | [`gh-projects`](gh-projects/) | A GitHub Project made to match the plan — the record is the source of truth, and an ambiguous match refuses rather than guesses |
-| [`maintainer`](maintainer/) | Proposals from repositories using your layers arrive as reviewable documents; one nobody can judge fails the checks rather than sitting in a queue |
 | [`autoresearch`](autoresearch/) | A finding about the world outside the repository cites its sources, says what would change its conclusion, and expires on a date |
 | [`deprecation`](deprecation/) | A deprecation carries a removal date the checks hold you to, and says when the removal is actually finished |
 | [`pr-prep`](pr-prep/) | A pull request description is derived from the plan — outcome, criteria, evidence — rather than written from memory |
@@ -64,8 +63,8 @@ the source of truth if the tracker everyone else reads agrees with it.
 
 ## Layers that run code
 
-`blueprint`, `archive`, `ask-human`, `dev-loops`, `gh-projects`, `maintainer`,
-`autoresearch`, `deprecation`, `pr-prep`, `infra`, `routine`, `session-summaries` and
+`blueprint`, `archive`, `ask-human`, `dev-loops`, `gh-projects`, `autoresearch`,
+`deprecation`, `pr-prep`, `infra`, `routine`, `session-summaries` and
 `html-wireframe` ship shell commands, so adding them requires consent:
 
 ```sh

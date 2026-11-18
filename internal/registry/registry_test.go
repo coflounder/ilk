@@ -123,3 +123,45 @@ func TestEveryIndexedTraitAndFacetIsKnown(t *testing.T) {
 		}
 	}
 }
+
+// layers/ is what this repository publishes and .ilk/layers/ is what it keeps
+// for itself. Every published layer is in the index, so search can find it;
+// no repo-local one is, so search never offers a layer nobody else can use.
+func TestTheIndexListsWhatIsPublishedAndNothingRepoLocal(t *testing.T) {
+	entries, err := All()
+	if err != nil {
+		t.Fatal(err)
+	}
+	indexed := map[string]bool{}
+	for _, e := range entries {
+		indexed[e.Source] = true
+	}
+	published, err := filepath.Glob(filepath.Join("..", "..", "layers", "*", "layer.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(published) == 0 {
+		t.Fatal("no published layers found; the test is looking in the wrong place")
+	}
+	for _, m := range published {
+		name := filepath.Base(filepath.Dir(m))
+		if !indexed["gh:coflounder/ilk/layers/"+name] {
+			t.Errorf("layers/%s is published but not in the index, so search cannot find it", name)
+		}
+	}
+	local, err := filepath.Glob(filepath.Join("..", "..", ".ilk", "layers", "*", "layer.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range local {
+		name := filepath.Base(filepath.Dir(m))
+		for _, e := range entries {
+			if e.Name() == name || strings.Contains(e.Source, ".ilk/layers/") {
+				t.Errorf("%s is in the index, but .ilk/layers/%s is kept for this repository alone", e.ID, name)
+			}
+		}
+	}
+	if _, ok := indexed["gh:coflounder/ilk/layers/maintainer"]; ok {
+		t.Error("maintainer is in the index; it lives in .ilk/layers/maintainer for ilk's own use")
+	}
+}
