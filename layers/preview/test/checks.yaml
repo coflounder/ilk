@@ -1,0 +1,106 @@
+# Every case states what it defends, so a failure here is actionable.
+#
+# The `compliant` fixture is the shape the layer asks for, modelled on a real
+# Worker: production on a custom domain, previews as versions behind their own
+# Access application, the Worker verifying Access's token, no Durable Object
+# implemented here, no production data bound. Every check must pass on it —
+# a check that rejects the shape it recommends would be turned off within a week.
+
+- check: preview.workers-dev-off
+  fixture: compliant
+  expect: pass
+  why: workers_dev false with a custom-domain route is the shape the layer asks for.
+- check: preview.workers-dev-off
+  fixture: compliant-toml
+  expect: pass
+  why: Plenty of Workers still use wrangler.toml, and a check that only reads JSON would fail every one of them for the wrong reason.
+- check: preview.workers-dev-off
+  fixture: workers-dev-on
+  expect: fail
+  why: A public workers.dev address sits outside the Access applications on the domain, so anybody with the URL reaches the Worker.
+- check: preview.workers-dev-off
+  fixture: workers-dev-unset
+  expect: fail
+  why: Wrangler turns workers.dev on when the key is absent, so silence is not safety.
+- check: preview.workers-dev-off
+  fixture: no-wrangler-config
+  expect: fail
+  why: A repository that adopted the preview layer with no Wrangler configuration has no previews, and a check that passed on nothing would say otherwise.
+
+- check: preview.urls-on
+  fixture: compliant
+  expect: pass
+  why: preview_urls true is what gives each uploaded version a URL at all.
+- check: preview.urls-on
+  fixture: compliant-toml
+  expect: pass
+  why: The TOML form of the same setting must read the same way.
+- check: preview.urls-on
+  fixture: preview-urls-off
+  expect: fail
+  why: With preview_urls false a version uploads and nobody can open it, which looks like a working pipeline until somebody tries.
+
+- check: preview.access-verified
+  fixture: compliant
+  expect: pass
+  why: Reading cf-access-jwt-assertion and verifying it against the team's certs is the defence in depth the layer asks for.
+- check: preview.access-verified
+  fixture: compliant-toml
+  expect: pass
+  why: The Worker's source is found from the TOML file's main as well as the JSON one's.
+- check: preview.access-verified
+  fixture: no-access-verification
+  expect: fail
+  why: A Worker that trusts Access is in front of it answers anybody who reaches it another way.
+- check: preview.access-verified
+  fixture: header-read-not-verified
+  expect: fail
+  why: Checking that the header is present is not checking that it is genuine, and a test file that mentions jwtVerify must not count for the Worker.
+
+- check: preview.preview-audience
+  fixture: compliant
+  expect: pass
+  why: The preview Access application's AUD in vars, accepted by the Worker, is what lets a preview answer at all.
+- check: preview.preview-audience
+  fixture: no-preview-audience
+  expect: fail
+  why: Without the preview application's audience the Worker refuses every token minted for previews, so they answer 401 to everyone.
+
+- check: preview.no-durable-objects
+  fixture: compliant
+  expect: pass
+  why: A Worker with no Durable Object of its own gets a preview URL for every version.
+- check: preview.no-durable-objects
+  fixture: durable-object-elsewhere
+  expect: pass
+  why: A Durable Object bound from another Worker with script_name costs this Worker nothing, and failing it would push people away from the fix.
+- check: preview.no-durable-objects
+  fixture: durable-object-here
+  expect: fail
+  why: Cloudflare makes no preview URL for a Worker that implements a Durable Object, so every preview answers error 1042.
+
+- check: preview.separate-data
+  fixture: compliant
+  expect: pass
+  why: Workers AI, assets and vars hold no state, so a Worker bound to nothing else shares nothing with production.
+- check: preview.separate-data
+  fixture: shared-production-data
+  expect: fail
+  why: KV and D1 bound at the top level are production's, so a write in a preview is a write to production.
+- check: preview.separate-data
+  fixture: durable-object-elsewhere
+  expect: fail
+  why: Another Worker's Durable Object is still production's state, whichever Worker implements it.
+
+- check: preview.no-committed-token
+  fixture: compliant
+  expect: pass
+  why: A workflow that reads the secret from CI secrets is how the token should reach a verify step, and must not read as a leak.
+- check: preview.no-committed-token
+  fixture: token-committed
+  expect: fail
+  why: A service token secret typed into a committed script opens every preview to whoever reads the repository.
+- check: preview.no-committed-token
+  fixture: token-in-vars
+  expect: fail
+  why: Wrangler vars are plain text in the repository and in the Worker, so the secret's name there is a secret in the open whatever its value looks like.

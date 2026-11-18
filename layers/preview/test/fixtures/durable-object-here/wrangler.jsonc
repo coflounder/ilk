@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "shop",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "account_id": "<your-account-id>",
+  "workers_dev": false,
+  "preview_urls": true,
+  "routes": [{ "pattern": "shop.example.com", "custom_domain": true }],
+  "assets": { "directory": "./dist", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
+  "durable_objects": {
+    "bindings": [
+      // Lives in another Worker: costs this one nothing.
+      { "name": "STORE", "class_name": "Store", "script_name": "shop-store" },
+      // Lives here: no version of this Worker gets a preview URL.
+      { "name": "CART", "class_name": "Cart" }
+    ]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Cart"] }],
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "<team>.cloudflareaccess.com",
+    "ACCESS_AUD": "<production-access-aud>",
+    // The Access application on this Worker's preview URLs.
+    "ACCESS_AUD_PREVIEW": "<preview-access-aud>",
+  },
+}

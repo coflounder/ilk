@@ -2,7 +2,7 @@
 id: plan-layer-queue
 title: Layer queue
 status: active
-updated: 2026-08-09
+updated: 2026-11-18
 ---
 
 # Layer queue
@@ -116,6 +116,7 @@ queue resumes.
 | `routine` | Not on this list when it was written: the trigger half of running unattended | done |
 | `gauntlet` | Nor was this one: the judging half, and the reason unattended work can be trusted | done |
 | `html-wireframe` | Pairs with `visual-qa`; was ranked lower, and was cheap once the pair was the argument | done |
+| `preview` | Nor this one: the first layer to fill a named role (`role.preview`), modelled on a Cloudflare Worker already running previews this way | done |
 | `migrations` | After `secrets`, which establishes the wrap-a-tool-via-capability shape | |
 | `codegraph` | After `mcp:`, for the version worth having | |
 | `linear-mirror` | Unblocked; three shell commands over `ilk mirror` | |

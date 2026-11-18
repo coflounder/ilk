@@ -240,6 +240,7 @@ Additional layers ship alongside in [`layers/`](layers/):
 | `compound-lessons` | Every lesson names the durable change it produced, so "we will be more careful" cannot pass as an outcome |
 | `archive` | Superseded documents are archived rather than deleted, and nothing live may cite them |
 | `gh-projects` | A GitHub Project made to match the plan, with an ambiguous match refused rather than guessed |
+| `preview` | Every pull request has a preview behind sign-in that an agent opens read-only; never on a public address, never sharing production's data unnoticed |
 | `maintainer` | The receiving end: proposals from repositories using your layers, and a queue that fails when it stops being a promise |
 
 ```sh

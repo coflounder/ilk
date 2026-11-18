@@ -1,0 +1,26 @@
+#!/bin/sh
+# A fake curl for test/run.sh. It records its arguments and the headers it was
+# handed on standard input, separately, so the suite can prove the secret went
+# down the pipe and never onto a command line.
+echo "$*" >>"${FAKE_LOG:?}.argv"
+body='' heads=''
+while [ $# -gt 0 ]; do
+	case $1 in
+	-o) body=$2; shift ;;
+	-D) heads=$2; shift ;;
+	-w | -H | --proto | --max-time | --max-redirs) shift ;;
+	--) shift ;;
+	esac
+	shift
+done
+cat >>"${FAKE_LOG}.stdin"
+status=${FAKE_CURL_STATUS:-200}
+{
+	printf 'HTTP/2 %s\r\n' "$status"
+	if [ -n "${FAKE_CURL_LOCATION:-}" ]; then
+		printf 'location: %s\r\n' "$FAKE_CURL_LOCATION"
+	fi
+	printf 'content-type: text/html\r\n\r\n'
+} >"$heads"
+printf '%s' "${FAKE_CURL_BODY:-<!doctype html><title>shop</title>}" >"$body"
+printf '%s' "$status"
