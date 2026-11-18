@@ -15,6 +15,9 @@ func newAgentsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "agents",
 		Short: "Manage which coding agents ilk generates configuration for",
+		Example: `  ilk agents list
+  ilk agents add cursor --yes
+  ilk agents sync --yes`,
 		Long: `Layers never emit agent-specific files. They declare what an agent should
 know and do, and ilk projects that into whatever each agent reads.
 
@@ -30,7 +33,9 @@ func newAgentsListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
 		Short: "Show configured and available agent targets",
-		Args:  cobra.NoArgs,
+		Example: `  ilk agents list
+  ilk agents list --json`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			enabled := map[string]bool{}
 			if p, err := project(); err == nil {
@@ -82,7 +87,9 @@ func newAgentsAddCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add <target>",
 		Short: "Generate configuration for another coding agent",
-		Args:  requireArgs(1, "ilk agents add <target>"),
+		Example: `  ilk agents add codex
+  ilk agents add cursor --yes`,
+		Args: requireArgs(1, "ilk agents add <target>"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mutateTargets(args[0], true, yes)
 		},
@@ -96,7 +103,9 @@ func newAgentsRemoveCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "remove <target>",
 		Short: "Stop generating configuration for an agent, and remove what was generated",
-		Args:  requireArgs(1, "ilk agents remove <target>"),
+		Example: `  ilk agents remove copilot
+  ilk agents remove copilot --yes`,
+		Args: requireArgs(1, "ilk agents remove <target>"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mutateTargets(args[0], false, yes)
 		},
@@ -167,7 +176,9 @@ func newAgentsSyncCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "sync",
 		Short: "Regenerate every agent projection from the current layers",
-		Args:  cobra.NoArgs,
+		Example: `  ilk agents sync
+  ilk agents sync --yes`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			p, err := project()
 			if err != nil {
@@ -216,6 +227,8 @@ func newDoctorCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "doctor",
 		Short: "Check that ilk itself is wired up correctly",
+		Example: `  ilk doctor
+  ilk doctor --json`,
 		Long: `Report the gaps between what layers declared and what the environment can
 actually deliver: hook events an agent cannot fire, git hooks that another tool
 has taken over, missing capabilities, and layers whose source has changed.
@@ -278,7 +291,7 @@ when it is not.`,
 
 			for id, missing := range p.MissingRequirements() {
 				add("error", fmt.Sprintf("%s requires %s, which nothing supplies", id, strings.Join(missing, ", ")),
-					fmt.Sprintf("set it: ilk add %s --set %s=\"...\", or add it under `capabilities:` in .ilk/config.yaml", id, missing[0]))
+					fmt.Sprintf("set it: ilk config set %s \"...\", or add a layer that provides it", missing[0]))
 			}
 
 			for _, entry := range p.Lock.Owners {

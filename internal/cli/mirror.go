@@ -20,6 +20,8 @@ func newMirrorCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "mirror",
 		Short: "Keep the record and an external tracker in agreement",
+		Example: `  ilk mirror plan
+  ilk mirror apply --yes`,
 		Long: `Reconcile record documents with a tracker — a GitHub Project, a Linear team.
 
 The record is the source of truth. This makes the tracker match the markdown, never
@@ -41,7 +43,9 @@ func newMirrorPlanCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "plan [mirror]",
 		Short: "Show what reconciling would change in the tracker, without changing it",
-		Args:  cobra.MaximumNArgs(1),
+		Example: `  ilk mirror plan
+  ilk mirror plan --json`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return withMirror(args, func(ctx mirrorContext) error {
 				plan, err := mirror.Build(ctx.project, ctx.layer, ctx.mirror, mirrorOptions(false, timeout))
@@ -75,6 +79,8 @@ func newMirrorApplyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "apply [mirror]",
 		Short: "Make the tracker match the record",
+		Example: `  ilk mirror apply
+  ilk mirror apply --link --yes`,
 		Long: `Write the planned changes to the tracker.
 
 Documents that could mean more than one tracker item are never applied — the plan
@@ -143,6 +149,8 @@ func newMirrorLinkCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "link [mirror]",
 		Short: "Match documents to items that already exist in the tracker",
+		Example: `  ilk mirror link
+  ilk mirror link --yes`,
 		Long: `Take on a tracker that already has content.
 
 Unlinked documents are matched to existing items by title, and the match is recorded

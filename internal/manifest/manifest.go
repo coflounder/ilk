@@ -410,6 +410,10 @@ var (
 	envPattern     = regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
 )
 
+// ValidCapability reports whether name is spelled like a capability: dotted,
+// lowercase, with no underscores (`test.command`, `record.plans`).
+func ValidCapability(name string) bool { return capPattern.MatchString(name) }
+
 // Parse decodes and validates a layer manifest.
 func Parse(data []byte, source string) (*Layer, error) {
 	var l Layer

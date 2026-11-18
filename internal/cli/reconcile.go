@@ -48,7 +48,9 @@ func newPlanCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "plan",
 		Short: "Show what `ilk apply` would change, without changing anything",
-		Args:  cobra.NoArgs,
+		Example: `  ilk plan
+  ilk plan --exit-code`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			p, err := project()
 			if err != nil {
@@ -83,6 +85,9 @@ func newApplyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "apply",
 		Short: "Reconcile the repository with .ilk/config.yaml",
+		Example: `  ilk apply
+  ilk apply --yes
+  ilk apply --merge-markers`,
 		Long: `Bring the repository in line with its declared layers.
 
 Apply is idempotent: running it when nothing has changed does nothing.
@@ -173,7 +178,9 @@ func newStatusCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Show this repository's layers and anything that has drifted",
-		Args:  cobra.NoArgs,
+		Example: `  ilk status
+  ilk status --exit-code --json`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			p, err := project()
 			if err != nil {

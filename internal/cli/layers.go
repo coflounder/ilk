@@ -312,6 +312,8 @@ func newRmCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "rm <layer>",
 		Short: "Remove a layer and everything it added",
+		Example: `  ilk rm gates
+  ilk rm gates --yes`,
 		Long: `Remove a layer from this repository.
 
 Files ilk fully owns are deleted; fenced blocks are removed from files it only
@@ -378,6 +380,8 @@ func newUpgradeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "upgrade [layer]",
 		Short: "Re-resolve layers and apply any changes they bring",
+		Example: `  ilk upgrade
+  ilk upgrade record --yes`,
 		Long: `Move this repository's layers to whatever their source now resolves to.
 
 A file you have edited since ilk wrote it is merged rather than overwritten: where
@@ -478,7 +482,9 @@ func newListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List the layers in this repository, or everything available",
-		Args:  cobra.NoArgs,
+		Example: `  ilk list
+  ilk list --available --json`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			var rows []layerJSON
 
@@ -548,7 +554,9 @@ func newInfoCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "info <layer>",
 		Short: "Show what a layer contains before you add it",
-		Args:  requireArgs(1, "ilk info <layer>"),
+		Example: `  ilk info gates
+  ilk info gh:owner/repo --json`,
+		Args: requireArgs(1, "ilk info <layer>"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cache := ".ilk/cache"
 			if p, err := project(); err == nil {

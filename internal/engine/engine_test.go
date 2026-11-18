@@ -434,7 +434,7 @@ func TestMissingRequirementIsReportedNotFatal(t *testing.T) {
 	if len(pl.Warnings) == 0 {
 		t.Error("the plan should warn about the unmet requirement")
 	}
-	if !strings.Contains(pl.Warnings[0], "capabilities:") {
+	if !strings.Contains(pl.Warnings[0], "ilk config set test.command") {
 		t.Errorf("the warning should say how to fix it, got %q", pl.Warnings[0])
 	}
 }

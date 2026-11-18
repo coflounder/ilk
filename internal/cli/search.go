@@ -12,6 +12,9 @@ func newSearchCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "search [terms...]",
 		Short: "Find layers you could add",
+		Example: `  ilk search
+  ilk search plans
+  ilk search --all --json`,
 		Long: `Search the layer index for something to add.
 
 The index is embedded in the binary, so this works offline — and it is a snapshot

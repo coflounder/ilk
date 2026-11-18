@@ -25,6 +25,9 @@ func newLayerCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "layer",
 		Short: "Author and test layers",
+		Example: `  ilk layer new release-notes
+  ilk layer validate layers/release-notes
+  ilk layer test layers/release-notes`,
 	}
 	cmd.AddCommand(newLayerNewCmd(), newLayerValidateCmd(), newLayerTestCmd())
 	return cmd
@@ -35,7 +38,9 @@ func newLayerNewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "new <name>",
 		Short: "Scaffold a new layer",
-		Args:  requireArgs(1, "ilk layer new <name>"),
+		Example: `  ilk layer new release-notes
+  ilk layer new release-notes --namespace acme --dir layers`,
+		Args: requireArgs(1, "ilk layer new <name>"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 			target := filepath.Join(dir, name)
@@ -80,7 +85,9 @@ func newLayerValidateCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "validate <path>",
 		Short: "Check a layer manifest without adding it",
-		Args:  requireArgs(1, "ilk layer validate <path>"),
+		Example: `  ilk layer validate layers/release-notes
+  ilk layer validate layers/release-notes --json`,
+		Args: requireArgs(1, "ilk layer validate <path>"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			loaded, err := layer.Resolve(args[0], ".ilk/cache")
 			if err != nil {
@@ -156,7 +163,9 @@ func newLayerTestCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "test <path>",
 		Short: "Prove that adding and removing this layer is lossless",
-		Args:  requireArgs(1, "ilk layer test <path>"),
+		Example: `  ilk layer test layers/release-notes
+  ilk layer test layers/release-notes --strict --keep`,
+		Args: requireArgs(1, "ilk layer test <path>"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			src, err := filepath.Abs(args[0])
 			if err != nil {

@@ -17,8 +17,8 @@ Bring the repository back in line with the layers it declares.
 ## The model
 
 `.ilk/config.yaml` is the desired state. `ilk apply` reconciles the repository to it.
-Everything else is sugar: `add` and `rm` edit that file and reconcile, `upgrade`
-re-resolves layer sources and reconciles.
+Everything else is sugar: `add`, `rm` and `config set` edit that file and reconcile,
+`upgrade` re-resolves layer sources and reconciles.
 
 Two commands, always in this order:
 

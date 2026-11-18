@@ -22,6 +22,10 @@ func newCheckCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "check",
 		Short: "Validate the repository; every failure prints its own fix",
+		Example: `  ilk check
+  ilk check --only gates.tests,gates.lint
+  ilk check --list
+  ilk check --fix --json`,
 		Long: `Run every check this repository's layers register, plus the ones ilk always runs.
 
 Exits non-zero when anything fails, so it can be wired into hooks and CI. Each

@@ -19,6 +19,8 @@ func newBaselineCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "baseline",
 		Short: "Inspect and shrink the files exempted from a layer's checks",
+		Example: `  ilk baseline list
+  ilk baseline clear docs/old-guide.md`,
 		Long: `When a layer's directory contract lands on a directory that already exists
 and already has files, those files are recorded as its baseline and exempted from
 that layer's checks. A layer governs what happens next, not what came before.
@@ -39,7 +41,9 @@ func newBaselineListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
 		Short: "Show which files are exempt, and from which layer's checks",
-		Args:  cobra.NoArgs,
+		Example: `  ilk baseline list
+  ilk baseline list --json`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			p, err := project()
 			if err != nil {
@@ -80,6 +84,8 @@ func newBaselineClearCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "clear [path...]",
 		Short: "Stop exempting files, so their layer's checks apply to them",
+		Example: `  ilk baseline clear docs/old-guide.md
+  ilk baseline clear --all`,
 		Long: `Remove paths from the baseline. Their layer's checks apply from then on, so
 run ` + "`ilk check`" + ` afterwards — if the file was never conformed, this is where
 you find out what it needs.
