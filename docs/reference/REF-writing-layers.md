@@ -29,6 +29,18 @@ ilk add gh:you/monorepo/layers/my-pattern@v1.2.0
 
 There is no registration step and no account.
 
+A layer meant only for the repository it lives in stays there. Keep it under
+`.ilk/layers/` and reference it by path; the config records the source, and nobody
+else is offered it. ilk's own `maintainer` layer works this way:
+
+```yaml
+# .ilk/config.yaml
+layers:
+  - id: ilk/maintainer
+    source: ./.ilk/layers/maintainer
+    allow_exec: true
+```
+
 ---
 
 ## The manifest
@@ -39,7 +51,8 @@ version: 0.1.0                # semver
 summary: One line. This is what `ilk search` and `ilk list` show.
 facets:
   arc: quality                # context | planning | execution | quality | release | operations
-  kind: process               # record | process | gate | harness | integration | target
+  kind: process               # record | process | gate | harness | integration
+for: [ui]                     # any | ui | service | library | infra | unattended-agents | multi-agent
 ilk: ">=0.1.0"
 examples:                     # the layer in use, shown by `ilk info`
   - ilk my-pattern report
@@ -49,9 +62,29 @@ examples:                     # the layer in use, shown by `ilk info`
 `examples:` are what `ilk info` leads with, so somebody deciding whether to add the
 layer sees it being used before they read what it contains. One command line each.
 
-Facets are advisory tags for discovery, not a taxonomy you have to fit into. A layer
-that is memory *and* execution *and* verification at once is normal; pick whichever
-facet helps somebody find it.
+Facets and `for:` are for discovery, and each draws from a closed list — a value
+outside it is a manifest error, because free text drifts and a word nobody else uses
+finds nobody. A layer that is memory *and* execution *and* verification at once is
+normal; pick whichever `arc` and `kind` help somebody find it.
+
+`for:` says which repositories the layer is meant for, by trait:
+
+| Trait | The repository |
+|---|---|
+| `any` | every repository, whatever it builds — and then it stands alone |
+| `ui` | has a user interface people look at |
+| `service` | runs somewhere and serves requests |
+| `library` | is consumed by other code through its API |
+| `infra` | declares infrastructure as code |
+| `unattended-agents` | has agents working with nobody watching |
+| `multi-agent` | has several agents or harnesses working at once |
+
+`ilk search --for ui` lists the layers that name a trait, `ilk info` shows them, and
+`ilk init` detects the simple ones (`ui`, `service`, `library`, `infra`) from the files
+in a repository and suggests the layers declared for them. A layer for one stack names
+that trait rather than `any`, so it is suggested where it fits and not everywhere. The
+list lives in `internal/manifest/vocab.go`; a new trait is a change to ilk, made once,
+for everyone.
 
 ## Capabilities, not dependencies
 
@@ -194,6 +227,14 @@ Check ids start with the layer's short name and a dot: `my-pattern.coverage` in
 `you/my-pattern`. `ilk layer validate`, and every load of a layer, refuse any other
 id. The prefix keeps ids from colliding across layers, and lets
 `ilk check --only my-pattern` select the whole layer.
+
+A `run:` check that needs a credential names the variable that carries it with
+`requires_env: [PULUMI_ACCESS_TOKEN]`. ilk tests that it is set, never reads it, and
+skips the check with that reason while it is absent, so a missing token does not read
+as a broken repository. An entry may be a template — `requires_env: ["{{ .Vars.credentials }}"]`
+— when which variable carries the credential is the adopter's choice; one that renders
+empty requires nothing. `infra` uses this, because Pulumi Cloud, a self-managed Pulumi
+backend and Terraform each read a different one.
 
 `fix` is mandatory, and the manifest will not validate without it. **A check that can
 only say "invalid" is a bug in the check.** The caller is often an agent that can

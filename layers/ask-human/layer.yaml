@@ -4,6 +4,7 @@ summary: A written escalation path — an agent records a blocking question wher
 facets:
   arc: operations
   kind: process
+for: [unattended-agents]
 ilk: ">=0.2.0"
 examples:
   - ilk ask-human open --decision "Should retries live in the gateway or the client?"

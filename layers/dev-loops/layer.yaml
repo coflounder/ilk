@@ -4,6 +4,7 @@ summary: Run an agent until a gate passes, not until it says it is finished — 
 facets:
   arc: execution
   kind: harness
+for: [unattended-agents]
 ilk: ">=0.2.0"
 examples:
   - ilk dev-loops run 'claude -p "make the failing tests pass"' --gate 'go test ./...'

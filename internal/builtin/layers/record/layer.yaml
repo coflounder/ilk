@@ -4,6 +4,7 @@ summary: The project record â€” what is true, what is intended, what happened â€
 facets:
   arc: context
   kind: record
+for: [any]
 ilk: ">=0.2.0"
 examples:
   - ilk record new docs "Payments overview"

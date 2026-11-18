@@ -117,7 +117,7 @@ The queue's first two items are done. Check assertions closed the gap it was wri
 about — ten of twelve layers had no evidence their checks rejected anything — and the
 credential story is decided: `requires_env:` on a command check names the variables that
 carry a credential, tests them for presence without ever reading them, and skips with a
-reason rather than failing as though the thing it checks were empty. `pulumi` is its
+reason rather than failing as though the thing it checks were empty. `pulumi` (now `infra`) is its
 first tenant. That was `linear-mirror`'s last blocker as well as its own.
 
 Eight layers landed against that: `secrets`, `pulumi`, `deprecation`, `pr-prep`,

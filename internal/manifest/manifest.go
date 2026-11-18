@@ -39,7 +39,11 @@ type Layer struct {
 	Version string            `yaml:"version"`
 	Summary string            `yaml:"summary"`
 	Facets  map[string]string `yaml:"facets,omitempty"`
-	Ilk     string            `yaml:"ilk,omitempty"`
+	// For names the repository traits the layer is meant for, from a closed
+	// list (see Traits). `ilk search --for` filters by it and `ilk init`
+	// suggests layers from it.
+	For []string `yaml:"for,omitempty"`
+	Ilk string   `yaml:"ilk,omitempty"`
 	// Examples show the layer in use, so a reader of `ilk info` sees what adding
 	// it gets them before they add it. Each is one command line, usually one of
 	// the layer's own commands or an `ilk check --only` for its checks.
@@ -346,6 +350,11 @@ type Check struct {
 	//
 	// The values are never read, only tested for presence. ilk has no business
 	// holding a secret it was asked to detect.
+	//
+	// An entry may be a template, rendered with the layer's variables, so the
+	// variable can be the adopter's choice: the backend decides which credential
+	// a command reads, not the layer. An entry that renders empty requires
+	// nothing.
 	RequiresEnv []string `yaml:"requires_env,omitempty"`
 	// Findings, set to `jsonl`, says the command prints one finding per line of
 	// stdout as a JSON object, `{"path": "...", "line": 3, "message": "..."}`, so
@@ -565,6 +574,8 @@ func (l *Layer) Validate() error {
 	if strings.TrimSpace(l.Summary) == "" {
 		bad("summary is required — it is what `ilk search` shows")
 	}
+	validateFacets(l.Facets, bad)
+	validateFor(l.For, bad)
 
 	for _, c := range l.Requires {
 		if !capPattern.MatchString(c) {
@@ -753,6 +764,11 @@ func (l *Layer) Validate() error {
 			bad("checks[%d] (%s): fix is required — a check that cannot tell an agent how to repair the failure is not usable", i, c.ID)
 		}
 		for _, name := range c.RequiresEnv {
+			// A templated entry is checked once it renders, because which
+			// variable carries the credential can be the adopter's choice.
+			if strings.Contains(name, "{{") {
+				continue
+			}
 			if !envPattern.MatchString(name) {
 				bad("checks[%d] (%s): requires_env %q must be an environment variable name like PULUMI_ACCESS_TOKEN", i, c.ID, name)
 			}
@@ -954,3 +970,7 @@ const ModeMerge Mode = "merge"
 // Layers cannot declare it for the same reason they cannot declare ModeMerge:
 // which paths an agent reads is the adapter's knowledge, not the layer's.
 const ModeSymlink Mode = "symlink"
+
+// ValidEnvName reports whether a name is one requires_env accepts: an
+// uppercase environment variable name like PULUMI_ACCESS_TOKEN.
+func ValidEnvName(name string) bool { return envPattern.MatchString(name) }

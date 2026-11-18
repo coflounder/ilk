@@ -4,6 +4,7 @@ summary: Supersede rather than delete — an archive the record can point back t
 facets:
   arc: context
   kind: record
+for: [any]
 ilk: ">=0.2.0"
 examples:
   - ilk archive it docs/reference/ARCH-billing-v1.md arch-billing

@@ -11,8 +11,10 @@ point in a project's life.
 ilk init
 ```
 
-That gives you a project record, agent instructions, one validator, a session brief
-and a pre-commit hook. No registry, no network, nothing to choose.
+That gives you a project record, agent instructions, a credential scan before every
+commit, a session brief, and the skills an agent needs to operate ilk itself — plus
+tests, lint and build as gates once you say how this project tests. No registry, no
+network, nothing to choose.
 
 ---
 

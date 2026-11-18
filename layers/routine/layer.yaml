@@ -4,6 +4,7 @@ summary: Scheduled work as a document rather than a cron line — owned, budgete
 facets:
   arc: operations
   kind: process
+for: [unattended-agents]
 ilk: ">=0.2.0"
 examples:
   - ilk routine new "Refresh the dependency audit"

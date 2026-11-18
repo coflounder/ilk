@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/coflounder/ilk/internal/builtin"
 	"github.com/coflounder/ilk/internal/config"
 	"github.com/coflounder/ilk/internal/engine"
 	"github.com/coflounder/ilk/internal/layer"
@@ -19,9 +20,13 @@ import (
 // profiles are named sets of layers. They give the one-command, cookiecutter-
 // shaped experience without putting anything inside a taxonomy: a profile is a
 // one-shot expansion, and nothing you adopt through one is trapped in it.
+//
+// Neither names the core tier. record and toolkit are in every repository
+// whatever the profile, so listing them here would only suggest they could be
+// left out.
 var profiles = map[string][]string{
-	"minimal":  {"ilk/toolkit", "ilk/record"},
-	"standard": {"ilk/toolkit", "ilk/record", "ilk/gates"},
+	"default": builtin.Default,
+	"minimal": nil,
 }
 
 func profileNames() []string {
@@ -49,14 +54,28 @@ func newInitCmd() *cobra.Command {
 		Use:   "init",
 		Short: "Set this repository up to work well with coding agents",
 		Example: `  ilk init
-  ilk init --profile standard --test-command "go test ./..." --yes
+  ilk init --test-command "go test ./..." --yes
+  ilk init --profile minimal
   ilk init --agents claude-code,codex --dry-run`,
 		Long: `Create .ilk/, add a starting set of layers, and apply them.
 
-With no flags this gives you a project record (what is true, what is intended,
-what happened, and an ungoverned scratchpad), instructions in AGENTS.md, one
-validator, a session brief, and a pre-commit hook — with no network access and
-nothing to choose.`,
+Every repository gets the core tier, which is always on and cannot be removed:
+record (what is true, what is intended, what happened, and an ungoverned
+scratchpad) and toolkit (how an agent operates ilk itself). It is implied, so
+.ilk/config.yaml does not list it.
+
+The default profile adds gates (tests, lint and build as checks, hooks and CI),
+secrets (a credential scan before every commit) and compound-lessons (turning a
+repeated mistake into a check). Each is an ordinary layer you can ` + "`ilk rm`" + `.
+gates is skipped until the repository says how it tests — pass --test-command.
+--profile minimal adds nothing beyond the core tier.
+
+All of it is built into the binary: no network access, nothing to choose.
+
+init also reads the repository for what it looks like — a UI framework in
+package.json, a wrangler config or Dockerfile, a Go module with no main package,
+Terraform or Pulumi files — and suggests the layers declared ` + "`for:`" + ` those
+traits. It only suggests: nothing is added until you ` + "`ilk add`" + ` it.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			r, err := repo.FindOrInit(workdir())
@@ -97,15 +116,30 @@ nothing to choose.`,
 			}
 
 			cache := r.IlkPath("cache")
+			// What the core tier provides counts as supplied: compound-lessons
+			// needs record.docs, and record is always here.
+			provided := map[string]bool{}
+			for _, id := range builtin.Core {
+				loaded, err := layer.Resolve(id, cache)
+				if err != nil {
+					return err
+				}
+				for _, c := range loaded.Manifest.Provides.Names() {
+					provided[c] = true
+				}
+			}
 			for _, id := range layers {
 				loaded, err := layer.Resolve(id, cache)
 				if err != nil {
 					return err
 				}
-				if missing := unsatisfied(loaded, cfg); len(missing) > 0 && id != layers[0] {
+				if missing := unsatisfied(loaded, cfg, provided); len(missing) > 0 {
 					warnf("  %s skipping %s — it needs %s (add it later with `ilk add %s`)\n",
 						sty.yellow("note"), loaded.Manifest.ID, strings.Join(missing, ", "), loaded.Manifest.Name())
 					continue
+				}
+				for _, c := range loaded.Manifest.Provides.Names() {
+					provided[c] = true
 				}
 				cfg.Set(config.LayerRef{ID: loaded.Manifest.ID, Version: loaded.Manifest.Version})
 			}
@@ -128,6 +162,14 @@ nothing to choose.`,
 				return err
 			}
 
+			// Suggest, never add: what a repository looks like is a hint
+			// about what it needs, not a decision.
+			have := map[string]bool{}
+			for _, l := range p.Layers {
+				have[l.ID()] = true
+			}
+			suggestions := suggestFor(r.Root, have)
+
 			if flagJSON {
 				// Like add, rm, upgrade and apply: --json applies, because there is
 				// nobody to answer a prompt. Stopping after the config used to leave a
@@ -137,6 +179,7 @@ nothing to choose.`,
 						return err
 					}
 				}
+				printSuggestions(warnf, suggestions)
 				return emitJSON(planJSON(pl))
 			}
 
@@ -146,6 +189,7 @@ nothing to choose.`,
 
 			if dryRun {
 				printf("\n%s\n", sty.dim("Nothing written. Re-run without --dry-run to set the repository up."))
+				printSuggestions(printf, suggestions)
 				return nil
 			}
 			if ok, err := approve(yes, "\nApply?"); !ok {
@@ -164,11 +208,12 @@ nothing to choose.`,
 
 			printf("\n%s %s\n", sty.green("done."), summariseCounts(pl))
 			printNextSteps(p)
+			printSuggestions(printf, suggestions)
 			return nil
 		},
 	}
 
-	cmd.Flags().StringVar(&profile, "profile", "minimal", "starting set of layers: "+strings.Join(profileNames(), ", "))
+	cmd.Flags().StringVar(&profile, "profile", "default", "starting set of layers: "+strings.Join(profileNames(), ", "))
 	cmd.Flags().StringSliceVar(&agents, "agents", nil, "coding agents to generate config for (default: claude-code)")
 	cmd.Flags().StringVar(&testCmd, "test-command", "", "how this project runs its tests, e.g. \"go test ./...\"")
 	cmd.Flags().StringVar(&lintCmd, "lint-command", "", "how this project lints")
@@ -179,11 +224,12 @@ nothing to choose.`,
 	return cmd
 }
 
-// unsatisfied reports capabilities a layer needs that the config does not supply.
-func unsatisfied(l *layer.Loaded, cfg *config.Config) []string {
+// unsatisfied reports capabilities a layer needs that neither the config nor a
+// layer already chosen supplies.
+func unsatisfied(l *layer.Loaded, cfg *config.Config, provided map[string]bool) []string {
 	var missing []string
 	for _, req := range l.Manifest.Requires {
-		if _, ok := cfg.Capabilities[req]; !ok {
+		if _, ok := cfg.Capabilities[req]; !ok && !provided[req] {
 			missing = append(missing, req)
 		}
 	}

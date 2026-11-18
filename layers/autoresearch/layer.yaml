@@ -4,6 +4,7 @@ summary: Findings about the world outside the repository — sourced, falsifiabl
 facets:
   arc: context
   kind: record
+for: [any]
 ilk: ">=0.2.0"
 examples:
   - ilk autoresearch due 30

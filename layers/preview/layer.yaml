@@ -4,6 +4,7 @@ summary: A preview of every pull request, behind sign-in, that an agent can find
 facets:
   arc: release
   kind: integration
+for: [ui, service]
 ilk: ">=0.2.0"
 examples:
   - ilk preview url

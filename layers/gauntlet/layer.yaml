@@ -4,6 +4,7 @@ summary: The builder does not grade its own homework — work is not done until 
 facets:
   arc: quality
   kind: gate
+for: [unattended-agents]
 ilk: ">=0.2.0"
 examples:
   - ilk check --only gauntlet

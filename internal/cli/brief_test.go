@@ -44,6 +44,15 @@ type briefJSON struct {
 	SkillsIndex string                  `json:"skills_index"`
 }
 
+func hasSkill(b briefJSON, name string) bool {
+	for _, s := range b.Skills {
+		if s.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
 func readBrief(t *testing.T, root string) (string, briefJSON) {
 	t.Helper()
 	code, text, stderr := invoke(t, "-C", root, "brief")
@@ -87,7 +96,7 @@ func TestBriefKeepsTheSkillsListWhenAgentsMDIsBehind(t *testing.T) {
 
 	// Never applied: there is no AGENTS.md to read the list from.
 	text, b := readBrief(t, root)
-	if !strings.Contains(text, "fold-the-towels") || b.SkillsIndex != "" || len(b.Skills) != 1 {
+	if !strings.Contains(text, "fold-the-towels") || b.SkillsIndex != "" || !hasSkill(b, "fold-the-towels") {
 		t.Errorf("before apply the brief must list the skills itself: index %q, skills %v\n%s", b.SkillsIndex, b.Skills, text)
 	}
 

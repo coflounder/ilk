@@ -154,6 +154,13 @@ func stubCapability(name string) string {
 	return path.Join(".ilk", "layer-test", name)
 }
 
+// layerTestOptions leave the core tier out of the sandbox. The test measures
+// one layer — plus any built-in that provides what it requires, which is added
+// explicitly — and removing it has to restore the fixture byte for byte. With
+// record and toolkit implied that would be impossible for record and toolkit
+// themselves, and would credit every other layer with their output.
+var layerTestOptions = engine.Options{Bare: true}
+
 // newLayerTestCmd adds a layer to a throwaway repository and then removes it,
 // asserting that the repository comes back byte-for-byte. That round trip is the
 // contract a layer has to keep, and it is the one users cannot verify for
@@ -240,7 +247,7 @@ func newLayerTestCmd() *cobra.Command {
 				return err
 			}
 
-			p, err := engine.NewProject(r, cfg, lock.New(), "test")
+			p, err := engine.NewProjectWith(r, cfg, lock.New(), "test", layerTestOptions)
 			if err != nil {
 				return err
 			}
@@ -263,7 +270,7 @@ func newLayerTestCmd() *cobra.Command {
 			}
 
 			// Adopt must be idempotent: a second apply changes nothing.
-			p2, err := engine.Load(sandbox, "test")
+			p2, err := engine.LoadWith(sandbox, "test", layerTestOptions)
 			if err != nil {
 				return err
 			}
@@ -303,7 +310,7 @@ func newLayerTestCmd() *cobra.Command {
 			if err := cfg2.Save(sandbox); err != nil {
 				return err
 			}
-			p3, err := engine.Load(sandbox, "test")
+			p3, err := engine.LoadWith(sandbox, "test", layerTestOptions)
 			if err != nil {
 				return err
 			}
@@ -452,7 +459,8 @@ version: 0.1.0
 summary: One line describing what adding this layer gets you.
 facets:
   arc: quality        # context | planning | execution | quality | release | operations
-  kind: process       # record | process | gate | harness | integration | target
+  kind: process       # record | process | gate | harness | integration
+for: [any]            # any | ui | service | library | infra | unattended-agents | multi-agent
 ilk: ">=0.1.0"
 
 # The layer in use, shown by `+"`ilk info`"+` before anyone adds it.

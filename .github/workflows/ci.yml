@@ -48,7 +48,7 @@ jobs:
       - name: Layer contract
         run: |
           set -e
-          for layer in internal/builtin/layers/*/ layers/*/; do
+          for layer in internal/builtin/layers/*/ layers/*/ .ilk/layers/*/; do
             [ -f "$layer/layer.yaml" ] || continue
             echo "→ $layer"
             ./ilk layer validate "$layer"
@@ -72,7 +72,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           set -e
-          for suite in layers/*/test/run.sh internal/builtin/layers/*/test/run.sh; do
+          for suite in layers/*/test/run.sh internal/builtin/layers/*/test/run.sh .ilk/layers/*/test/run.sh; do
             [ -f "$suite" ] || continue
             echo "→ $suite"
             sh "$suite"
@@ -113,7 +113,7 @@ jobs:
         run: |
           set -e
           missing=()
-          for layer in internal/builtin/layers/*/ layers/*/; do
+          for layer in internal/builtin/layers/*/ layers/*/ .ilk/layers/*/; do
             [ -f "$layer/layer.yaml" ] || continue
             grep -q '^contribution:' "$layer/layer.yaml" || missing+=("$layer (no contribution: block)")
             guidelines=$(sed -n 's/^  guidelines: *//p' "$layer/layer.yaml" | head -1)
@@ -144,7 +144,7 @@ jobs:
           printf 'node_modules\n' > .gitignore
           git add -A && git commit -qm init
 
-          "$bin" init -y --profile standard --test-command "true"
+          "$bin" init -y --test-command "true"
           "$bin" check
           "$bin" brief > /dev/null
           "$bin" status > /dev/null
@@ -157,7 +157,17 @@ jobs:
           grep -q "Already up to date" out.txt
 
           "$bin" rm gates -y
-          "$bin" rm record -y
+          "$bin" rm secrets -y
+          "$bin" rm compound-lessons -y
+
+          # The core tier stays: removing it is a usage error, with its own code.
+          set +e
+          "$bin" rm record -y --json 2> err.json
+          status=$?
+          set -e
+          test "$status" -eq 2
+          grep -q '"code":"core_layer"' err.json
+
           "$bin" agents rm claude-code -y
           test "$(cat README.md)" = "$(printf '# Sample\n\nProse a human wrote.')"
 

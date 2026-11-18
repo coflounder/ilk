@@ -5,8 +5,8 @@
       "id": "ilk/compound-lessons",
       "kind": "layer",
       "version": "0.2.0",
-      "source": "/home/claude/coflounder/ilk/layers/compound-lessons",
-      "digest": "sha256:de53bbb27998b6996cfac10a4ada44045e235d7024257f8e682b27339b9ad2f3",
+      "source": "builtin",
+      "digest": "sha256:7fb344c77926f86a7496805a8bb61eeb5538342accdfa87de7c9c7143c4610d5",
       "files": [
         {
           "path": "AGENTS.md",
@@ -52,7 +52,7 @@
       "kind": "layer",
       "version": "0.2.0",
       "source": "builtin",
-      "digest": "sha256:4a54881f09f817d4913a7b7d3af01ce67b4a34bf05dd2d3dacbc404dbf8fc2f0",
+      "digest": "sha256:7346328d292dd70997f95296a44515c42e33e65c020203c9ed7789a3886ec287",
       "vars": {
         "ci": "github"
       },
@@ -76,8 +76,8 @@
       "id": "ilk/maintainer",
       "kind": "layer",
       "version": "0.2.0",
-      "source": "/home/claude/coflounder/ilk/layers/maintainer",
-      "digest": "sha256:773b02ba599ac8b29d6326a6a16032ca866c2a5435bbc37550bb46cab266531d",
+      "source": "/home/claude/coflounder/ilk/.ilk/layers/maintainer",
+      "digest": "sha256:3091feeceea1add8901188b392422d7416b55753e1b96b76c93ff09c8a6d600c",
       "vars": {
         "group": "docs",
         "open_max": "12",
@@ -117,7 +117,7 @@
       "kind": "layer",
       "version": "0.2.0",
       "source": "builtin",
-      "digest": "sha256:3288522427f5dd9b20b4970b27cb9a6df45ba25da525e30c1a37cf6a5cb9b78c",
+      "digest": "sha256:fc89e5021128e5b631424279dea6866380d59450ba0b65ea0f9825d1b021e156",
       "vars": {
         "group": "docs",
         "log_dir": "log",
@@ -253,7 +253,7 @@
       "kind": "layer",
       "version": "0.1.0",
       "source": "/home/claude/coflounder/ilk/layers/session-summaries",
-      "digest": "sha256:7c0933a26f1f97543c7882d513411e35c881b976e5c3dbcdc578dd5c8bee3f96",
+      "digest": "sha256:37e555f9db4e9900f60cfed21b1c1923177557df9e93fe7c31a8e53db7ddf1cd",
       "files": [
         {
           "path": ".ilk/bin/session-summaries.py",
@@ -279,7 +279,7 @@
       "kind": "layer",
       "version": "0.3.0",
       "source": "builtin",
-      "digest": "sha256:14628cc39f13ee2bf9cdfa08fb045b4e65716ca21d0c727bd0330d8d099c8068",
+      "digest": "sha256:f59a9b04c329f4539c0ddfdce16872b61559394d23e9c917ea3c36f3949d6664",
       "files": [
         {
           "path": ".ilk/bin/ilk-propose.sh",
@@ -299,8 +299,8 @@
         {
           "path": ".agents/skills/add-a-layer/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:66ad45e4170c7269449d31b8342e3e0d293ed27241e7fe06a4f793a08171ad14",
-          "delivered": "sha256:66ad45e4170c7269449d31b8342e3e0d293ed27241e7fe06a4f793a08171ad14",
+          "hash": "sha256:0d00c2edaf88c8b9af2db90754eb9b1c5ae8ac75e31de26e0b3b4f102c2d2031",
+          "delivered": "sha256:0d00c2edaf88c8b9af2db90754eb9b1c5ae8ac75e31de26e0b3b4f102c2d2031",
           "created_file": true,
           "owner": "target:agents-md"
         },
@@ -387,8 +387,8 @@
         {
           "path": ".agents/skills/write-a-layer/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:c46b8d585684fba2827b8aeb672fef6ad3f2c8fd8dccd5bd3daff1941e7e6a32",
-          "delivered": "sha256:c46b8d585684fba2827b8aeb672fef6ad3f2c8fd8dccd5bd3daff1941e7e6a32",
+          "hash": "sha256:764257aec1049646af563236213cb737c0a8786c1505952aae48d52bfab9552b",
+          "delivered": "sha256:764257aec1049646af563236213cb737c0a8786c1505952aae48d52bfab9552b",
           "created_file": true,
           "owner": "target:agents-md"
         },

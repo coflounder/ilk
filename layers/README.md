@@ -6,8 +6,8 @@ Layers that ship alongside ilk but not inside it. Add one with:
 ilk add gh:coflounder/ilk/layers/blueprint
 ```
 
-Pin a version with `@v0.2.0`. Nothing here is added by default — `ilk init` gives you
-the built-in layers only, so a fresh repository still needs no network.
+Pin a version with `@v0.2.0`. Nothing here is added by default — `ilk init` adds only
+built-in layers, so a fresh repository still needs no network.
 
 ## What is here
 
@@ -19,15 +19,12 @@ the built-in layers only, so a fresh repository still needs no network.
 | [`ask-human`](ask-human/) | A blocking question an agent could not answer stops the checks until a person answers it — and where it can name the options, it offers them with what each would mean |
 | [`dev-loops`](dev-loops/) | An agent runs until an objective gate passes, bounded by a ceiling — never until it says it is finished |
 | [`visual-qa`](visual-qa/) | Interface work shows what it looks like: screenshots against the acceptance criteria, no baselines |
-| [`compound-lessons`](compound-lessons/) | Every lesson names the durable change it produced, so "we will be more careful" cannot pass as an outcome |
 | [`archive`](archive/) | Superseded documents are archived rather than deleted, and nothing live may cite them |
 | [`gh-projects`](gh-projects/) | A GitHub Project made to match the plan — the record is the source of truth, and an ambiguous match refuses rather than guesses |
-| [`maintainer`](maintainer/) | Proposals from repositories using your layers arrive as reviewable documents; one nobody can judge fails the checks rather than sitting in a queue |
 | [`autoresearch`](autoresearch/) | A finding about the world outside the repository cites its sources, says what would change its conclusion, and expires on a date |
 | [`deprecation`](deprecation/) | A deprecation carries a removal date the checks hold you to, and says when the removal is actually finished |
 | [`pr-prep`](pr-prep/) | A pull request description is derived from the plan — outcome, criteria, evidence — rather than written from memory |
-| [`secrets`](secrets/) | A credential is caught while the fix is still cheap, and there is a written answer for the day one leaks anyway |
-| [`pulumi`](pulumi/) | `preview` is agent work and `up` is human work; every stack has a project file and none carries a plaintext secret |
+| [`infra`](infra/) | `preview` is agent work and `up` is human work; every stack has a project file and none carries a plaintext secret. Pulumi by default, Terraform by changing two settings |
 | [`routine`](routine/) | Scheduled work is a document with an owner, a budget and a review date, and what actually runs it is generated from that document |
 | [`gauntlet`](gauntlet/) | Finished work names who judged it, what it was compared against, and the largest thing still wrong — the builder does not grade its own homework |
 | [`preview`](preview/) | Every pull request has a preview behind sign-in, opened only with a read-only service token; the Worker is not on a public address, verifies Access itself, and does not quietly share production's data |
@@ -35,16 +32,24 @@ the built-in layers only, so a fresh repository still needs no network.
 
 ### Built in
 
-Three more layers ship *inside* the binary, so `ilk init` works with no network at all.
+Five more layers ship *inside* the binary, so `ilk init` works with no network at all.
 They are ordinary layers — same manifest format, same `ilk layer test` contract, same CI
 — and they live elsewhere only because `go:embed` cannot read above its own package
-directory:
+directory. They come in two tiers:
 
-| Layer | Source |
-|---|---|
-| [`record`](../internal/builtin/layers/record/) | `internal/builtin/layers/record/` |
-| [`gates`](../internal/builtin/layers/gates/) | `internal/builtin/layers/gates/` |
-| [`toolkit`](../internal/builtin/layers/toolkit/) | `internal/builtin/layers/toolkit/` |
+| Layer | Tier | Source |
+|---|---|---|
+| [`record`](../internal/builtin/layers/record/) | core | `internal/builtin/layers/record/` |
+| [`toolkit`](../internal/builtin/layers/toolkit/) | core | `internal/builtin/layers/toolkit/` |
+| [`gates`](../internal/builtin/layers/gates/) | default | `internal/builtin/layers/gates/` |
+| [`secrets`](../internal/builtin/layers/secrets/) | default | `internal/builtin/layers/secrets/` |
+| [`compound-lessons`](../internal/builtin/layers/compound-lessons/) | default | `internal/builtin/layers/compound-lessons/` |
+
+The **core** tier is in every repository: implied whether or not `.ilk/config.yaml`
+lists it, refused by `ilk rm`, and left out of `ilk search`. The **default** tier is
+what `ilk init` adds; each is removable. Which layers are core is decided in the
+binary (`internal/builtin/tier.go`), not in a manifest, so a layer from elsewhere
+cannot declare itself core.
 
 Editing them takes effect only after `go build` — a stale binary silently uses the old
 templates, which is the single most common way to waste an hour in this repository.
@@ -59,17 +64,17 @@ the source of truth if the tracker everyone else reads agrees with it.
 
 ## Layers that run code
 
-`blueprint`, `archive`, `ask-human`, `dev-loops`, `gh-projects`, `maintainer`,
-`autoresearch`, `deprecation`, `pr-prep`, `secrets`, `pulumi`, `preview`, `routine`,
-`session-summaries` and `html-wireframe` ship shell commands, so adding them requires consent:
+`blueprint`, `archive`, `ask-human`, `dev-loops`, `gh-projects`, `autoresearch`,
+`deprecation`, `pr-prep`, `infra`, `preview`, `routine`, `session-summaries`
+and `html-wireframe` ship shell commands, so adding them requires consent:
 
 ```sh
 ilk info gh:coflounder/ilk/layers/dev-loops     # read it first
 ilk add gh:coflounder/ilk/layers/dev-loops --allow-exec
 ```
 
-`plan-hygiene`, `visual-qa`, `compound-lessons` and `gauntlet` are entirely declarative
-and need no flag.
+`plan-hygiene`, `visual-qa` and `gauntlet` are entirely declarative and need no flag.
+The built-in layers ship inside ilk itself and never need it.
 
 ---
 
@@ -195,7 +200,7 @@ refusal and plan-then-apply are already core and already tested.
 leaning on `gh` — reading an API token — is answered by `requires_env:` on a check: the
 variables that carry a credential are named, their presence is tested and their values
 are never read, and a check whose credential is absent skips with a reason rather than
-failing as if the board were empty. `pulumi` is the first layer to use it.
+failing as if the board were empty. `infra` is the first layer to use it.
 
 **What is left is the work.** Copy `layers/gh-projects/`, point it at Linear's API, and
 name the token variable in `requires_env:` — nothing in core needs to change.

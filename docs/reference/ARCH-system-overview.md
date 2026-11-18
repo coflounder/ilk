@@ -20,7 +20,8 @@ two. Everything else is detail.
 .ilk/config.yaml          desired state, declared
         │
         ▼
-  engine.Load             resolve every layer in the config from its source
+  engine.Load             resolve every layer in the config from its source,
+        │                 plus the core tier (record, toolkit) it does not list
         │
         ▼
   engine.Desired          render layers + project through agent targets
@@ -54,7 +55,8 @@ Nothing is written until the whole blast radius has been shown.
 | `internal/contrib` | Turning what a repository learned about a layer into a proposal its maintainer can judge. |
 | `internal/brief` | The session-start packet: live repository state. It lists skills only when the AGENTS.md skills block is not up to date on disk. |
 | `internal/cli` | Command surface. |
-| `internal/builtin` | Layers embedded in the binary, so `ilk init` needs no network. |
+| `internal/builtin` | Layers embedded in the binary, so `ilk init` needs no network, and the tiers: core (in every project, never removed) and default (what init adds). |
+| `internal/detect` | Reading a repository's files for the simple traits `for:` names (ui, service, library, infra), so `ilk init` can suggest layers. Suggests only. |
 | `internal/registry` | The layer index, embedded so `ilk search` works offline. |
 
 Dependencies run one way: `cli → engine → {targets, layer, config, lock, render} →
