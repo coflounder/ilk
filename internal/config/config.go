@@ -71,6 +71,9 @@ func Load(root string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := renamedKeys(data); err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
+	}
 	var c Config
 	dec := yaml.NewDecoder(strings.NewReader(string(data)))
 	dec.KnownFields(true)
@@ -87,6 +90,26 @@ func Load(root string) (*Config, error) {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
 	return &c, nil
+}
+
+// renamed maps top-level keys an earlier ilk wrote to what they are called now.
+// There is no alias: the old name is refused, but with the edit that fixes it
+// rather than a decoder's "field not found".
+var renamed = map[string]string{
+	"targets": "agents",
+}
+
+func renamedKeys(data []byte) error {
+	var top map[string]yaml.Node
+	if err := yaml.Unmarshal(data, &top); err != nil {
+		return nil // the real decode reports it, with line numbers
+	}
+	for old, now := range renamed {
+		if _, ok := top[old]; ok {
+			return fmt.Errorf("`%s:` is now called `%s:` — rename the key and run `ilk apply`", old, now)
+		}
+	}
+	return nil
 }
 
 // Path returns the config path for a repository root.
