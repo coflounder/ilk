@@ -41,6 +41,14 @@ production:
   deployed. `preview_urls: true` gives each version a URL, and a *separate* Access
   application covers those URLs, with a policy for people and a Service Auth policy for
   agents.
+- **Or previews as Workers Previews**, when the Wrangler configuration has a `previews`
+  block. Workers Builds runs `wrangler preview` for a non-production branch and the
+  preview gets its own URL at the same `<branch>-<worker>` host. A Workers Preview
+  inherits no bindings: only what the `previews` block binds reaches it, and a Durable
+  Object class this Worker implements gets a namespace per preview. That is the way to
+  have previews of a Worker that implements a Durable Object, and the checks read the
+  `previews` block instead of the top level when it is there. `ilk preview url --upload`
+  refuses for it, because the build, not the layer, makes these previews.
 - **The Worker verifies Access itself.** It reads `cf-access-jwt-assertion`, checks the
   signature against the team's keys, the issuer, and that the audience is production's
   or the preview application's AUD tag (both in `vars`; AUD tags are not secrets).
@@ -94,8 +102,9 @@ mistake are separate checks with their own fix:
 
 - `preview.no-durable-objects` fails for as long as previews cannot exist. That is the
   truth about the repository, and a red check is more honest than a pipeline that
-  uploads versions nobody can open. `ilk check --skip preview.no-durable-objects` while
-  the class is being moved out.
+  uploads versions nobody can open. It passes once previews are Workers Previews (a
+  `previews` block), which do get URLs. `ilk check --skip preview.no-durable-objects`
+  while the change is being made.
 - `preview.separate-data` fails until previews get data of their own, or somebody runs
   `ilk config set preview.shared_bindings read-only` having confirmed the Worker refuses
   every write from a service token.
@@ -119,6 +128,12 @@ write to production's KV, D1, R2 or Durable Objects. KV's `preview_id`, D1's
 `preview_database_id` and R2's `preview_bucket_name` are for `wrangler dev`, not for
 versions, and do not separate them. Separate data means a separate preview Worker with
 bindings of its own.
+
+Workers Previews are the exception: they inherit nothing, so what they share is exactly
+what the `previews` block binds. `preview.separate-data` then reports a binding there
+that names the same store production binds (a KV id, a database, a bucket, a queue),
+one it cannot identify, and any Durable Object of another Worker. A class this Worker
+implements is per preview and is not reported.
 
 ## Variables
 
