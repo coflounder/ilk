@@ -44,9 +44,9 @@ func TestTraits(t *testing.T) {
 			"package.json": `{"private": true, "dependencies": {"expo": "52"}}`,
 		}, []string{"ui"}},
 		{"a static site is ui", map[string]string{"index.html": "<!doctype html>"}, []string{"ui"}},
-		{"a Worker is a service declared as infrastructure", map[string]string{
+		{"a Worker is a service, not infrastructure as code", map[string]string{
 			"wrangler.jsonc": "{}", "src/index.ts": "export default {}",
-		}, []string{"service", "infra"}},
+		}, []string{"service"}},
 		{"a Dockerfile is a service", map[string]string{"Dockerfile": "FROM scratch\n"}, []string{"service"}},
 		{"an express app is a service", map[string]string{
 			"package.json": `{"private": true, "dependencies": {"express": "4"}}`,

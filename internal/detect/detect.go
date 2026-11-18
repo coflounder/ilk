@@ -35,8 +35,9 @@ var uiFrameworks = []string{
 // serverFrameworks are Node dependencies whose only job is serving requests.
 var serverFrameworks = []string{"express", "fastify", "koa", "hono", "@nestjs/core"}
 
-// wranglerFiles configure a Cloudflare Worker: a deployed service, declared
-// as code.
+// wranglerFiles configure a Cloudflare Worker: a deployed service. They are
+// not infrastructure as code in the sense the infra layer means (a plan an
+// agent previews and a person applies), so they count only as service.
 var wranglerFiles = []string{"wrangler.toml", "wrangler.json", "wrangler.jsonc"}
 
 // skipped are directories whose contents describe somebody else's code, or
@@ -213,20 +214,12 @@ func (s *scanned) library() string {
 	return ""
 }
 
-// infra: Terraform files, a Pulumi project, or a Worker's wrangler config.
+// infra: Terraform files or a Pulumi project.
 func (s *scanned) infra() string {
 	if f := s.first(func(rel, base string) bool { return strings.HasSuffix(base, ".tf") }); f != "" {
 		return f
 	}
-	if f := s.first(func(rel, base string) bool { return base == "Pulumi.yaml" || base == "Pulumi.yml" }); f != "" {
-		return f
-	}
-	for _, f := range wranglerFiles {
-		if s.has(f) {
-			return f
-		}
-	}
-	return ""
+	return s.first(func(rel, base string) bool { return base == "Pulumi.yaml" || base == "Pulumi.yml" })
 }
 
 // goMains lists the Go files, outside tests, that declare package main.
