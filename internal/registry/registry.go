@@ -30,7 +30,20 @@ type Entry struct {
 	Summary  string   `yaml:"summary" json:"summary"`
 	Arc      string   `yaml:"arc,omitempty" json:"arc,omitempty"`
 	Kind     string   `yaml:"kind,omitempty" json:"kind,omitempty"`
+	For      []string `yaml:"for,omitempty" json:"for,omitempty"`
 	Requires []string `yaml:"requires,omitempty" json:"requires,omitempty"`
+}
+
+// IsFor reports whether the entry declares a trait. `any` matches only `any`:
+// asking for the layers meant for interfaces should not list every layer
+// meant for every repository.
+func (e Entry) IsFor(trait string) bool {
+	for _, t := range e.For {
+		if t == trait {
+			return true
+		}
+	}
+	return false
 }
 
 // Builtin reports whether the layer ships inside the binary.
@@ -173,7 +186,7 @@ func Search(query string) ([]Entry, error) {
 	var out []Entry
 	for _, e := range all {
 		haystack := strings.ToLower(strings.Join([]string{
-			e.ID, e.Summary, e.Arc, e.Kind, strings.Join(e.Requires, " "),
+			e.ID, e.Summary, e.Arc, e.Kind, strings.Join(e.For, " "), strings.Join(e.Requires, " "),
 		}, " "))
 		matched := true
 		for _, term := range terms {

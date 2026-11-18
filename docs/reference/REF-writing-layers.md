@@ -39,7 +39,8 @@ version: 0.1.0                # semver
 summary: One line. This is what `ilk search` and `ilk list` show.
 facets:
   arc: quality                # context | planning | execution | quality | release | operations
-  kind: process               # record | process | gate | harness | integration | target
+  kind: process               # record | process | gate | harness | integration
+for: [ui]                     # any | ui | service | library | infra | unattended-agents | multi-agent
 ilk: ">=0.1.0"
 examples:                     # the layer in use, shown by `ilk info`
   - ilk my-pattern report
@@ -49,9 +50,29 @@ examples:                     # the layer in use, shown by `ilk info`
 `examples:` are what `ilk info` leads with, so somebody deciding whether to add the
 layer sees it being used before they read what it contains. One command line each.
 
-Facets are advisory tags for discovery, not a taxonomy you have to fit into. A layer
-that is memory *and* execution *and* verification at once is normal; pick whichever
-facet helps somebody find it.
+Facets and `for:` are for discovery, and each draws from a closed list — a value
+outside it is a manifest error, because free text drifts and a word nobody else uses
+finds nobody. A layer that is memory *and* execution *and* verification at once is
+normal; pick whichever `arc` and `kind` help somebody find it.
+
+`for:` says which repositories the layer is meant for, by trait:
+
+| Trait | The repository |
+|---|---|
+| `any` | every repository, whatever it builds — and then it stands alone |
+| `ui` | has a user interface people look at |
+| `service` | runs somewhere and serves requests |
+| `library` | is consumed by other code through its API |
+| `infra` | declares infrastructure as code |
+| `unattended-agents` | has agents working with nobody watching |
+| `multi-agent` | has several agents or harnesses working at once |
+
+`ilk search --for ui` lists the layers that name a trait, `ilk info` shows them, and
+`ilk init` detects the simple ones (`ui`, `service`, `library`, `infra`) from the files
+in a repository and suggests the layers declared for them. A layer for one stack names
+that trait rather than `any`, so it is suggested where it fits and not everywhere. The
+list lives in `internal/manifest/vocab.go`; a new trait is a change to ilk, made once,
+for everyone.
 
 ## Capabilities, not dependencies
 

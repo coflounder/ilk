@@ -4,6 +4,7 @@ summary: An agent that changes the interface has to show you what it looks like 
 facets:
   arc: quality
   kind: gate
+for: [ui]
 ilk: ">=0.2.0"
 examples:
   - ilk check --only visual-qa

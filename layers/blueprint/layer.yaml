@@ -4,6 +4,7 @@ summary: One connected plan rather than a pile of tickets — epics, specs and m
 facets:
   arc: planning
   kind: process
+for: [any]
 ilk: ">=0.2.0"
 examples:
   - ilk blueprint next

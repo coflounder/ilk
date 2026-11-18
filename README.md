@@ -77,6 +77,7 @@ ilk check                        # validate; every failure prints its fix
 ilk status                       # what this repository has, and what has drifted
 
 ilk search                       # layers and bundles you could add
+ilk search --for ui              # only those meant for a repository with an interface
 ilk list                         # layers this repository has
 ilk info gates                   # what a layer contains, before adding it
 ilk add gates --set test.command="go test ./..."
@@ -236,6 +237,12 @@ describes it.
 
 The other three are the **default tier**: what `ilk init` adds, and ordinary layers
 you can remove. `ilk init --profile minimal` starts with the core tier alone.
+
+Every layer says who it is for with `for:` — `any`, `ui`, `service`, `library`,
+`infra`, `unattended-agents` or `multi-agent`. `ilk init` looks at the repository (a
+UI framework in `package.json`, a wrangler config or `Dockerfile`, a Go module with
+no main package, Terraform or Pulumi files) and suggests the layers declared for what
+it finds. It adds none of them.
 
 | Default | What it does |
 |---|---|

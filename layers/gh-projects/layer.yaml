@@ -4,6 +4,7 @@ summary: Keep a GitHub Project in agreement with the record — the plan is the 
 facets:
   arc: planning
   kind: integration
+for: [any]
 ilk: ">=0.2.0"
 examples:
   - ilk mirror plan

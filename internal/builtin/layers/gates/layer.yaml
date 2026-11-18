@@ -4,6 +4,7 @@ summary: Verification an agent cannot talk its way past — tests, lint and buil
 facets:
   arc: quality
   kind: gate
+for: [any]
 ilk: ">=0.2.0"
 examples:
   - ilk config set test.command "go test ./..."

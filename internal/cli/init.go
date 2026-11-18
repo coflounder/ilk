@@ -70,7 +70,12 @@ repeated mistake into a check). Each is an ordinary layer you can ` + "`ilk rm`"
 gates is skipped until the repository says how it tests — pass --test-command.
 --profile minimal adds nothing beyond the core tier.
 
-All of it is built into the binary: no network access, nothing to choose.`,
+All of it is built into the binary: no network access, nothing to choose.
+
+init also reads the repository for what it looks like — a UI framework in
+package.json, a wrangler config or Dockerfile, a Go module with no main package,
+Terraform or Pulumi files — and suggests the layers declared ` + "`for:`" + ` those
+traits. It only suggests: nothing is added until you ` + "`ilk add`" + ` it.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			r, err := repo.FindOrInit(workdir())
@@ -157,6 +162,14 @@ All of it is built into the binary: no network access, nothing to choose.`,
 				return err
 			}
 
+			// Suggest, never add: what a repository looks like is a hint
+			// about what it needs, not a decision.
+			have := map[string]bool{}
+			for _, l := range p.Layers {
+				have[l.ID()] = true
+			}
+			suggestions := suggestFor(r.Root, have)
+
 			if flagJSON {
 				// Like add, rm, upgrade and apply: --json applies, because there is
 				// nobody to answer a prompt. Stopping after the config used to leave a
@@ -166,6 +179,7 @@ All of it is built into the binary: no network access, nothing to choose.`,
 						return err
 					}
 				}
+				printSuggestions(warnf, suggestions)
 				return emitJSON(planJSON(pl))
 			}
 
@@ -175,6 +189,7 @@ All of it is built into the binary: no network access, nothing to choose.`,
 
 			if dryRun {
 				printf("\n%s\n", sty.dim("Nothing written. Re-run without --dry-run to set the repository up."))
+				printSuggestions(printf, suggestions)
 				return nil
 			}
 			if ok, err := approve(yes, "\nApply?"); !ok {
@@ -193,6 +208,7 @@ All of it is built into the binary: no network access, nothing to choose.`,
 
 			printf("\n%s %s\n", sty.green("done."), summariseCounts(pl))
 			printNextSteps(p)
+			printSuggestions(printf, suggestions)
 			return nil
 		},
 	}

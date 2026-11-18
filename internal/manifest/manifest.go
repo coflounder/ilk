@@ -39,7 +39,11 @@ type Layer struct {
 	Version string            `yaml:"version"`
 	Summary string            `yaml:"summary"`
 	Facets  map[string]string `yaml:"facets,omitempty"`
-	Ilk     string            `yaml:"ilk,omitempty"`
+	// For names the repository traits the layer is meant for, from a closed
+	// list (see Traits). `ilk search --for` filters by it and `ilk init`
+	// suggests layers from it.
+	For []string `yaml:"for,omitempty"`
+	Ilk string   `yaml:"ilk,omitempty"`
 	// Examples show the layer in use, so a reader of `ilk info` sees what adding
 	// it gets them before they add it. Each is one command line, usually one of
 	// the layer's own commands or an `ilk check --only` for its checks.
@@ -570,6 +574,8 @@ func (l *Layer) Validate() error {
 	if strings.TrimSpace(l.Summary) == "" {
 		bad("summary is required — it is what `ilk search` shows")
 	}
+	validateFacets(l.Facets, bad)
+	validateFor(l.For, bad)
 
 	for _, c := range l.Requires {
 		if !capPattern.MatchString(c) {

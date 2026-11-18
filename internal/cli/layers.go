@@ -539,6 +539,7 @@ type layerJSON struct {
 	Facets   map[string]string `json:"facets,omitempty"`
 	Adopted  bool              `json:"adopted"`
 	Core     bool              `json:"core,omitempty"`
+	For      []string          `json:"for,omitempty"`
 	Requires []string          `json:"requires,omitempty"`
 	Provides []string          `json:"provides,omitempty"`
 	Source   string            `json:"source,omitempty"`
@@ -564,7 +565,7 @@ To find layers you could add, use ` + "`ilk search`" + `.`,
 				rows = append(rows, layerJSON{
 					ID: l.ID(), Version: l.Loaded.Manifest.Version,
 					Summary: l.Loaded.Manifest.Summary, Facets: l.Loaded.Manifest.Facets,
-					Adopted: true, Core: l.Core(), Requires: l.Loaded.Manifest.Requires,
+					Adopted: true, Core: l.Core(), For: l.Loaded.Manifest.For, Requires: l.Loaded.Manifest.Requires,
 					Provides: l.Loaded.Manifest.Provides.Names(), Source: l.Loaded.Source,
 				})
 			}
@@ -617,7 +618,7 @@ func newInfoCmd() *cobra.Command {
 			if flagJSON {
 				return emitJSON(map[string]any{
 					"id": m.ID, "version": m.Version, "summary": m.Summary,
-					"facets": m.Facets, "source": loaded.Source, "digest": loaded.Digest,
+					"facets": m.Facets, "for": nonNil(m.For), "source": loaded.Source, "digest": loaded.Digest,
 					"examples": nonNil(m.Examples),
 					"requires": m.Requires, "provides": m.Provides,
 					"variables": m.Variables, "files": m.Files, "dirs": m.Dirs,
@@ -641,6 +642,9 @@ func newInfoCmd() *cobra.Command {
 				}
 				sort.Strings(facets)
 				printf("%s %s\n", sty.dim("facets:"), sty.dim(strings.Join(facets, " ")))
+			}
+			if len(m.For) > 0 {
+				printf("%s %s\n", sty.dim("for:"), sty.dim(strings.Join(m.For, ", ")))
 			}
 
 			section := func(title string, lines []string) {
