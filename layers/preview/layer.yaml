@@ -170,7 +170,7 @@ checks:
       it to the audiences the Worker's token verification accepts. If the var
       has another name here, set `preview.preview_audience_var` to it.
   - id: preview.no-durable-objects
-    title: The Worker implements no Durable Object, so its versions get preview URLs
+    title: Previews get a URL — no Durable Object implemented here, or built as Workers Previews
     run: .ilk/bin/ilk-preview-check.sh no-durable-objects
     findings: jsonl
     fix: >-
