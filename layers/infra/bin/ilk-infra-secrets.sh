@@ -10,6 +10,10 @@
 # key whose name reads as a credential must resolve to `secure:`. The project file
 # is scanned as well as the per-stack files; a secret is no less exposed there.
 #
+# Only Pulumi's stack config is read. A Terraform stack has none, so the check
+# has nothing to say about it; credentials in a .tfvars file are the secrets
+# layer's to catch.
+#
 # Managed by ilk — edits are overwritten on the next `ilk apply`.
 set -eu
 

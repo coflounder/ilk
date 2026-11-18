@@ -1,11 +1,12 @@
 #!/bin/sh
 # Preview the stacks this change touched.
 #
-#   ilk-pulumi-preview.sh '<preview command>'
+#   ilk-infra-preview.sh '<preview command>'
 #
-# The preview command comes from the repository, as `infra.preview.command`. It
-# runs with a stack directory as its working directory, so it must select its own
-# stack and must not prompt.
+# The preview command is `infra.preview.command`: Pulumi's by default, or
+# whatever the repository declares instead (`terraform plan ...`). It runs with a
+# stack directory as its working directory, so it must select its own stack and
+# must not prompt.
 #
 # There is no companion script for `up`, and there is not going to be one. The
 # safe half of this loop is automatic; the half that changes the world stays a
@@ -21,6 +22,7 @@ base=${ILK_VAR_BASE_REF:-origin/main}
 if [ $# -lt 1 ] || [ -z "$1" ]; then
 	echo "no preview command: set infra.preview.command under capabilities: in .ilk/config.yaml" >&2
 	echo "  e.g. infra.preview.command: pulumi preview --diff --non-interactive --stack prod" >&2
+	echo "    or infra.preview.command: terraform plan -input=false" >&2
 	exit 2
 fi
 preview=$1
@@ -51,6 +53,15 @@ changed_paths() {
 	git ls-files --others --exclude-standard -- "$group"
 }
 
+# A project file is what makes a directory a stack to its tool.
+is_stack() {
+	[ -f "$1/Pulumi.yaml" ] || [ -f "$1/Pulumi.yml" ] && return 0
+	for tf in "$1"/*.tf; do
+		[ -f "$tf" ] && return 0
+	done
+	return 1
+}
+
 # Reduce touched paths to the stack directories that contain them.
 stacks=$(mktemp)
 trap 'rm -f "$stacks"' EXIT
@@ -72,8 +83,8 @@ fi
 # the failure of the last stack would be the only one that survived it.
 status=0
 while read -r stack; do
-	if [ ! -f "$stack/Pulumi.yaml" ]; then
-		echo "$stack: no Pulumi.yaml, so there is nothing to preview here (see pulumi.stack-shape)"
+	if ! is_stack "$stack"; then
+		echo "$stack: no Pulumi.yaml and no .tf files, so there is nothing to preview here (see infra.stack-shape)"
 		status=1
 		continue
 	fi

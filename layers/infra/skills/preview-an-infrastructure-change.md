@@ -8,7 +8,7 @@ half the inputs are not in the repository.
 ## When
 
 Editing anything under the infrastructure group, before proposing it. When
-`ilk check` reports `pulumi.preview`. When somebody asks whether a change is safe.
+`ilk check` reports `infra.preview`. When somebody asks whether a change is safe.
 
 ## Procedure
 
@@ -19,11 +19,11 @@ Editing anything under the infrastructure group, before proposing it. When
 2. **Run the gate.** It previews exactly the stacks the change touched:
 
    ```
-   ilk check --only pulumi.preview
+   ilk check --only infra.preview
    ```
 
    To iterate faster, run the repository's `infra.preview.command` yourself from
-   inside the stack directory. `ilk info pulumi` prints it.
+   inside the stack directory. `ilk config get infra.preview.command` prints it.
 
 3. **Read the diff, resource by resource.** Not the summary line. The counts are
    the least interesting part of the output, and the one people quote.
@@ -46,15 +46,17 @@ Editing anything under the infrastructure group, before proposing it. When
 
 ## When the preview will not run
 
-- **`pulumi.preview` skipped for want of `PULUMI_ACCESS_TOKEN`.** There are no
-  credentials here, so the check declined to guess rather than reporting an auth
-  failure as a broken repository. A skipped check is not a passing one — say the
+- **`infra.preview` skipped for want of a credential** (`PULUMI_ACCESS_TOKEN` by
+  default; the layer's `credentials` variable names it). There are no credentials
+  here, so the check declined to guess rather than reporting an auth failure as a
+  broken repository. A skipped check is not a passing one — say the
   preview did not run, and do not report the change as verified.
 - **The command exits complaining about a stack.** `pulumi` needs to know which
   stack, and the working directory does not tell it. That belongs in
   `infra.preview.command` (`--stack prod`), not in a one-off invocation nobody
-  else will repeat.
-- **It hangs.** Something is prompting. Add `--non-interactive`.
+  else will repeat. Terraform's equivalent is the workspace or `-var-file`.
+- **It hangs.** Something is prompting. Add `--non-interactive` (Pulumi) or
+  `-input=false` (Terraform).
 
 ## What not to do
 
@@ -64,6 +66,8 @@ Editing anything under the infrastructure group, before proposing it. When
   before proceeding. In a non-interactive session it does not ask.
 - **Do not paste config values into a stack file to make a preview run.** A
   preview that only works because a credential is now in the repository has cost
-  more than it found. Secrets go in with `pulumi config set --secret`.
+  more than it found. Secrets go in through the tool's secret store —
+  `pulumi config set --secret`, or Terraform's provider and variables marked
+  `sensitive`.
 - **Do not treat a refresh diff as your change.** Drift that was already there is
   worth reporting, and it is somebody else's change.

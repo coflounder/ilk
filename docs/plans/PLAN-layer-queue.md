@@ -82,7 +82,7 @@ credential must say so rather than looking like an empty diff or a clean preview
 *Accepted when:* a layer requiring a credential skips its check with a reason
 `ilk doctor` can print, and never reports success on a credential it did not have. ✓
 `requires_env:` names the variables, tests them for presence and never reads them.
-`pulumi` is its first tenant; `linear-mirror` needs nothing further from core.
+`pulumi` (now `infra`) is its first tenant; `linear-mirror` needs nothing further from core.
 
 ### 2 — The `mcp:` neutral artifact · done
 
@@ -112,7 +112,7 @@ queue resumes.
 | `autoresearch` | Unblocked; the only layer measuring staleness by expiry rather than coupling | done |
 | `deprecation` | Same mechanic as staleness-by-coupling, applied to removal dates | done |
 | `secrets` | Highest-consequence agent failure; wraps an existing scanner | done |
-| `pulumi` | After the credential story | done |
+| `pulumi` (now `infra`) | After the credential story | done |
 | `routine` | Not on this list when it was written: the trigger half of running unattended | done |
 | `gauntlet` | Nor was this one: the judging half, and the reason unattended work can be trusted | done |
 | `html-wireframe` | Pairs with `visual-qa`; was ranked lower, and was cheap once the pair was the argument | done |

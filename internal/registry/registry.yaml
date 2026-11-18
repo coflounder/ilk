@@ -145,12 +145,11 @@ layers:
     arc: operations
     kind: process
 
-  - id: ilk/pulumi
-    source: gh:coflounder/ilk/layers/pulumi
-    summary: Infrastructure as code with the one discipline that matters when an agent holds the keys — preview is agent work, apply is human work.
+  - id: ilk/infra
+    source: gh:coflounder/ilk/layers/infra
+    summary: Infrastructure as code with the one discipline that matters when an agent holds the keys — preview is agent work, apply is human work. Pulumi by default; Terraform by changing two settings.
     arc: operations
     kind: gate
-    requires: [infra.preview.command, infra.up.command]
 
   - id: ilk/session-summaries
     source: gh:coflounder/ilk/layers/session-summaries
