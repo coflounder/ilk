@@ -197,6 +197,7 @@ var errorCodes = []struct{ code, exit, meaning string }{
 	{"unknown_config_key", "2", "a config key that is neither a capability nor a layer variable here"},
 	{"invalid_config_key", "2", "a key spelled like neither a capability nor <layer>.<variable>"},
 	{"json_unsupported", "2", "--json given to a layer command that does not declare `json: true`"},
+	{"core_layer", "2", "an add or rm of a core layer (record, toolkit), which every repository has"},
 	{"confirmation_required", "3", "a change that needed a yes nobody could give"},
 	{"failed", "1", "the work failed; the message says how"},
 	{"layer_conflict", "1", "two layers would do the same job"},

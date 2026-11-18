@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/coflounder/ilk/internal/builtin"
 	"github.com/coflounder/ilk/internal/config"
 	"github.com/coflounder/ilk/internal/engine"
 	"github.com/coflounder/ilk/internal/layer"
@@ -100,6 +101,13 @@ already here does is refused; --replace swaps the old layer out in the same plan
 					continue
 				}
 				seen[m.ID] = true
+				if builtin.IsCore(m.ID) {
+					if w.fromBundle != "" {
+						skipped = append(skipped, m.ID)
+						continue
+					}
+					return errCoreLayer(m.Name(), "add")
+				}
 				if _, already := p.Config.Layer(m.ID); already {
 					if w.fromBundle != "" {
 						skipped = append(skipped, m.ID)
@@ -168,6 +176,17 @@ already here does is refused; --replace swaps the old layer out in the same plan
 					if !newIDs[id] && !displaced[id] {
 						displaced[id] = true
 						displacedOrder = append(displacedOrder, id)
+					}
+				}
+			}
+			for _, id := range displacedOrder {
+				if builtin.IsCore(id) {
+					ce := &engine.ClashError{Clashes: against}
+					return &cliError{
+						Exit:    exitFailed,
+						Code:    "layer_conflict",
+						Message: ce.Error(),
+						Fix:     fmt.Sprintf("%s is a core layer and cannot be replaced; the incoming layer has to stop doing its job", id),
 					}
 				}
 			}
@@ -343,6 +362,9 @@ then. Anything you edited after ilk wrote it is reported and left alone, unless
 				return fmt.Errorf("%q is not in this repository — `ilk list` shows what is", args[0])
 			}
 			id := target.ID()
+			if target.Core() {
+				return errCoreLayer(target.Name(), "rm")
+			}
 
 			p.Config.Remove(id)
 			next, err := engine.NewProject(p.Repo, p.Config, p.Lock, p.Version)
@@ -434,6 +456,11 @@ genuinely collide, ilk refuses and says where. --on-conflict chooses otherwise;
 				if len(args) == 1 && l.ID() != args[0] && l.Name() != args[0] {
 					continue
 				}
+				// An implied core layer is always the version the binary
+				// embeds, and has no config entry to bring up to date.
+				if l.Implied {
+					continue
+				}
 				ref := l.Ref
 				if ref.Version != l.Loaded.Manifest.Version {
 					rerecorded = true
@@ -511,6 +538,7 @@ type layerJSON struct {
 	Summary  string            `json:"summary"`
 	Facets   map[string]string `json:"facets,omitempty"`
 	Adopted  bool              `json:"adopted"`
+	Core     bool              `json:"core,omitempty"`
 	Requires []string          `json:"requires,omitempty"`
 	Provides []string          `json:"provides,omitempty"`
 	Source   string            `json:"source,omitempty"`
@@ -536,7 +564,7 @@ To find layers you could add, use ` + "`ilk search`" + `.`,
 				rows = append(rows, layerJSON{
 					ID: l.ID(), Version: l.Loaded.Manifest.Version,
 					Summary: l.Loaded.Manifest.Summary, Facets: l.Loaded.Manifest.Facets,
-					Adopted: true, Requires: l.Loaded.Manifest.Requires,
+					Adopted: true, Core: l.Core(), Requires: l.Loaded.Manifest.Requires,
 					Provides: l.Loaded.Manifest.Provides.Names(), Source: l.Loaded.Source,
 				})
 			}
@@ -546,15 +574,21 @@ To find layers you could add, use ` + "`ilk search`" + `.`,
 				return emitJSON(rows)
 			}
 
-			if len(rows) == 0 {
-				println(sty.dim("No layers here yet. `ilk search` shows what you can add."))
-				return nil
-			}
+			chosen := 0
 			for _, r := range rows {
-				printf("%s%-24s %-8s %s\n", sty.green("✓ "), r.ID, sty.dim(r.Version), r.Summary)
+				tier := ""
+				if r.Core {
+					tier = sty.dim(" (core)")
+				} else {
+					chosen++
+				}
+				printf("%s%-24s %-8s %s%s\n", sty.green("✓ "), r.ID, sty.dim(r.Version), r.Summary, tier)
 				if len(r.Requires) > 0 {
 					printf("    %s %s\n", sty.dim("requires"), sty.dim(strings.Join(r.Requires, ", ")))
 				}
+			}
+			if chosen == 0 {
+				printf("\n%s\n", sty.dim("Only the core layers, which every repository has. `ilk search` shows what you can add."))
 			}
 			return nil
 		},
@@ -590,12 +624,16 @@ func newInfoCmd() *cobra.Command {
 					"instructions": m.Instructions, "skills": m.Skills,
 					"hooks": m.Hooks, "checks": m.Checks, "commands": m.Commands, "mcp": m.MCP,
 					"needs_exec": m.NeedsExec(), "instruction_budget": m.Budget(),
+					"core": builtin.IsCore(m.ID),
 				})
 			}
 
 			printf("%s %s\n", sty.bold(m.ID), sty.dim(m.Version))
 			printf("%s\n", m.Summary)
 			printf("%s %s\n", sty.dim("source:"), sty.dim(loaded.Source))
+			if builtin.IsCore(m.ID) {
+				printf("%s %s\n", sty.dim("tier:"), sty.dim("core — in every repository, always on, cannot be removed"))
+			}
 			if len(m.Facets) > 0 {
 				var facets []string
 				for k, v := range m.Facets {

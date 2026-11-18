@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/coflounder/ilk/internal/builtin"
 	"github.com/coflounder/ilk/internal/config"
 	"github.com/coflounder/ilk/internal/layer"
 	"github.com/coflounder/ilk/internal/lock"
@@ -56,6 +57,10 @@ type ResolvedLayer struct {
 	Loaded *layer.Loaded
 	Vars   map[string]string
 	Ctx    render.Context
+	// Implied marks a core layer that .ilk/config.yaml does not list. It is
+	// here because every repository has it, not because anybody chose it, so
+	// nothing should write it into the config on its behalf.
+	Implied bool
 }
 
 // ID is the layer's identity.
@@ -64,6 +69,9 @@ func (r *ResolvedLayer) ID() string { return r.Loaded.Manifest.ID }
 // Name is the word used to dispatch `ilk <layer> <command>`.
 func (r *ResolvedLayer) Name() string { return r.Loaded.Manifest.Name() }
 
+// Core reports whether the layer is in the core tier: always on, never removed.
+func (r *ResolvedLayer) Core() bool { return builtin.IsCore(r.ID()) }
+
 // Project is a repository with everything ilk needs to plan against it.
 type Project struct {
 	Repo    *repo.Repo
@@ -71,10 +79,31 @@ type Project struct {
 	Lock    *lock.Lock
 	Layers  []*ResolvedLayer
 	Version string
+	bare    bool
 }
 
-// Load reads a repository's declared state and resolves every adopted layer.
+// Options change how a project is resolved.
+type Options struct {
+	// Bare resolves only the layers .ilk/config.yaml lists, leaving out the
+	// core tier it would otherwise imply. `ilk layer test` is the one caller:
+	// it measures whether a layer comes out cleanly, which for a core layer is
+	// only measurable with the tier switched off.
+	Bare bool
+}
+
+// coreTier is the set of layers a project has whether or not its config lists
+// them. A variable only so this package's own tests, which exercise the
+// mechanics of adding and removing record, can switch it off.
+var coreTier = builtin.Core
+
+// Load reads a repository's declared state and resolves every adopted layer,
+// including the core tier.
 func Load(root, version string) (*Project, error) {
+	return LoadWith(root, version, Options{})
+}
+
+// LoadWith is Load with options.
+func LoadWith(root, version string, opts Options) (*Project, error) {
 	r, err := repo.Find(root)
 	if err != nil {
 		return nil, err
@@ -87,7 +116,7 @@ func Load(root, version string) (*Project, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := &Project{Repo: r, Config: cfg, Lock: lk, Version: version}
+	p := &Project{Repo: r, Config: cfg, Lock: lk, Version: version, bare: opts.Bare}
 	if err := p.resolveLayers(); err != nil {
 		return nil, err
 	}
@@ -96,17 +125,50 @@ func Load(root, version string) (*Project, error) {
 
 // NewProject builds a project from parts, for `ilk init` and for tests.
 func NewProject(r *repo.Repo, cfg *config.Config, lk *lock.Lock, version string) (*Project, error) {
-	p := &Project{Repo: r, Config: cfg, Lock: lk, Version: version}
+	return NewProjectWith(r, cfg, lk, version, Options{})
+}
+
+// NewProjectWith is NewProject with options.
+func NewProjectWith(r *repo.Repo, cfg *config.Config, lk *lock.Lock, version string, opts Options) (*Project, error) {
+	p := &Project{Repo: r, Config: cfg, Lock: lk, Version: version, bare: opts.Bare}
 	if err := p.resolveLayers(); err != nil {
 		return nil, err
 	}
 	return p, nil
 }
 
+// layerRefs is the config's layers plus every core layer it does not list. A
+// core layer the config does list keeps that entry, because the entry is where
+// its variables live. Implied layers slot in where an id-sorted config would
+// have them, so a repository that later lists one sees no reordering.
+func (p *Project) layerRefs() ([]config.LayerRef, map[string]bool) {
+	refs := append([]config.LayerRef(nil), p.Config.Layers...)
+	implied := map[string]bool{}
+	if p.bare {
+		return refs, implied
+	}
+	for _, id := range coreTier {
+		if _, listed := p.Config.Layer(id); listed {
+			continue
+		}
+		implied[id] = true
+		at := len(refs)
+		for i, r := range refs {
+			if r.ID > id {
+				at = i
+				break
+			}
+		}
+		refs = append(refs[:at], append([]config.LayerRef{{ID: id}}, refs[at:]...)...)
+	}
+	return refs, implied
+}
+
 func (p *Project) resolveLayers() error {
 	cache := p.Repo.IlkPath("cache")
 	p.Layers = nil
-	for _, ref := range p.Config.Layers {
+	refs, implied := p.layerRefs()
+	for _, ref := range refs {
 		src := ref.Source
 		if src == "" {
 			src = ref.ID
@@ -118,11 +180,14 @@ func (p *Project) resolveLayers() error {
 		if loaded.Manifest.ID != ref.ID {
 			return fmt.Errorf("layer %s resolves to %s — the id in .ilk/config.yaml and the id in the layer manifest must match", ref.ID, loaded.Manifest.ID)
 		}
+		if implied[ref.ID] {
+			ref.Version = loaded.Manifest.Version
+		}
 		vars, err := loaded.ResolveVars(ref.Vars)
 		if err != nil {
 			return err
 		}
-		p.Layers = append(p.Layers, &ResolvedLayer{Ref: ref, Loaded: loaded, Vars: vars})
+		p.Layers = append(p.Layers, &ResolvedLayer{Ref: ref, Loaded: loaded, Vars: vars, Implied: implied[ref.ID]})
 	}
 	// Contexts are built after every layer is known, so a layer can see its
 	// neighbours without depending on them.

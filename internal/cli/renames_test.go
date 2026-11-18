@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/coflounder/ilk/internal/builtin"
 	"github.com/coflounder/ilk/internal/config"
 	"github.com/coflounder/ilk/internal/engine"
 	"github.com/coflounder/ilk/internal/layer"
@@ -370,8 +371,9 @@ func TestSearchShowsWhatListAvailableDid(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, b := range builtins {
-		if !listed[b.Manifest.ID] {
-			t.Errorf("search does not list the built-in %s", b.Manifest.ID)
+		core := builtin.IsCore(b.Manifest.ID)
+		if listed[b.Manifest.ID] == core {
+			t.Errorf("search lists %s: %v, but it is core: %v — search lists every built-in but the core tier", b.Manifest.ID, listed[b.Manifest.ID], core)
 		}
 	}
 

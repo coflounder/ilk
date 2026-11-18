@@ -99,6 +99,12 @@ type Concern struct {
 func Find(p *engine.Project, id string) (*engine.ResolvedLayer, error) {
 	var matches []*engine.ResolvedLayer
 	for _, l := range p.Layers {
+		// With no id, a layer nobody chose is not a candidate: the core tier is
+		// in every repository, and counting it would make the bare form
+		// ambiguous everywhere.
+		if id == "" && l.Implied {
+			continue
+		}
 		if id == "" || l.ID() == id || l.Name() == id {
 			matches = append(matches, l)
 		}

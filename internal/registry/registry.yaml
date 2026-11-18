@@ -22,25 +22,31 @@ version: 1
 
 layers:
   # ---------------------------------------------------------------- built in
-  # Shipped inside the binary. Adoptable with no network access at all.
-
-  - id: ilk/toolkit
-    source: builtin
-    summary: How to operate and extend ilk in this repository — adding layers, configuring, applying, resolving conflicts, and writing your own layer.
-    arc: operations
-    kind: process
-
-  - id: ilk/record
-    source: builtin
-    summary: The project record — what is true, what is intended, what happened — plus the checks that keep it honest.
-    arc: context
-    kind: record
+  # Shipped inside the binary. Adoptable with no network access at all, and
+  # what `ilk init` adds unless told otherwise. Each can be removed.
+  #
+  # The core tier — record and toolkit — is not listed. It is in every
+  # repository whether or not anybody adds it, so there is nothing to choose;
+  # `ilk info record` still describes it.
 
   - id: ilk/gates
     source: builtin
     summary: Verification an agent cannot talk its way past — tests, lint and build wired into `ilk check`, git hooks and CI.
     arc: quality
     kind: gate
+
+  - id: ilk/secrets
+    source: builtin
+    summary: A credential caught before it is committed, and the part nobody writes down — what to do once one has leaked.
+    arc: quality
+    kind: gate
+
+  - id: ilk/compound-lessons
+    source: builtin
+    summary: Turn a recurring problem into a durable change — a check, a skill or a convention — instead of advice that depends on everyone remembering it.
+    arc: operations
+    kind: process
+    requires: [record.docs]
 
   # --------------------------------------------------------------- community
   # Fetched from git. Each is versioned by tag.
@@ -51,13 +57,6 @@ layers:
     arc: planning
     kind: process
     requires: [record.plans]
-
-  - id: ilk/compound-lessons
-    source: gh:coflounder/ilk/layers/compound-lessons
-    summary: Turn a recurring problem into a durable change — a check, a skill or a convention — instead of advice that depends on everyone remembering it.
-    arc: operations
-    kind: process
-    requires: [record.docs]
 
   - id: ilk/archive
     source: gh:coflounder/ilk/layers/archive
@@ -125,12 +124,6 @@ layers:
     arc: release
     kind: process
     requires: [record.plans]
-
-  - id: ilk/secrets
-    source: gh:coflounder/ilk/layers/secrets
-    summary: A credential caught before it is committed, and the part nobody writes down — what to do once one has leaked.
-    arc: quality
-    kind: gate
 
   - id: ilk/html-wireframe
     source: gh:coflounder/ilk/layers/html-wireframe

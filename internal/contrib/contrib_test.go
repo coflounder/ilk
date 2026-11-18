@@ -76,7 +76,24 @@ contribution:
 	if err != nil {
 		t.Fatal(err)
 	}
-	return p2, p2.Layers[0]
+	// The core tier is in every project; the layer under test is the one the
+	// config names.
+	l, err := Find(p2, "test/demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p2, l
+}
+
+// demo is the layer under test, which is not the only one in the project: the
+// core tier is in every one.
+func demo(t *testing.T, p *engine.Project) *engine.ResolvedLayer {
+	t.Helper()
+	l, err := Find(p, "test/demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return l
 }
 
 func mustLoadLock(t *testing.T, root string) *lock.Lock {
@@ -288,7 +305,7 @@ func TestAnOverriddenDefaultIsReported(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	prop, err := Build(p2, p2.Layers[0])
+	prop, err := Build(p2, demo(t, p2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -311,7 +328,7 @@ func TestAnOverriddenDefaultIsReported(t *testing.T) {
 
 func TestASuppliedRequiredVariableIsNotADisagreement(t *testing.T) {
 	p, _ := fixture(t)
-	mustWrite(t, filepath.Join(p.Layers[0].Loaded.Source, "layer.yaml"), `id: test/demo
+	mustWrite(t, filepath.Join(demo(t, p).Loaded.Source, "layer.yaml"), `id: test/demo
 version: 0.1.0
 summary: A layer with a variable the adopter must supply.
 variables:
@@ -325,7 +342,7 @@ variables:
 		t.Fatal(err)
 	}
 
-	prop, err := Build(p2, p2.Layers[0])
+	prop, err := Build(p2, demo(t, p2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -570,7 +587,7 @@ func reapply(t *testing.T, p *engine.Project) (*engine.Project, *engine.Resolved
 	if err != nil {
 		t.Fatal(err)
 	}
-	return p3, p3.Layers[0]
+	return p3, demo(t, p3)
 }
 
 // withTarget turns on agent targets, so skills are actually written to disk.

@@ -109,7 +109,7 @@ func runAssertions(sandbox string, l *layer.Loaded, cases []assertion) ([]assert
 			return nil, err
 		}
 
-		p, err := engine.Load(sandbox, "test")
+		p, err := engine.LoadWith(sandbox, "test", layerTestOptions)
 		if err != nil {
 			return nil, err
 		}

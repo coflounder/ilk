@@ -438,7 +438,13 @@ func changeSetting(p *engine.Project, key string, value *string, yes bool) error
 			vars = nil
 		}
 		ref.Vars = vars
-		p.Config.Set(ref)
+		if l.Core() && ref.Vars == nil && ref.Source == "" && !ref.AllowExec {
+			// A core layer back on every default needs no entry: it is
+			// implied, and listing it would only suggest it was a choice.
+			p.Config.Remove(ref.ID)
+		} else {
+			p.Config.Set(ref)
+		}
 	} else {
 		doc.Kind = kindCapability
 		if !manifest.ValidCapability(key) {

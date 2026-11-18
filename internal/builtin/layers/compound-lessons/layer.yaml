@@ -44,5 +44,5 @@ checks:
 
 contribution:
   repo: coflounder/ilk
-  path: layers/compound-lessons
+  path: internal/builtin/layers/compound-lessons
   guidelines: CONTRIBUTING.md
