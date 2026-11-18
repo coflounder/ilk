@@ -105,7 +105,10 @@ it is reported, because deciding it is dead is not ilk's call to make.`,
 
 				if !flagJSON {
 					printMirrorPlan(plan)
-					if !yes && !confirm(fmt.Sprintf("\nWrite %d change(s) to %s?", len(plan.Writes()), ctx.mirror.Summary)) {
+					if ok, err := approve(yes, fmt.Sprintf("\nWrite %d change(s) to %s?", len(plan.Writes()), ctx.mirror.Summary)); !ok {
+						if err != nil {
+							return err
+						}
 						println(sty.dim("Nothing written."))
 						return nil
 					}
@@ -188,7 +191,10 @@ out until somebody reads the tracker and does not recognise it.`,
 					}
 					return nil
 				}
-				if !yes && !confirm(fmt.Sprintf("\nRecord %d link(s)?", len(links))) {
+				if ok, err := approve(yes, fmt.Sprintf("\nRecord %d link(s)?", len(links))); !ok {
+					if err != nil {
+						return err
+					}
 					println(sty.dim("Nothing linked."))
 					return nil
 				}

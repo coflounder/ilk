@@ -124,6 +124,14 @@ nothing to choose.`,
 			}
 
 			if flagJSON {
+				// Like add, rm, upgrade and apply: --json applies, because there is
+				// nobody to answer a prompt. Stopping after the config used to leave a
+				// repository half set up, exit 0, with `init` refusing to run again.
+				if !noApply {
+					if err := p.Apply(pl); err != nil {
+						return err
+					}
+				}
 				return emitJSON(planJSON(pl))
 			}
 
@@ -135,7 +143,12 @@ nothing to choose.`,
 				printf("\n%s\n", sty.dim("Nothing written except .ilk/config.yaml. Run `ilk apply` when ready."))
 				return nil
 			}
-			if !yes && !confirm("\nApply?") {
+			if ok, err := approve(yes, "\nApply?"); !ok {
+				if err != nil {
+					// .ilk/config.yaml is already written, so `init --yes` would now
+					// refuse. Point at the command that finishes the job.
+					return errConfirmationRequired(".ilk/config.yaml is written; run `ilk apply --yes` to apply it")
+				}
 				printf("%s\n", sty.dim("Nothing applied. .ilk/config.yaml is written; run `ilk apply` when ready."))
 				return nil
 			}
@@ -181,14 +194,4 @@ func printNextSteps(p *engine.Project) {
 		printf("\n  %s tell ilk how to verify this project so gates can run:\n", sty.dim("tip"))
 		printf("  %s\n", sty.dim("  ilk add gates --set test.command=\"<your test command>\""))
 	}
-}
-
-func confirm(prompt string) bool {
-	printf("%s [y/N] ", prompt)
-	var answer string
-	if _, err := fmt.Fscanln(os.Stdin, &answer); err != nil {
-		return false
-	}
-	answer = strings.ToLower(strings.TrimSpace(answer))
-	return answer == "y" || answer == "yes"
 }

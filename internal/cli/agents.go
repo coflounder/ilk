@@ -145,7 +145,10 @@ func mutateTargets(name string, add, yes bool) error {
 		return emitJSON(planJSON(pl))
 	}
 	printPlan(pl, false)
-	if !yes && !pl.Empty() && !confirm("\nApply?") {
+	if ok, err := approve(yes || pl.Empty(), "\nApply?"); !ok {
+		if err != nil {
+			return err
+		}
 		println(sty.dim("Nothing applied."))
 		return nil
 	}
@@ -185,7 +188,10 @@ func newAgentsSyncCmd() *cobra.Command {
 				return nil
 			}
 			printPlan(pl, false)
-			if !yes && !confirm("\nApply?") {
+			if ok, err := approve(yes, "\nApply?"); !ok {
+				if err != nil {
+					return err
+				}
 				println(sty.dim("Nothing applied."))
 				return nil
 			}

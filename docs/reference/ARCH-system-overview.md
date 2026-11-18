@@ -2,7 +2,7 @@
 id: arch-system-overview
 title: System overview
 status: current
-updated: 2026-09-18
+updated: 2026-11-18
 covers:
   - internal/**
   - cmd/**
@@ -104,6 +104,16 @@ harness processes. Codex co-owns a fenced MCP region in its TOML config and merg
 its hook JSON. Pi's project extension uses an official Python MCP client to retain
 session-scoped connections and expose discovered tools; it closes them on reload or
 shutdown. Other harnesses can publish explicitly through MCP or CLI.
+
+**Scripts and agents get a contract, not prose.** The exit code says what happened:
+0 done, 1 the work failed, 2 the command was called wrongly, 3 it needed a yes that
+nobody could give. A prompt with no terminal and no piped answer exits 3 and changes
+nothing, rather than declining silently with 0. Under `--json` an error is one object on
+stderr, `{"error": {"code", "message", "exit", "fix"}}`, and `--json` on a write applies
+without asking. `ilk hook run` and layer commands are the two exceptions: the first
+speaks each harness's hook protocol, and the second passes its script's exit code
+through. A layer command never sees ilk's own `--json`, `-C` or `--dir`; it gets
+`ILK_OUTPUT=json|text`, and anything after `--` reaches the script verbatim.
 
 **Writing to somebody else's system reuses the same discipline.** `ilk mirror`
 reconciles record documents with a tracker, and the shape is `plan` then `apply`
