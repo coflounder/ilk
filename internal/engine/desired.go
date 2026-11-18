@@ -154,6 +154,9 @@ func (p *Project) Capabilities() map[string]string {
 	caps := map[string]string{}
 	for _, l := range p.Layers {
 		for _, c := range l.Loaded.Manifest.Provides.Names() {
+			// Two providers of one capability is a clash, and Desired refuses to
+			// plan it. Keeping the first here is only so that read-only commands
+			// can still describe a repository that is in that state.
 			if _, ok := caps[c]; ok {
 				continue
 			}
@@ -217,6 +220,9 @@ func (p *Project) Layer(nameOrID string) (*ResolvedLayer, bool) {
 
 // Desired computes every artifact the repository should contain.
 func (p *Project) Desired() ([]Desired, error) {
+	if clashes := p.Clashes(); len(clashes) > 0 {
+		return nil, &ClashError{Clashes: clashes}
+	}
 	var out []Desired
 
 	out = append(out, p.coreDesired()...)

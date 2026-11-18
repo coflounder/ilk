@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/coflounder/ilk/internal/engine"
 	"github.com/spf13/cobra"
 )
 
@@ -67,6 +68,10 @@ func classify(err error) *cliError {
 	if errors.As(err, &ce) {
 		return ce
 	}
+	var clash *engine.ClashError
+	if errors.As(err, &clash) {
+		return &cliError{Exit: exitFailed, Code: "layer_conflict", Message: clash.Error(), Fix: clash.Fix()}
+	}
 	msg := err.Error()
 	// Cobra reports unknown commands itself, before any of ilk's code runs.
 	if strings.HasPrefix(msg, "unknown command ") {
@@ -96,7 +101,7 @@ func report(err error, asJSON bool) int {
 		_ = enc.Encode(payload)
 		return ce.Exit
 	}
-	fail(err)
+	fail(ce)
 	return ce.Exit
 }
 

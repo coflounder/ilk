@@ -464,6 +464,13 @@ func (l *Layer) Validate() error {
 			bad("provides: %q must be a dotted capability like `record.docs`", c)
 		}
 	}
+	for _, c := range append(append([]string{}, l.Requires...), l.Provides.Names()...) {
+		if IsRole(c) {
+			if _, known := Roles[c]; !known {
+				bad("%q is not a role ilk knows (%s) — name a capability of your own without the `role.` prefix", c, strings.Join(RoleNames(), ", "))
+			}
+		}
+	}
 
 	for name := range l.Variables {
 		if !shortIDPattern.MatchString(name) {

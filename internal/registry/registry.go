@@ -13,6 +13,7 @@ package registry
 
 import (
 	_ "embed"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -52,16 +53,83 @@ func (e Entry) Name() string {
 }
 
 type index struct {
-	Version int     `yaml:"version"`
-	Layers  []Entry `yaml:"layers"`
+	Version int      `yaml:"version"`
+	Layers  []Entry  `yaml:"layers"`
+	Bundles []Bundle `yaml:"bundles"`
+}
+
+// BundlePrefix marks a bundle wherever a layer reference is accepted.
+const BundlePrefix = "@"
+
+// Bundle is a named set of layers usually adopted together. It contributes
+// nothing itself: adding one adds each member, and each member stays removable
+// on its own.
+type Bundle struct {
+	ID      string   `yaml:"id" json:"id"`
+	Summary string   `yaml:"summary" json:"summary"`
+	Layers  []string `yaml:"layers" json:"layers"`
+}
+
+// Ref is what a user would pass to `ilk add`.
+func (b Bundle) Ref() string { return BundlePrefix + b.ID }
+
+func load() (index, error) {
+	var idx index
+	err := yaml.Unmarshal(indexData, &idx)
+	return idx, err
+}
+
+// IsBundleRef reports whether a reference names a bundle.
+func IsBundleRef(ref string) bool { return strings.HasPrefix(ref, BundlePrefix) }
+
+// Bundles lists every bundle, sorted by id.
+func Bundles() ([]Bundle, error) {
+	idx, err := load()
+	if err != nil {
+		return nil, err
+	}
+	sort.Slice(idx.Bundles, func(i, j int) bool { return idx.Bundles[i].ID < idx.Bundles[j].ID })
+	return idx.Bundles, nil
+}
+
+// Expand resolves `@name` to the references of its members, in the bundle's
+// order, so they can be added like any other layer.
+func Expand(ref string) ([]string, error) {
+	name := strings.TrimPrefix(ref, BundlePrefix)
+	idx, err := load()
+	if err != nil {
+		return nil, err
+	}
+	byID := map[string]Entry{}
+	for _, e := range idx.Layers {
+		byID[e.ID] = e
+	}
+	var known []string
+	for _, b := range idx.Bundles {
+		known = append(known, b.Ref())
+		if b.ID != name {
+			continue
+		}
+		refs := make([]string, 0, len(b.Layers))
+		for _, id := range b.Layers {
+			e, ok := byID[id]
+			if !ok {
+				return nil, fmt.Errorf("bundle %s lists %s, which is not in the index", b.Ref(), id)
+			}
+			refs = append(refs, e.Ref())
+		}
+		return refs, nil
+	}
+	sort.Strings(known)
+	return nil, fmt.Errorf("no bundle called %s — the bundles are %s", ref, strings.Join(known, ", "))
 }
 
 // All returns every listed layer, sorted so built-ins come first — those are the
 // ones addable with no network, which is what somebody with a fresh install
 // wants to see at the top.
 func All() ([]Entry, error) {
-	var idx index
-	if err := yaml.Unmarshal(indexData, &idx); err != nil {
+	idx, err := load()
+	if err != nil {
 		return nil, err
 	}
 	sort.SliceStable(idx.Layers, func(i, j int) bool {

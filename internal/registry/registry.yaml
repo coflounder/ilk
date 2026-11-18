@@ -164,3 +164,22 @@ layers:
     summary: Shared session summaries across directly invoked harnesses and linked worktrees, with hook-driven publication and MCP retrieval.
     arc: context
     kind: integration
+
+# ----------------------------------------------------------------- bundles
+# A bundle is a named set of layers that are usually adopted together. It adds
+# nothing of its own: `ilk add @plans` is exactly `ilk add` of each member, in
+# one plan, and each member can still be removed on its own. Members are ids
+# from the list above.
+
+bundles:
+  - id: plans
+    summary: A plan that connects, stays tidy and writes its own pull requests — blueprint, plan-hygiene and pr-prep.
+    layers: [ilk/blueprint, ilk/plan-hygiene, ilk/pr-prep]
+
+  - id: unattended
+    summary: For agents that ship without a person watching — an independent judge of done, a written way to ask, and loops bounded by a gate.
+    layers: [ilk/gauntlet, ilk/ask-human, ilk/dev-loops]
+
+  - id: ui
+    summary: Interface work agreed as a wireframe before it is built, and shown in screenshots after.
+    layers: [ilk/html-wireframe, ilk/visual-qa]

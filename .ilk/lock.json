@@ -5,7 +5,7 @@
       "id": "ilk/compound-lessons",
       "kind": "layer",
       "version": "0.2.0",
-      "source": "/home/dev/workspace/coflounder/repos/ilk/layers/compound-lessons",
+      "source": "/home/claude/coflounder/ilk/layers/compound-lessons",
       "digest": "sha256:1e82811a5165acf8ed5c0dc20ea0c3fc053092216a1a5ca6f4f36af0663a2494",
       "files": [
         {
@@ -76,7 +76,7 @@
       "id": "ilk/maintainer",
       "kind": "layer",
       "version": "0.2.0",
-      "source": "/home/dev/workspace/coflounder/repos/ilk/layers/maintainer",
+      "source": "/home/claude/coflounder/ilk/layers/maintainer",
       "digest": "sha256:c0b8483911e4367b919a8d67ad11e5e590d7e39a9fab43bc7944d8ed91339e6b",
       "vars": {
         "group": "docs",
@@ -252,7 +252,7 @@
       "id": "ilk/session-summaries",
       "kind": "layer",
       "version": "0.1.0",
-      "source": "/home/dev/workspace/coflounder/repos/ilk/layers/session-summaries",
+      "source": "/home/claude/coflounder/ilk/layers/session-summaries",
       "digest": "sha256:e904b1a412363c59457b092222aee2943c8d93acf852be0a598772a65092448b",
       "files": [
         {
@@ -279,7 +279,7 @@
       "kind": "layer",
       "version": "0.3.0",
       "source": "builtin",
-      "digest": "sha256:6e4d4a796b1bdb65a47facb57ac66c4dab80df5b87eb045915c689d5325d814e",
+      "digest": "sha256:1249d83cea9b9907d404904e0b6a93dac8d7819f5b2ee9f60b090ca712e31288",
       "files": [
         {
           "path": ".ilk/bin/ilk-propose.sh",
@@ -387,8 +387,8 @@
         {
           "path": ".agents/skills/write-a-layer/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:193bb11e77ced1708450e8f55f7f072a3a8d0518c79ba3ae32be35a125a1c5a4",
-          "delivered": "sha256:193bb11e77ced1708450e8f55f7f072a3a8d0518c79ba3ae32be35a125a1c5a4",
+          "hash": "sha256:dd8b2521418e8195f11754def473db218b6f2206f7d06436a84be31ce41dd83e",
+          "delivered": "sha256:dd8b2521418e8195f11754def473db218b6f2206f7d06436a84be31ce41dd83e",
           "created_file": true,
           "owner": "target:agents-md"
         },
