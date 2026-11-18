@@ -1,0 +1,30 @@
+#!/bin/sh
+# A fake wrangler for test/run.sh. It records how it was called and prints what
+# `wrangler versions upload` prints. Anything but `versions upload` is refused
+# loudly: the preview layer must never call another wrangler command.
+echo "$*" >>"${FAKE_LOG:?}"
+if [ "${1:-}" != versions ] || [ "${2:-}" != upload ]; then
+	echo "fake wrangler: refused '$*' — only 'versions upload' is allowed" >&2
+	exit 99
+fi
+alias=
+while [ $# -gt 0 ]; do
+	[ "$1" = --preview-alias ] && alias=$2
+	shift
+done
+case ${FAKE_WRANGLER:-ok} in
+fail)
+	echo "✘ [ERROR] A request to the Cloudflare API failed." >&2
+	exit 1
+	;;
+nourl)
+	echo "Worker Startup Time: 12 ms"
+	echo "Worker Version ID: 0f1e2d3c-0000-4000-8000-000000000000"
+	;;
+*)
+	echo "Worker Startup Time: 12 ms"
+	echo "Worker Version ID: 0f1e2d3c-0000-4000-8000-000000000000"
+	echo "Version Preview URL: https://0f1e2d3c-shop.acme.workers.dev"
+	echo "Version Preview Alias URL: https://$alias-shop.acme.workers.dev"
+	;;
+esac

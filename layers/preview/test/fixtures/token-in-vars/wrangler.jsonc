@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "shop",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "account_id": "<your-account-id>",
+  "workers_dev": false,
+  "preview_urls": true,
+  "routes": [{ "pattern": "shop.example.com", "custom_domain": true }],
+  "assets": { "directory": "./dist", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
+  "vars": {
+    "ACCESS_AUD_PREVIEW": "<preview-access-aud>",
+    "CF_ACCESS_CLIENT_SECRET": "<pasted-here-by-mistake>",
+  },
+}

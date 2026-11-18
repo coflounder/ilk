@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"sort"
 	"strings"
 
 	"github.com/coflounder/ilk/internal/detect"
@@ -12,14 +11,15 @@ import (
 // layers declared for that trait which the repository does not have yet.
 type suggestion struct {
 	detect.Finding
-	// Add is what to pass to `ilk add`: one bundle when a bundle is exactly
-	// the layers on offer, otherwise each layer by name.
+	// Add is what to pass to `ilk add`: the bundles made only of layers on
+	// offer, then any layer no such bundle covers, by name.
 	Add    []string `json:"add"`
 	Layers []string `json:"layers"`
 }
 
 // suggestFor turns detected traits into layers to suggest, leaving out what the
-// repository already has. A trait with nothing left to suggest is left out.
+// repository already has and what an earlier trait already suggested. A trait
+// with nothing left to suggest is left out.
 func suggestFor(root string, have map[string]bool) []suggestion {
 	entries, err := registry.All()
 	if err != nil {
@@ -28,10 +28,12 @@ func suggestFor(root string, have map[string]bool) []suggestion {
 	bundles, _ := registry.Bundles()
 
 	var out []suggestion
+	offered := map[string]bool{}
 	for _, f := range detect.Traits(root) {
 		var ids, names []string
 		for _, e := range entries {
-			if e.IsFor(f.Trait) && !have[e.ID] {
+			if e.IsFor(f.Trait) && !have[e.ID] && !offered[e.ID] {
+				offered[e.ID] = true
 				ids = append(ids, e.ID)
 				names = append(names, e.Name())
 			}
@@ -39,31 +41,61 @@ func suggestFor(root string, have map[string]bool) []suggestion {
 		if len(ids) == 0 {
 			continue
 		}
-		s := suggestion{Finding: f, Layers: ids, Add: names}
-		for _, b := range bundles {
-			if sameSet(b.Layers, ids) {
-				s.Add = []string{b.Ref()}
-			}
-		}
-		out = append(out, s)
+		out = append(out, suggestion{Finding: f, Layers: ids, Add: coverWithBundles(ids, names, bundles)})
 	}
 	return out
 }
 
-func sameSet(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
+// coverWithBundles says how to add the layers on offer in as few words as it
+// can: bundles made only of offered layers, each one chosen for covering the
+// most layers not yet covered (the first by name wins a tie), then the layers
+// no bundle covered, by name. A bundle that would add a layer not on offer is
+// never used.
+func coverWithBundles(ids, names []string, bundles []registry.Bundle) []string {
+	offered := map[string]bool{}
+	for _, id := range ids {
+		offered[id] = true
 	}
-	x := append([]string(nil), a...)
-	y := append([]string(nil), b...)
-	sort.Strings(x)
-	sort.Strings(y)
-	for i := range x {
-		if x[i] != y[i] {
-			return false
+	var usable []registry.Bundle
+	for _, b := range bundles {
+		ok := len(b.Layers) > 0
+		for _, l := range b.Layers {
+			ok = ok && offered[l]
+		}
+		if ok {
+			usable = append(usable, b)
 		}
 	}
-	return true
+
+	covered := map[string]bool{}
+	var add []string
+	for {
+		best, gain := -1, 0
+		for i, b := range usable {
+			n := 0
+			for _, l := range b.Layers {
+				if !covered[l] {
+					n++
+				}
+			}
+			if n > gain {
+				best, gain = i, n
+			}
+		}
+		if best < 0 {
+			break
+		}
+		add = append(add, usable[best].Ref())
+		for _, l := range usable[best].Layers {
+			covered[l] = true
+		}
+	}
+	for i, id := range ids {
+		if !covered[id] {
+			add = append(add, names[i])
+		}
+	}
+	return add
 }
 
 // printSuggestions writes the suggestions with w: stdout normally, stderr under

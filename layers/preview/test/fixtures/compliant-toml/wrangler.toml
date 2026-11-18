@@ -1,0 +1,12 @@
+name = "shop"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+# Production is a custom domain behind Access. No workers.dev.
+workers_dev = false
+preview_urls = true
+routes = [ { pattern = "shop.example.com", custom_domain = true } ]
+
+[vars]
+ACCESS_TEAM_DOMAIN = "<team>.cloudflareaccess.com"
+ACCESS_AUD = "<production-access-aud>"
+ACCESS_AUD_PREVIEW = "<preview-access-aud>"

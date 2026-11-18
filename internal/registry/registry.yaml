@@ -163,6 +163,13 @@ layers:
     kind: gate
     for: [infra]
 
+  - id: ilk/preview
+    source: gh:coflounder/ilk/layers/preview
+    summary: A preview of every pull request, behind sign-in, that an agent can find and open read-only — and checks that the preview is not quietly public, shared with production, or missing.
+    arc: release
+    kind: integration
+    for: [ui, service]
+
   - id: ilk/session-summaries
     source: gh:coflounder/ilk/layers/session-summaries
     summary: Shared session summaries across directly invoked harnesses and linked worktrees, with hook-driven publication and MCP retrieval.
@@ -188,3 +195,7 @@ bundles:
   - id: ui
     summary: Interface work agreed as a wireframe before it is built, and shown in screenshots after.
     layers: [ilk/html-wireframe, ilk/visual-qa]
+
+  - id: preview
+    summary: Every pull request running somewhere private an agent can open read-only, and interface work shown in screenshots taken there.
+    layers: [ilk/preview, ilk/visual-qa]

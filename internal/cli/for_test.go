@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/coflounder/ilk/internal/registry"
 )
 
 func TestSearchForFiltersByTraitAndShowsIt(t *testing.T) {
@@ -26,12 +28,16 @@ func TestSearchForFiltersByTraitAndShowsIt(t *testing.T) {
 	var ids []string
 	for _, r := range rows {
 		ids = append(ids, r.ID)
-		if !reflect.DeepEqual(r.For, []string{"ui"}) {
-			t.Errorf("%s is for %v", r.ID, r.For)
+		hasUI := false
+		for _, f := range r.For {
+			hasUI = hasUI || f == "ui"
+		}
+		if !hasUI {
+			t.Errorf("%s is for %v, which leaves out ui", r.ID, r.For)
 		}
 	}
 	sort.Strings(ids)
-	if want := []string{"ilk/html-wireframe", "ilk/visual-qa"}; !reflect.DeepEqual(ids, want) {
+	if want := []string{"ilk/html-wireframe", "ilk/preview", "ilk/visual-qa"}; !reflect.DeepEqual(ids, want) {
 		t.Fatalf("--for ui lists %v, want %v — and not every layer that is for any repository", ids, want)
 	}
 
@@ -78,11 +84,11 @@ func TestInitSuggestsLayersForWhatItFindsAndAddsNone(t *testing.T) {
 	if code != exitOK {
 		t.Fatalf("init: exit %d\n%s", code, stderr)
 	}
-	if !strings.Contains(stdout, "package.json depends on react") || !strings.Contains(stdout, "ilk add @ui") {
+	if !strings.Contains(stdout, "package.json depends on react") || !strings.Contains(stdout, "ilk add @preview @ui") {
 		t.Errorf("init should name what it found and the bundle for it:\n%s", stdout)
 	}
 	for _, id := range layersIn(t, root) {
-		if id == "ilk/html-wireframe" || id == "ilk/visual-qa" {
+		if id == "ilk/html-wireframe" || id == "ilk/visual-qa" || id == "ilk/preview" {
 			t.Fatalf("a suggestion was added without being asked for: %v", layersIn(t, root))
 		}
 	}
@@ -106,5 +112,57 @@ func TestInitJSONKeepsSuggestionsOffStdout(t *testing.T) {
 	}
 	if !strings.Contains(stderr, "ilk add infra") {
 		t.Errorf("the suggestion belongs on stderr under --json:\n%s", stderr)
+	}
+}
+
+func TestCoverWithBundlesUsesOnlyBundlesOfOfferedLayers(t *testing.T) {
+	// In id order, as registry.Bundles gives them.
+	bundles := []registry.Bundle{
+		{ID: "preview", Layers: []string{"ilk/preview", "ilk/visual-qa"}},
+		{ID: "ui", Layers: []string{"ilk/html-wireframe", "ilk/visual-qa"}},
+	}
+	cases := []struct {
+		ids  []string
+		want []string
+	}{
+		{[]string{"ilk/html-wireframe", "ilk/preview", "ilk/visual-qa"}, []string{"@preview", "@ui"}},
+		{[]string{"ilk/html-wireframe", "ilk/visual-qa"}, []string{"@ui"}},
+		// @preview would add visual-qa, which is not on offer, so it is not used.
+		{[]string{"ilk/deprecation", "ilk/preview"}, []string{"deprecation", "preview"}},
+	}
+	for _, c := range cases {
+		var names []string
+		for _, id := range c.ids {
+			names = append(names, strings.TrimPrefix(id, "ilk/"))
+		}
+		if got := coverWithBundles(c.ids, names, bundles); !reflect.DeepEqual(got, c.want) {
+			t.Errorf("cover %v = %v, want %v", c.ids, got, c.want)
+		}
+	}
+}
+
+func TestInitSuggestsEachLayerOnceAcrossTraits(t *testing.T) {
+	root := t.TempDir()
+	files := map[string]string{
+		"package.json":   `{"private": true, "dependencies": {"react": "19", "expo": "52"}}`,
+		"wrangler.jsonc": `{"name": "app", "main": "worker/index.ts"}`,
+	}
+	for name, body := range files {
+		if err := os.WriteFile(filepath.Join(root, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got := suggestFor(root, map[string]bool{})
+	seen := map[string]string{}
+	for _, s := range got {
+		for _, id := range s.Layers {
+			if first, ok := seen[id]; ok {
+				t.Errorf("%s suggested for %s and again for %s", id, first, s.Trait)
+			}
+			seen[id] = s.Trait
+		}
+	}
+	if seen["ilk/preview"] == "" {
+		t.Errorf("a React app on a Worker should be offered preview: %+v", got)
 	}
 }

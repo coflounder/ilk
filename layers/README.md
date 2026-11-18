@@ -27,6 +27,7 @@ built-in layers, so a fresh repository still needs no network.
 | [`infra`](infra/) | `preview` is agent work and `up` is human work; every stack has a project file and none carries a plaintext secret. Pulumi by default, Terraform by changing two settings |
 | [`routine`](routine/) | Scheduled work is a document with an owner, a budget and a review date, and what actually runs it is generated from that document |
 | [`gauntlet`](gauntlet/) | Finished work names who judged it, what it was compared against, and the largest thing still wrong — the builder does not grade its own homework |
+| [`preview`](preview/) | Every pull request has a preview behind sign-in, opened only with a read-only service token; the Worker is not on a public address, verifies Access itself, and does not quietly share production's data |
 | [`html-wireframe`](html-wireframe/) | Interface work is sketched and agreed before it is built, as one HTML file that opens from disk with no network and no build |
 
 ### Built in
@@ -64,8 +65,8 @@ the source of truth if the tracker everyone else reads agrees with it.
 ## Layers that run code
 
 `blueprint`, `archive`, `ask-human`, `dev-loops`, `gh-projects`, `autoresearch`,
-`deprecation`, `pr-prep`, `infra`, `routine`, `session-summaries` and
-`html-wireframe` ship shell commands, so adding them requires consent:
+`deprecation`, `pr-prep`, `infra`, `preview`, `routine`, `session-summaries`
+and `html-wireframe` ship shell commands, so adding them requires consent:
 
 ```sh
 ilk info gh:coflounder/ilk/layers/dev-loops     # read it first

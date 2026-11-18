@@ -1,0 +1,245 @@
+id: ilk/preview
+version: 0.1.0
+summary: A preview of every pull request, behind sign-in, that an agent can find and open read-only — and checks that the preview is not quietly public, shared with production, or missing.
+facets:
+  arc: release
+  kind: integration
+for: [ui, service]
+ilk: ">=0.2.0"
+examples:
+  - ilk preview url
+  - ilk preview url feat/checkout --json
+  - ilk preview open https://feat-checkout-shop.acme.workers.dev --body
+  - ilk check --only preview
+
+# One layer owns the preview contract: a preview per pull request, its URL as
+# output, how it is torn down, and checks run against it. The cloud is a setting
+# (`provider`), not a separate layer, so every provider is held to the same
+# contract and a repository has one place that says where its previews live.
+#
+# Filling role.preview means a second preview layer — a community one for a
+# single cloud, say — clashes with this one instead of both believing they are
+# in charge of the same pull requests.
+provides: [role.preview]
+
+variables:
+  provider:
+    default: cloudflare
+    enum: [cloudflare]
+    description: >-
+      Where previews are built. Cloudflare Workers is the first provider: each
+      pull request's branch is uploaded as a Worker version with a preview alias,
+      behind Cloudflare Access. Others will be values here, held to the same
+      checks and commands, rather than layers of their own.
+  wrangler_config:
+    default: auto
+    description: >-
+      The Worker's Wrangler configuration. `auto` takes the first of
+      wrangler.jsonc, wrangler.json and wrangler.toml at the repository root.
+      JSON and JSONC are read in full; TOML only in its common shapes.
+  worker_name:
+    default: auto
+    description: >-
+      The Worker whose previews these are. `auto` reads `name` from the Wrangler
+      configuration.
+  worker_src:
+    default: auto
+    description: >-
+      Where the Worker's source lives, for the checks that look for Access token
+      verification. `auto` is the directory holding the configuration's `main`.
+  workers_subdomain:
+    default: ""
+    description: >-
+      The account's workers.dev subdomain — the <name> in
+      <worker>.<name>.workers.dev — which `ilk preview url` needs to work a URL
+      out without uploading, and `ilk preview open` needs to tell this Worker's
+      preview hosts from anybody else's. It is not a secret.
+  wrangler:
+    default: npx wrangler
+    description: >-
+      How to run Wrangler, for `ilk preview url --upload`. That is the only
+      Wrangler call in the layer, and it is always `versions upload`.
+  client_id_env:
+    default: CF_ACCESS_CLIENT_ID
+    description: >-
+      The environment variable holding the Access service token's client id.
+      A name, not a value: the token lives in a secret store or CI secrets,
+      never in the repository.
+  client_secret_env:
+    default: CF_ACCESS_CLIENT_SECRET
+    description: >-
+      The environment variable holding the Access service token's client
+      secret. `ilk preview open` reads it and never prints it, and
+      `preview.no-committed-token` fails if a value for it is committed.
+  token_hosts:
+    default: ""
+    description: >-
+      Hosts besides this Worker's own preview hosts that the service token may
+      be sent to, space-separated; a host matches itself and its subdomains.
+      `ilk preview open` sends the token to <prefix>-<worker>.<subdomain>.workers.dev
+      and nowhere else, because anybody can create a Worker on workers.dev. Add
+      the production domain here only if agents verify production with the same
+      token.
+  preview_audience_var:
+    default: ACCESS_AUD_PREVIEW
+    description: >-
+      The Wrangler var holding the audience tag of the Access application that
+      covers the Worker's preview URLs. AUD tags identify an application; they
+      are not secrets, and live in `vars`.
+  shared_bindings:
+    default: refuse
+    enum: [refuse, read-only]
+    description: >-
+      Whether previews may run with production's data. `refuse` fails
+      `preview.separate-data` while they do. `read-only` accepts it on purpose:
+      set it only when agents reach previews solely through a service token the
+      Worker refuses every write from.
+
+files:
+  - src: bin/ilk-preview-config.sh
+    dest: .ilk/bin/ilk-preview-config.sh
+    mode: managed
+    exec: true
+  - src: bin/ilk-preview-check.sh
+    dest: .ilk/bin/ilk-preview-check.sh
+    mode: managed
+    exec: true
+  - src: bin/ilk-preview-url.sh
+    dest: .ilk/bin/ilk-preview-url.sh
+    mode: managed
+    exec: true
+  - src: bin/ilk-preview-open.sh
+    dest: .ilk/bin/ilk-preview-open.sh
+    mode: managed
+    exec: true
+
+instructions:
+  - id: preview
+    src: instructions/preview.md.tmpl
+    budget: 140
+
+skills:
+  - name: get-and-verify-a-preview
+    description: Find, open and verify the preview of a pull request without weakening it. Use when asked to check a change on its preview, when a reviewer wants a link, when `ilk check` reports a `preview.` check, or before reaching for wrangler, a deploy, or a token to look at a branch.
+    src: skills/get-and-verify-a-preview.md
+
+checks:
+  - id: preview.workers-dev-off
+    title: The Worker is not on a public workers.dev address
+    run: .ilk/bin/ilk-preview-check.sh workers-dev-off
+    findings: jsonl
+    fix: >-
+      Set `"workers_dev": false` in the Wrangler configuration, and serve
+      production on a custom domain route behind Cloudflare Access. Wrangler
+      turns workers.dev on when the key is absent, and a workers.dev address is
+      outside the Access applications that guard the domain, so anybody with
+      the URL reaches the Worker.
+  - id: preview.urls-on
+    title: Uploaded versions get a preview URL
+    run: .ilk/bin/ilk-preview-check.sh urls-on
+    findings: jsonl
+    fix: >-
+      Set `"preview_urls": true` in the Wrangler configuration. Preview URLs
+      live on workers.dev but are a separate switch from the `workers_dev`
+      route, so this does not undo `workers_dev: false` — but put the preview
+      URLs behind an Access application of their own before turning them on,
+      or each one is public.
+  - id: preview.access-verified
+    title: The Worker verifies the Cloudflare Access token itself
+    run: .ilk/bin/ilk-preview-check.sh access-verified
+    findings: jsonl
+    fix: >-
+      In the Worker, read the `cf-access-jwt-assertion` header and verify it
+      before answering anything but public files: check its signature against
+      the team's keys at https://<team>.cloudflareaccess.com/cdn-cgi/access/certs
+      (jose's `jwtVerify` with `createRemoteJWKSet` does this), its issuer, and
+      that its audience is one of the Access applications' AUD tags. Access
+      already blocks what it does not let in; this guards the requests that
+      reach the Worker another way. The check looks for the header name and a
+      verify call in non-test source under `preview.worker_src` — if yours
+      verifies differently, say how in a proposal to the layer.
+  - id: preview.preview-audience
+    title: The Worker accepts tokens from the preview Access application
+    run: .ilk/bin/ilk-preview-check.sh preview-audience
+    findings: jsonl
+    fix: >-
+      Create an Access application covering the Worker's preview URLs, separate
+      from production's, with a policy for the people and a Service Auth policy
+      for the agents' service token. Put its AUD tag in the Wrangler `vars` as
+      `{{ .Vars.preview_audience_var }}` (an AUD tag is not a secret), and add
+      it to the audiences the Worker's token verification accepts. If the var
+      has another name here, set `preview.preview_audience_var` to it.
+  - id: preview.no-durable-objects
+    title: The Worker implements no Durable Object, so its versions get preview URLs
+    run: .ilk/bin/ilk-preview-check.sh no-durable-objects
+    findings: jsonl
+    fix: >-
+      Cloudflare makes no preview URL for a Worker that implements a Durable
+      Object: versions upload, and their URLs answer error 1042. Move each class
+      named above into a Worker of its own and bind it here with `script_name`
+      — a cross-script binding costs this Worker nothing. Until then this
+      repository has no previews, and this check says so rather than letting a
+      dead URL look like a preview. A change that adds, renames or deletes a
+      class cannot be uploaded as a version either; that ships with the
+      production deploy.
+  - id: preview.separate-data
+    title: Previews do not write to production's data
+    run: .ilk/bin/ilk-preview-check.sh separate-data
+    findings: jsonl
+    fix: >-
+      A preview version runs with the Worker's own bindings, so the bindings
+      named above are production's, and a write made in a preview is a write
+      to production. Either give previews data of their own — a separate
+      preview Worker with its own KV, D1, R2 and Durable Objects — or accept it
+      on purpose: confirm agents open previews only with the Access service
+      token, that the Worker refuses every write from a service token (a
+      service-token request carries `common_name` and no `email`), then run
+      `ilk config set preview.shared_bindings read-only`.
+  - id: preview.no-committed-token
+    title: No Access service token secret is committed
+    run: .ilk/bin/ilk-preview-check.sh no-committed-token
+    findings: jsonl
+    fix: >-
+      Rotate the service token in Cloudflare Zero Trust first — a committed
+      secret is compromised whatever happens to the file next — then take it
+      out of the file and keep it only in a secret store or CI secrets, read
+      from `{{ .Vars.client_secret_env }}` at run time. Never put it in Wrangler
+      `vars`, which are plain text. This check knows only the token's name; a
+      general scanner (the ilk/secrets layer and its handle-a-leaked-credential
+      skill) covers every other credential and the cleanup of history.
+
+hooks:
+  - event: pre-commit
+    name: ilk-preview-exposure
+    blocking: true
+    run: ilk check --only preview.workers-dev-off,preview.no-committed-token
+
+commands:
+  - name: url
+    summary: Print the preview URL for a branch; with --upload, in CI, upload the branch as a preview version first
+    args:
+      - {name: branch, usage: "the branch; the current one, or the one CI is building, when omitted"}
+    flags:
+      - {name: upload, type: bool, usage: "upload the branch as a preview version first (CI only; never deploys)"}
+    examples:
+      - ilk preview url
+      - ilk preview url feat/checkout --json
+      - ilk preview url --upload
+    json: true
+    run: .ilk/bin/ilk-preview-url.sh
+  - name: open
+    summary: Fetch a preview through Access with the service token, read-only, and report what it answered
+    args:
+      - {name: url, required: true, usage: "the preview URL, as ilk preview url prints it, with any path"}
+    flags:
+      - {name: body, type: bool, usage: print the response body}
+    examples:
+      - ilk preview open "$(ilk preview url)"
+      - ilk preview open https://feat-checkout-shop.acme.workers.dev/api/health --body
+    json: true
+    run: .ilk/bin/ilk-preview-open.sh
+
+contribution:
+  repo: coflounder/ilk
+  path: layers/preview
+  guidelines: CONTRIBUTING.md

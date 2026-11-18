@@ -262,6 +262,7 @@ Additional layers ship alongside in [`layers/`](layers/):
 | `visual-qa` | Interface work shows what it looks like: screenshots against the acceptance criteria, no baselines |
 | `archive` | Superseded documents are archived rather than deleted, and nothing live may cite them |
 | `gh-projects` | A GitHub Project made to match the plan, with an ambiguous match refused rather than guessed |
+| `preview` | Every pull request has a preview behind sign-in that an agent opens read-only; never on a public address, never sharing production's data unnoticed |
 
 ```sh
 ilk search planning
