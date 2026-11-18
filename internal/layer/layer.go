@@ -118,8 +118,10 @@ func Resolve(raw, cacheDir string) (*Loaded, error) {
 		} else if !errors.Is(err, fs.ErrNotExist) {
 			return nil, err
 		}
-		// A bare name that is not built in may still be a directory.
-		if info, statErr := os.Stat(ref.Name); statErr == nil && info.IsDir() {
+		// A bare name that is not built in may still be a layer directory. Only
+		// one holding a layer.yaml counts: `infra` in a repository with an
+		// infra/ of Terraform stacks names the index's layer, not that folder.
+		if IsLayerDir(ref.Name) {
 			return loadLocal(ref.Name)
 		}
 		return nil, fmt.Errorf("unknown layer %q — `ilk search` shows the layers you can add, or use a path or gh:owner/repo", raw)
@@ -129,6 +131,12 @@ func Resolve(raw, cacheDir string) (*Loaded, error) {
 		return loadGit(ref, cacheDir)
 	}
 	return nil, fmt.Errorf("unsupported layer reference %q", raw)
+}
+
+// IsLayerDir reports whether dir is a directory holding a layer.yaml.
+func IsLayerDir(dir string) bool {
+	info, err := os.Stat(filepath.Join(dir, "layer.yaml"))
+	return err == nil && !info.IsDir()
 }
 
 func expandHome(p string) string {

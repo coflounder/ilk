@@ -1,0 +1,2 @@
+zone_name            = "example.com"
+cloudflare_api_token = "paste-a-token-here"

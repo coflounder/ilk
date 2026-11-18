@@ -146,19 +146,25 @@ A capability nothing here uses yet is still saved, with a note: a layer added la
 may be the one that reads it.`,
 		Example: `  ilk config set test.command "go test ./..."
   ilk config set lint.command "golangci-lint run" --yes
-  ilk config set gates.ci none --yes`,
+  ilk config set gates.ci none --yes
+  ilk config set infra.credentials "" --yes`,
 		Args: requireArgs(2, "ilk config set <key> <value>"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 2 {
 				return usageError(fmt.Errorf("set takes a key and one value, got %d arguments — quote a value that has spaces", len(args)))
 			}
 			key, value := args[0], args[1]
-			if strings.TrimSpace(value) == "" {
-				return usageError(fmt.Errorf("%s needs a value — use `ilk config unset %s` to remove it", key, key))
-			}
 			p, err := project()
 			if err != nil {
 				return err
+			}
+			// An empty capability is a mistake: unset says "no command" and says
+			// it plainly. An empty variable is a value — "no credential" — which
+			// a layer can mean, and unset would put its default back instead.
+			if strings.TrimSpace(value) == "" {
+				if _, _, isVar := variableFor(p, key); !isVar {
+					return usageError(fmt.Errorf("%s needs a value — use `ilk config unset %s` to remove it", key, key))
+				}
 			}
 			return changeSetting(p, key, &value, yes)
 		},

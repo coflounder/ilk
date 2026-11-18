@@ -222,6 +222,33 @@ func (s *scanned) infra() string {
 	return s.first(func(rel, base string) bool { return base == "Pulumi.yaml" || base == "Pulumi.yml" })
 }
 
+// InfraTool names what the repository's infrastructure is written in —
+// "terraform", "opentofu" or "pulumi" — or returns "" when it has none. The
+// infra layer's defaults and its seeded files depend on it: a Pulumi.yaml
+// dropped into a Terraform stack makes the preview run the wrong tool.
+//
+// OpenTofu and Terraform read the same .tf files, so only a provider lock file
+// tells them apart: OpenTofu pins its providers from registry.opentofu.org.
+func InfraTool(root string) string {
+	s := scan(root)
+	if s.first(func(rel, base string) bool { return strings.HasSuffix(base, ".tf") }) != "" {
+		for _, f := range s.files {
+			if filepath.Base(f) != ".terraform.lock.hcl" {
+				continue
+			}
+			data, err := os.ReadFile(filepath.Join(s.root, f))
+			if err == nil && strings.Contains(string(data), "registry.opentofu.org/") {
+				return "opentofu"
+			}
+		}
+		return "terraform"
+	}
+	if s.first(func(rel, base string) bool { return base == "Pulumi.yaml" || base == "Pulumi.yml" }) != "" {
+		return "pulumi"
+	}
+	return ""
+}
+
 // goMains lists the Go files, outside tests, that declare package main.
 func (s *scanned) goMains() []string {
 	var mains []string

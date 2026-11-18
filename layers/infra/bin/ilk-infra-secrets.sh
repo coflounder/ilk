@@ -10,9 +10,11 @@
 # key whose name reads as a credential must resolve to `secure:`. The project file
 # is scanned as well as the per-stack files; a secret is no less exposed there.
 #
-# Only Pulumi's stack config is read. A Terraform stack has none, so the check
-# has nothing to say about it; credentials in a .tfvars file are the secrets
-# layer's to catch.
+# Terraform and OpenTofu have no encrypted form, so for them a `.tfvars` file
+# that git would commit must not give a credential-named variable a value at
+# all. The value belongs in the environment (`TF_VAR_<name>`) or in a .tfvars
+# file that .gitignore keeps out, with a committed `.tfvars.example` beside it.
+# A .tfvars file git ignores is not read: it never reaches the history.
 #
 # Managed by ilk — edits are overwritten on the next `ilk apply`.
 set -eu
@@ -73,6 +75,40 @@ FNR == 1 { flush() }
 }
 END { flush() }
 ' {} +)
+
+# The .tfvars files git would commit: tracked, or new and not ignored. Outside a
+# git repository there is nothing to tell them apart, so every one is read.
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+	tfvars=$(git ls-files --cached --others --exclude-standard -- "$group" | grep -E '\.tfvars$' || true)
+else
+	tfvars=$(find "$group" -type f -name '*.tfvars')
+fi
+
+if [ -n "$tfvars" ]; then
+	tfreport=$(printf "%s\n" "$tfvars" | while IFS= read -r f; do
+		[ -f "$f" ] && printf "%s\0" "$f"
+	done | xargs -0 awk '
+function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+{
+	line = $0
+	# `#` and `//` start comments in HCL; a value containing either is rare in a
+	# credential and not worth a parser for.
+	sub(/[ \t]*(#|\/\/).*$/, "", line)
+	p = index(line, "=")
+	if (p == 0) next
+	key = trim(substr(line, 1, p - 1))
+	value = trim(substr(line, p + 1))
+	gsub(/"/, "", key)
+	if (tolower(key) !~ /secret|password|passwd|token|apikey|api_key|api-key|privatekey|private_key|private-key|passphrase|credential/) next
+	# An empty string is the placeholder a committed example is meant to carry.
+	if (value == "" || value == "\"\"" || value == "null") next
+	print FILENAME ":" FNR ": `" key "` holds a plaintext value in a .tfvars file git would commit"
+}
+')
+	if [ -n "$tfreport" ]; then
+		report=$(printf "%s\n%s" "$report" "$tfreport" | sed '/^$/d')
+	fi
+fi
 
 if [ -n "$report" ]; then
 	printf "%s\n" "$report"
