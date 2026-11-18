@@ -54,9 +54,9 @@ that validates, and the repository is better to work in than it was. ✓
 Layer SDK (`layer new` / `validate` / `test`), capability resolution, subcommand
 dispatch, local and git sources, lockfile digests. ✓
 
-Three-way merge on upgrade, with `--merge-markers`, `--accept` and `--force` as the
-ways out of a genuine collision. Adoption baselines, so a repository with an existing
-`docs/` is not greeted by a wall of failures. ✓
+Three-way merge on upgrade, with `--on-conflict markers`, `keep-mine` and
+`take-layer` as the ways out of a genuine collision. Adoption baselines, so a
+repository with an existing `docs/` is not greeted by a wall of failures. ✓
 
 `ilk contribute` and the `maintainer` layer close the loop the other way: a repository
 that has tuned a layer can send back what it learned, with the divergence, its history

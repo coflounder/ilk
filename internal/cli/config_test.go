@@ -43,7 +43,7 @@ func settingsRepo(t *testing.T) string {
 	mustWrite(t, filepath.Join(layerDir, "layer.yaml"), settingsLayer)
 	mustMkdir(t, filepath.Join(root, ".ilk"))
 	cfg := config.Default()
-	cfg.Targets = nil
+	cfg.Agents = nil
 	cfg.Set(config.LayerRef{ID: "test/settings", Source: layerDir})
 	if err := cfg.Save(root); err != nil {
 		t.Fatal(err)

@@ -38,7 +38,7 @@ func contractRepo(t *testing.T) string {
 	mustWrite(t, filepath.Join(layerDir, "files", "owned.md"), "owned\n")
 	mustMkdir(t, filepath.Join(root, ".ilk"))
 	cfg := config.Default()
-	cfg.Targets = nil
+	cfg.Agents = nil
 	cfg.Set(config.LayerRef{ID: "test/echoer", Source: layerDir})
 	if err := cfg.Save(root); err != nil {
 		t.Fatal(err)

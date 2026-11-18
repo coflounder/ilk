@@ -29,7 +29,8 @@ type resolution struct {
 //
 // The three states that matter are whether the file still matches ilk's
 // expectation, whether the layer has produced something new, and whether the file
-// legitimately diverges from the layer because of an earlier merge or `--accept`.
+// legitimately diverges from the layer because of an earlier merge or
+// `--on-conflict keep-mine`.
 // Conflating the last one with "unchanged" is how a tool silently destroys work.
 func (p *Project) reconcileArtifact(current, incoming, owner string, locked lock.File, opts PlanOptions) resolution {
 	delivered := locked.Delivered
@@ -77,28 +78,28 @@ func (p *Project) merge(deliveredHash, local, incoming, owner string, opts PlanO
 	}
 
 	if opts.NoMerge {
-		return refuse(" — merging is disabled; re-run with --force to discard your edits, or --accept to keep them")
+		return refuse(" — merging is disabled; re-run with --on-conflict take-layer to discard your edits, or --on-conflict keep-mine to keep them")
 	}
 
 	base, found := basestore.Get(p.Repo.Root, deliveredHash)
 	if !found {
 		// No ancestor, no merge. This happens for artifacts written before the
 		// base store existed, and after a clean that took .ilk/base with it.
-		return refuse(" — ilk has no record of what it wrote, so it cannot merge; re-run with --accept to keep your version, or --force to take the layer's")
+		return refuse(" — ilk has no record of what it wrote, so it cannot merge; re-run with --on-conflict keep-mine to keep your version, or --on-conflict take-layer to take the layer's")
 	}
 
 	// Merging reconciles two changes. When the layer has nothing new to deliver,
 	// the only difference is somebody's edit to a file ilk owns — that is drift,
 	// and accepting it silently would hand ownership over without a decision.
 	if base == incoming {
-		return refuse(", and the layer has not changed — so there is nothing to merge. Re-run with --accept to keep your version and record it as the new baseline, with --force to restore ilk's, or move your edit outside the generated block")
+		return refuse(", and the layer has not changed — so there is nothing to merge. Re-run with --on-conflict keep-mine to keep your version and record it as the new baseline, with --on-conflict take-layer to restore ilk's, or move your edit outside the generated block")
 	}
 
 	result := merge.Three(base, local, incoming)
 
 	switch {
 	case result.Declined:
-		return refuse(" — the file is too large to merge safely; re-run with --accept to keep your version, or --force to take the layer's")
+		return refuse(" — the file is too large to merge safely; re-run with --on-conflict keep-mine to keep your version, or --on-conflict take-layer to take the layer's")
 
 	case result.Clean():
 		return resolution{
@@ -121,7 +122,7 @@ func (p *Project) merge(deliveredHash, local, incoming, owner string, opts PlanO
 
 	default:
 		return resolution{Op: OpConflict, Note: fmt.Sprintf(
-			"%s — resolve them by hand, re-run with --merge-markers to write both versions into the file, --accept to keep yours, or --force to take %s's",
+			"%s — resolve them by hand, or re-run with --on-conflict markers to write both versions into the file, keep-mine to keep yours, or take-layer to take %s's",
 			result.Summarise(), owner)}
 	}
 }

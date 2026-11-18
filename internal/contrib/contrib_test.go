@@ -52,10 +52,10 @@ contribution:
 	mustWrite(t, filepath.Join(source, "skills", "use-the-demo.md"), "# Use the demo\n\nRun it.\n")
 	mustWrite(t, filepath.Join(source, "CONTRIBUTING.md"), "Say what your toolchain was.\n")
 
-	mustWrite(t, filepath.Join(root, ".ilk", "config.yaml"), "version: 1\ntargets: []\nlayers: []\n")
+	mustWrite(t, filepath.Join(root, ".ilk", "config.yaml"), "version: 1\nagents: []\nlayers: []\n")
 
 	cfg := config.Default()
-	cfg.Targets = nil
+	cfg.Agents = nil
 	cfg.Layers = []config.LayerRef{{ID: "test/demo", Source: source, AllowExec: true}}
 
 	p, err := engine.NewProject(&repo.Repo{Root: root}, cfg, lock.New(), "test")
@@ -579,7 +579,7 @@ func withTarget(t *testing.T, p *engine.Project, names ...string) (*engine.Proje
 	if len(names) == 0 {
 		names = []string{"agents-md"}
 	}
-	p.Config.Targets = names
+	p.Config.Agents = names
 	return reapply(t, p)
 }
 

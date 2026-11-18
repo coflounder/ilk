@@ -44,19 +44,26 @@ func toActionJSON(a engine.Action) actionJSON {
 }
 
 func newPlanCmd() *cobra.Command {
-	var force, all, noMerge, exitCodeFlag bool
+	var all, exitCodeFlag bool
+	var onConflict string
 	cmd := &cobra.Command{
 		Use:   "plan",
 		Short: "Show what `ilk apply` would change, without changing anything",
 		Example: `  ilk plan
-  ilk plan --exit-code`,
+  ilk plan --exit-code
+  ilk plan --on-conflict take-layer`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			opts, err := conflictOptions(onConflict)
+			if err != nil {
+				return err
+			}
 			p, err := project()
 			if err != nil {
 				return err
 			}
-			pl, err := p.Plan(engine.PlanOptions{Force: force, Prune: true, NoMerge: noMerge})
+			opts.Prune = true
+			pl, err := p.Plan(opts)
 			if err != nil {
 				return err
 			}
@@ -73,38 +80,61 @@ func newPlanCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().BoolVar(&force, "force", false, "plan as if hand-edited files may be overwritten")
+	addOnConflictFlag(cmd, &onConflict)
 	cmd.Flags().BoolVar(&all, "all", false, "include artifacts that are already up to date")
-	cmd.Flags().BoolVar(&noMerge, "no-merge", false, "refuse edited files instead of merging into them")
 	cmd.Flags().BoolVar(&exitCodeFlag, "exit-code", false, "exit 4 when there are changes to apply, so CI can gate on drift")
 	return cmd
 }
 
 func newApplyCmd() *cobra.Command {
-	var force, yes, noMerge, markers, accept bool
+	var yes, dryRun bool
+	var onConflict string
 	cmd := &cobra.Command{
 		Use:   "apply",
 		Short: "Reconcile the repository with .ilk/config.yaml",
 		Example: `  ilk apply
   ilk apply --yes
-  ilk apply --merge-markers`,
+  ilk apply --dry-run
+  ilk apply --on-conflict markers`,
 		Long: `Bring the repository in line with its declared layers.
 
 Apply is idempotent: running it when nothing has changed does nothing.
 
 A file you have edited since ilk wrote it is merged, not overwritten: where your
 changes and the layer's touch different parts, both survive. Where they genuinely
-collide, ilk refuses and names the lines — pass --merge-markers to write both
-versions into the file, or --force to discard yours.`,
+collide, ilk refuses and names the lines. --on-conflict chooses otherwise:
+
+  merge        merge, and refuse where the edits collide (the default)
+  markers      merge, and write collisions into the file as conflict markers
+  keep-mine    keep your version and record it as ilk's new baseline
+  take-layer   take the layer's version, discarding yours
+  refuse       do not merge at all; refuse every edited file`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			opts, err := conflictOptions(onConflict)
+			if err != nil {
+				return err
+			}
 			p, err := project()
 			if err != nil {
 				return err
 			}
-			pl, err := p.Plan(engine.PlanOptions{Force: force, Prune: true, NoMerge: noMerge, MergeMarkers: markers, Accept: accept})
+			opts.Prune = true
+			pl, err := p.Plan(opts)
 			if err != nil {
 				return err
+			}
+			if dryRun {
+				if flagJSON {
+					return emitJSON(planJSON(pl))
+				}
+				if pl.Empty() && len(pl.Conflicts()) == 0 {
+					println(sty.dim("Already up to date."))
+					return nil
+				}
+				printPlan(pl, false)
+				printf("\n%s\n", sty.dim("Nothing written. Re-run without --dry-run to apply it."))
+				return nil
 			}
 			if pl.Empty() && len(pl.Conflicts()) == 0 {
 				// Still apply. Nothing on disk changes, but this is what records
@@ -145,11 +175,9 @@ versions into the file, or --force to discard yours.`,
 			return nil
 		},
 	}
-	cmd.Flags().BoolVar(&force, "force", false, "overwrite files edited since ilk wrote them")
 	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "apply without confirming")
-	cmd.Flags().BoolVar(&noMerge, "no-merge", false, "refuse edited files instead of merging into them")
-	cmd.Flags().BoolVar(&markers, "merge-markers", false, "write conflict markers into files that cannot merge cleanly")
-	cmd.Flags().BoolVar(&accept, "accept", false, "keep what is on disk and record it as ilk's new baseline")
+	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "show the plan and change nothing")
+	addOnConflictFlag(cmd, &onConflict)
 	return cmd
 }
 
@@ -157,7 +185,7 @@ type statusJSONDoc struct {
 	Project      string            `json:"project"`
 	Root         string            `json:"root"`
 	IlkVersion   string            `json:"ilk_version"`
-	Targets      []string          `json:"targets"`
+	Agents       []string          `json:"agents"`
 	Layers       []statusLayer     `json:"layers"`
 	Capabilities map[string]string `json:"capabilities,omitempty"`
 	Drift        []actionJSON      `json:"drift"`
@@ -195,7 +223,7 @@ func newStatusCmd() *cobra.Command {
 				Project:      p.Repo.Name(),
 				Root:         p.Repo.Root,
 				IlkVersion:   p.Version,
-				Targets:      p.Config.Targets,
+				Agents:       p.Config.Agents,
 				Capabilities: p.Config.Capabilities,
 				Drift:        []actionJSON{},
 				Warnings:     pl.Warnings,
@@ -231,14 +259,14 @@ func newStatusCmd() *cobra.Command {
 
 			printf("%s\n", sty.bold("Layers"))
 			if len(doc.Layers) == 0 {
-				printf("  %s\n", sty.dim("none yet — `ilk list --available` shows what you can add"))
+				printf("  %s\n", sty.dim("none yet — `ilk search` shows what you can add"))
 			}
 			for _, l := range doc.Layers {
 				printf("  %-24s %-8s %s\n", l.ID, sty.dim(l.Version), sty.dim(fmt.Sprintf("%d files", l.Files)))
 			}
 
 			printf("\n%s\n", sty.bold("Agents"))
-			printf("  %s\n", sty.dim(joinOr(p.Config.Targets, "none configured")))
+			printf("  %s\n", sty.dim(joinOr(p.Config.Agents, "none configured")))
 
 			if len(p.Config.Capabilities) > 0 {
 				printf("\n%s\n", sty.bold("Capabilities"))

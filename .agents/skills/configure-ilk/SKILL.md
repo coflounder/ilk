@@ -32,7 +32,7 @@ still works the same way.
 
 ```yaml
 version: 1
-targets:
+agents:
   - claude-code
 capabilities:
   test.command: go test ./...
@@ -65,18 +65,18 @@ so. If `ilk check` shows a skipped check you wanted, this is why.
 Conventional names: `test.command`, `lint.command`, `build.command`, `format.command`.
 Use those before inventing new ones — a layer you add later will look for them.
 
-## Agent targets
+## Agents
 
 ```
 ilk agents list                 # what is configured, and what is available
 ilk agents add cursor
-ilk agents remove copilot
+ilk agents rm copilot
 ilk agents sync                 # regenerate every projection
 ```
 
-Adding a target only changes generated files. Nothing a layer provides depends on it:
-`AGENTS.md` and git hooks are always on, and every generated hook and command just
-calls `ilk`. An agent with no integration at all still gets the full feature set by
+The list lives under `agents:` in the config. Adding an agent only changes generated
+files. Nothing a layer provides depends on it: `AGENTS.md` and git hooks are always
+on, and every generated hook and command just calls `ilk`. An agent with no integration at all still gets the full feature set by
 running the same commands a human would.
 
 Use `ilk doctor` afterwards to see which lifecycle events that agent can actually

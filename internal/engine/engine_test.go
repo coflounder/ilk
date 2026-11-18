@@ -106,7 +106,7 @@ func snapshot(t *testing.T, root string) map[string]string {
 func configWith(t *testing.T, root string, layers ...string) *config.Config {
 	t.Helper()
 	cfg := config.Default()
-	cfg.Targets = []string{"claude-code"}
+	cfg.Agents = []string{"claude-code"}
 	cfg.Capabilities["test.command"] = "true"
 	for _, id := range layers {
 		cfg.Set(config.LayerRef{ID: id})
@@ -154,7 +154,7 @@ func TestAddThenRemoveRestoresTheRepository(t *testing.T) {
 	}
 	cfg.Remove("ilk/record")
 	cfg.Remove("ilk/gates")
-	cfg.RemoveTarget("claude-code")
+	cfg.RemoveAgent("claude-code")
 	if err := cfg.Save(root); err != nil {
 		t.Fatal(err)
 	}
@@ -219,7 +219,7 @@ func TestHumanProseAroundABlockSurvivesUpgradeAndRemoval(t *testing.T) {
 
 	cfg, _ := config.Load(root)
 	cfg.Remove("ilk/record")
-	cfg.RemoveTarget("claude-code")
+	cfg.RemoveAgent("claude-code")
 	_ = cfg.Save(root)
 	apply(t, root)
 
@@ -282,7 +282,7 @@ func TestEditingAManagedFileIsRefusedRatherThanOverwritten(t *testing.T) {
 	if len(conflicts) != 1 || conflicts[0].Path != target {
 		t.Fatalf("expected exactly one conflict on %s, got %+v", target, conflicts)
 	}
-	if !strings.Contains(conflicts[0].Note, "--force") {
+	if !strings.Contains(conflicts[0].Note, "--on-conflict take-layer") {
 		t.Errorf("the conflict should say how to proceed, got %q", conflicts[0].Note)
 	}
 
@@ -293,7 +293,7 @@ func TestEditingAManagedFileIsRefusedRatherThanOverwritten(t *testing.T) {
 		t.Error("apply overwrote a file the human had edited")
 	}
 
-	// --force is the deliberate escape hatch.
+	// --on-conflict take-layer is the deliberate escape hatch.
 	p2, _ := Load(root, "test")
 	forced, err := p2.Plan(PlanOptions{Prune: true, Force: true})
 	if err != nil {
@@ -303,7 +303,7 @@ func TestEditingAManagedFileIsRefusedRatherThanOverwritten(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := read(t, root, target); got == edited {
-		t.Error("--force did not overwrite the edited file")
+		t.Error("take-layer did not overwrite the edited file")
 	}
 }
 
@@ -412,7 +412,7 @@ func TestCapabilitiesComeFromConfigAndLayers(t *testing.T) {
 func TestMissingRequirementIsReportedNotFatal(t *testing.T) {
 	root := fixture(t)
 	cfg := config.Default()
-	cfg.Targets = []string{"claude-code"}
+	cfg.Agents = []string{"claude-code"}
 	cfg.Set(config.LayerRef{ID: "ilk/gates"})
 	if err := cfg.Save(root); err != nil {
 		t.Fatal(err)
@@ -553,7 +553,7 @@ func TestNoBaselineGovernsExistingFilesImmediately(t *testing.T) {
 	write(t, root, "docs/reference/old.md", "# Old\n")
 
 	cfg := config.Default()
-	cfg.Targets = []string{"claude-code"}
+	cfg.Agents = []string{"claude-code"}
 	cfg.Set(config.LayerRef{ID: "ilk/record"})
 	if err := cfg.Save(root); err != nil {
 		t.Fatal(err)
@@ -650,7 +650,7 @@ files:
 func addMutable(t *testing.T, root, layerDir string) {
 	t.Helper()
 	cfg := config.Default()
-	cfg.Targets = []string{}
+	cfg.Agents = []string{}
 	cfg.Set(config.LayerRef{ID: "test/mutable", Source: layerDir})
 	if err := cfg.Save(root); err != nil {
 		t.Fatal(err)
@@ -730,7 +730,7 @@ func TestUpgradeRefusesWhenTheSameLinesCollide(t *testing.T) {
 	if conflict == nil {
 		t.Fatalf("a genuine collision must be refused, got %+v", pl.Changes())
 	}
-	if !strings.Contains(conflict.Note, "--merge-markers") || !strings.Contains(conflict.Note, "--force") {
+	if !strings.Contains(conflict.Note, "--on-conflict markers") || !strings.Contains(conflict.Note, "take-layer") {
 		t.Errorf("the refusal should name both ways forward, got %q", conflict.Note)
 	}
 
@@ -777,7 +777,7 @@ func TestFencedRegionsMergeToo(t *testing.T) {
 	addMutable(t, root, layerDir)
 
 	cfg, _ := config.Load(root)
-	cfg.Targets = []string{"claude-code"}
+	cfg.Agents = []string{"claude-code"}
 	_ = cfg.Save(root)
 	apply(t, root)
 
@@ -903,7 +903,7 @@ func TestAcceptRecordsYourVersionAsTheNewBaseline(t *testing.T) {
 	}
 
 	if got := read(t, root, "owned.md"); got != mine {
-		t.Fatalf("--accept must not change the file:\n got %q\nwant %q", got, mine)
+		t.Fatalf("keep-mine must not change the file:\n got %q\nwant %q", got, mine)
 	}
 
 	// The next plan sees no drift, because the user's version is now the baseline.
@@ -917,7 +917,7 @@ func TestAcceptRecordsYourVersionAsTheNewBaseline(t *testing.T) {
 	}
 	for _, a := range pl2.Actions {
 		if a.Path == "owned.md" && (a.Op == OpConflict || a.Op.Changes()) {
-			t.Fatalf("after --accept the file should be settled, got %s: %s", a.Op, a.Note)
+			t.Fatalf("after keep-mine the file should be settled, got %s: %s", a.Op, a.Note)
 		}
 	}
 

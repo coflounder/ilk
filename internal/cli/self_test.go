@@ -7,11 +7,11 @@ import (
 	"testing"
 )
 
-// `ilk self update` builds a directory and installs the result over the binary on
+// `ilk self build` builds a directory and installs the result over the binary on
 // PATH. Getting the source wrong therefore replaces ilk with something else,
 // which is both easy to do — `--path ..` in the wrong shell — and confusing
 // afterwards, because the failure shows up as ilk behaving like another program.
-func TestUpdateRefusesASourceThatIsNotIlk(t *testing.T) {
+func TestBuildRefusesASourceThatIsNotIlk(t *testing.T) {
 	root := t.TempDir()
 
 	notAModule := filepath.Join(root, "plain")
@@ -50,7 +50,7 @@ func TestUpdateRefusesASourceThatIsNotIlk(t *testing.T) {
 	}
 }
 
-func TestUpdateAcceptsAnIlkCheckout(t *testing.T) {
+func TestBuildAcceptsAnIlkCheckout(t *testing.T) {
 	src := t.TempDir()
 	mustWrite(t, filepath.Join(src, "go.mod"), "module "+Module+"\n\ngo 1.24\n\nrequire (\n\tgithub.com/spf13/cobra v1.8.1\n)\n")
 	if err := verifyIlkSource(src, false); err != nil {
@@ -60,7 +60,7 @@ func TestUpdateAcceptsAnIlkCheckout(t *testing.T) {
 
 // The escape hatch has to work, or somebody building a fork under a different
 // module path has no way through except editing ilk.
-func TestUpdateCanBeToldToSkipTheSourceCheck(t *testing.T) {
+func TestBuildCanBeToldToSkipTheSourceCheck(t *testing.T) {
 	src := t.TempDir()
 	mustWrite(t, filepath.Join(src, "go.mod"), "module github.com/someone/fork\n\ngo 1.24\n")
 	if err := verifyIlkSource(src, false); err == nil {
@@ -71,8 +71,8 @@ func TestUpdateCanBeToldToSkipTheSourceCheck(t *testing.T) {
 	}
 }
 
-func TestUpdateTargetPrefersAnExplicitDestination(t *testing.T) {
-	got, err := updateTarget("some/where/ilk")
+func TestBuildTargetPrefersAnExplicitDestination(t *testing.T) {
+	got, err := buildTarget("some/where/ilk")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func TestUpdateTargetPrefersAnExplicitDestination(t *testing.T) {
 
 	// With no --dest it resolves the running binary, which under `go test` is
 	// the test binary. What matters is that it resolves to something real.
-	self, err := updateTarget("")
+	self, err := buildTarget("")
 	if err != nil {
 		t.Fatal(err)
 	}

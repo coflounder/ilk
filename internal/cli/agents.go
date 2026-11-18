@@ -17,15 +17,17 @@ func newAgentsCmd() *cobra.Command {
 		Short: "Manage which coding agents ilk generates configuration for",
 		Example: `  ilk agents list
   ilk agents add cursor --yes
+  ilk agents rm cursor --yes
   ilk agents sync --yes`,
 		Long: `Layers never emit agent-specific files. They declare what an agent should
-know and do, and ilk projects that into whatever each agent reads.
+know and do, and ilk projects that into whatever each agent reads. The agents
+this repository generates for are listed under ` + "`agents:`" + ` in .ilk/config.yaml.
 
 Adding an agent here changes only generated files. Nothing a layer provides
 depends on it — an agent with no integration at all gets the whole feature set by
 running the same ` + "`ilk`" + ` commands a human would.`,
 	}
-	cmd.AddCommand(newAgentsListCmd(), newAgentsAddCmd(), newAgentsRemoveCmd(), newAgentsSyncCmd())
+	cmd.AddCommand(newAgentsListCmd(), newAgentsAddCmd(), newAgentsRmCmd(), newAgentsSyncCmd())
 	return cmd
 }
 
@@ -39,7 +41,7 @@ func newAgentsListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			enabled := map[string]bool{}
 			if p, err := project(); err == nil {
-				for _, t := range p.Config.Targets {
+				for _, t := range p.Config.Agents {
 					enabled[t] = true
 				}
 			}
@@ -98,14 +100,14 @@ func newAgentsAddCmd() *cobra.Command {
 	return cmd
 }
 
-func newAgentsRemoveCmd() *cobra.Command {
+func newAgentsRmCmd() *cobra.Command {
 	var yes bool
 	cmd := &cobra.Command{
-		Use:   "remove <target>",
+		Use:   "rm <target>",
 		Short: "Stop generating configuration for an agent, and remove what was generated",
-		Example: `  ilk agents remove copilot
-  ilk agents remove copilot --yes`,
-		Args: requireArgs(1, "ilk agents remove <target>"),
+		Example: `  ilk agents rm copilot
+  ilk agents rm copilot --yes`,
+		Args: requireArgs(1, "ilk agents rm <target>"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mutateTargets(args[0], false, yes)
 		},
@@ -129,10 +131,10 @@ func mutateTargets(name string, add, yes bool) error {
 	}
 
 	if add {
-		if !p.Config.AddTarget(name) {
+		if !p.Config.AddAgent(name) {
 			return fmt.Errorf("%s is already configured", name)
 		}
-	} else if !p.Config.RemoveTarget(name) {
+	} else if !p.Config.RemoveAgent(name) {
 		return fmt.Errorf("%s is not configured", name)
 	}
 
@@ -259,7 +261,7 @@ when it is not.`,
 					"install ilk so that `ilk` resolves in a plain shell")
 			}
 
-			ts, err := targets.Resolve(p.Config.Targets)
+			ts, err := targets.Resolve(p.Config.Agents)
 			if err != nil {
 				return err
 			}

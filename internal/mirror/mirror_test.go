@@ -24,7 +24,7 @@ func fixture(t *testing.T, remoteJSON string) (*engine.Project, *engine.Resolved
 	t.Helper()
 	root := t.TempDir()
 
-	mustWrite(t, filepath.Join(root, ".ilk", "config.yaml"), "version: 1\ntargets: []\nlayers: []\n")
+	mustWrite(t, filepath.Join(root, ".ilk", "config.yaml"), "version: 1\nagents: []\nlayers: []\n")
 	// The record layer creates this; a mirror pointing at a directory that does
 	// not exist is a misconfiguration and says so, rather than silently
 	// mirroring nothing.
@@ -47,7 +47,7 @@ func fixture(t *testing.T, remoteJSON string) (*engine.Project, *engine.Resolved
 	}
 
 	cfg := config.Default()
-	cfg.Targets = nil
+	cfg.Agents = nil
 	p, err := engine.NewProject(&repo.Repo{Root: root}, cfg, lock.New(), "test")
 	if err != nil {
 		t.Fatal(err)

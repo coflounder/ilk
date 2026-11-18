@@ -23,7 +23,7 @@ func mcpRepo(t *testing.T, manifestText string) string {
 		t.Fatal(err)
 	}
 	cfg := config.Default()
-	cfg.Targets = nil
+	cfg.Agents = nil
 	cfg.Set(config.LayerRef{ID: "test/mcp", Source: layerDir})
 	if err := cfg.Save(root); err != nil {
 		t.Fatal(err)

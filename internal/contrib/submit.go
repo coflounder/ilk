@@ -48,7 +48,7 @@ func Ready(p *engine.Project, prop *Proposal) (document string, blockers []strin
 	rel := prop.Path()
 	data, err := os.ReadFile(p.Repo.Path(rel))
 	if err != nil {
-		return "", nil, fmt.Errorf("no draft at %s — run `ilk contribute %s` first", rel, prop.Layer)
+		return "", nil, fmt.Errorf("no draft at %s — run `ilk contribute draft %s` first", rel, prop.Layer)
 	}
 	document = string(data)
 

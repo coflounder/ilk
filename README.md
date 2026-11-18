@@ -75,13 +75,14 @@ ilk brief                        # the packet a session should start with
 ilk check                        # validate; every failure prints its fix
 ilk status                       # what this repository has, and what has drifted
 
-ilk search                       # layers you could add
-ilk list --available             # layers you can add
-ilk info gates           # what a layer contains, before adding it
+ilk search                       # layers and bundles you could add
+ilk list                         # layers this repository has
+ilk info gates                   # what a layer contains, before adding it
 ilk add gates --set test.command="go test ./..."
 ilk add @plans                   # a bundle: several layers that go together
 ilk add gh:someone/memory --replace  # swap out the layer already doing this job
-ilk rm gates             # removes exactly what it added
+ilk add blueprint --dry-run      # the whole plan, nothing written
+ilk rm gates                     # removes exactly what it added
 
 ilk config                       # capabilities and layer variables, and where each comes from
 ilk config set test.command "go test ./..."   # shows old → new and what it enables
@@ -91,7 +92,7 @@ ilk add gh:someone/their-layer   # community layers, same interface
 ilk agents add cursor            # generate config for another agent
 
 ilk upgrade                      # merges layer changes into files you have edited
-ilk self update --path ../ilk    # rebuild ilk itself from a source checkout
+ilk self build --path ../ilk     # rebuild ilk itself from a source checkout
 ilk baseline list                # files exempt from a layer's checks, and why
 ```
 
@@ -152,13 +153,16 @@ $ ilk upgrade
 ```
 
 Where they genuinely collide, ilk refuses and names the lines. It never guesses —
-a wrong merge is worse than a refusal, because a refusal is visible. You then pick:
+a wrong merge is worse than a refusal, because a refusal is visible. You then pick
+with `--on-conflict`, on `apply`, `upgrade`, `add`, `rm` and `plan`:
 
 | | |
 |---|---|
-| `--merge-markers` | write both versions into the file and resolve there |
-| `--accept` | keep your version, and record it as ilk's new baseline |
-| `--force` | take the layer's version, discarding yours |
+| `merge` | the default: merge, and refuse where the edits collide |
+| `markers` | write both versions into the file and resolve there |
+| `keep-mine` | keep your version, and record it as ilk's new baseline |
+| `take-layer` | take the layer's version, discarding yours |
+| `refuse` | do not merge at all; refuse every file you have edited |
 
 `region` is the load-bearing mode. It means ilk can put guidance in your `AGENTS.md`,
 your `.gitignore` and your CI config without ever owning them:
@@ -335,9 +339,9 @@ and what the repository decided it should say instead. The difference is recorde
 guessed at.
 
 ```sh
-ilk contribute status           every layer with something to send back
-ilk contribute gh-projects      draft the proposal
-ilk contribute gh-projects --submit
+ilk contribute status                  every layer with something to send back
+ilk contribute draft gh-projects       draft the proposal
+ilk contribute submit gh-projects      open it upstream once the case is written
 ```
 
 **The evidence is gathered; the argument is not.** The diff comes out against the

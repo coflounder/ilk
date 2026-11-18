@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/coflounder/ilk/internal/engine"
@@ -110,6 +111,17 @@ func report(err error, asJSON bool) int {
 // returns these as plain errors, indistinguishable from a failed run.
 func markUsageErrors(c *cobra.Command) {
 	c.SetFlagErrorFunc(func(_ *cobra.Command, err error) error { return usageError(err) })
+	if c.HasParent() && c.HasSubCommands() && !c.Runnable() {
+		// Cobra answers an unknown subcommand of a group with the group's help
+		// and exit 0, so `ilk agents remove x` would look like it worked. A group
+		// prints its help when called bare, and refuses anything else.
+		c.RunE = func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return cmd.Help()
+			}
+			return unknownSubcommand(cmd, args[0])
+		}
+	}
 	if c.Args != nil {
 		validate := c.Args
 		c.Args = func(cmd *cobra.Command, args []string) error {
@@ -118,5 +130,29 @@ func markUsageErrors(c *cobra.Command) {
 	}
 	for _, sub := range c.Commands() {
 		markUsageErrors(sub)
+	}
+}
+
+// unknownSubcommand is the usage error for `ilk <group> <name>` when the group
+// has no such command, in the words cobra uses for an unknown top-level one.
+func unknownSubcommand(group *cobra.Command, name string) error {
+	var names []string
+	for _, sub := range group.Commands() {
+		if sub.IsAvailableCommand() {
+			names = append(names, sub.Name())
+		}
+	}
+	msg := fmt.Sprintf("unknown command %q for %q", name, group.CommandPath())
+	if group.SuggestionsMinimumDistance <= 0 {
+		group.SuggestionsMinimumDistance = 2
+	}
+	if hints := group.SuggestionsFor(name); len(hints) > 0 {
+		msg += " (did you mean " + strings.Join(hints, " or ") + "?)"
+	}
+	return &cliError{
+		Exit:    exitUsage,
+		Code:    "usage",
+		Message: msg,
+		Fix:     fmt.Sprintf("its commands are %s; see `%s --help`", strings.Join(names, ", "), group.CommandPath()),
 	}
 }

@@ -15,7 +15,7 @@ a layer you own is just editing it.
 
 ## What ilk already knows
 
-Do not gather this by hand. `ilk contribute <layer>` reads it from what ilk recorded
+Do not gather this by hand. `ilk contribute draft <layer>` reads it from what ilk recorded
 when it applied the layer:
 
 - every artifact of the layer that no longer matches what the layer delivered, as a
@@ -45,12 +45,12 @@ three of those about the same variable has learned something no single diff carr
 Write both. Then:
 
 ```sh
-ilk contribute <layer> --submit
+ilk contribute submit <layer>
 ```
 
 ## Read the layer's own guidelines
 
-`ilk contribute` prints them if the layer ships any. They are the maintainer's
+`ilk contribute draft` prints them if the layer ships any. They are the maintainer's
 standard, shipped inside the layer precisely so you have it before writing rather
 than in review.
 

@@ -30,7 +30,7 @@ mcp:
 func mcpConfig(t *testing.T, root string, layers map[string]string) {
 	t.Helper()
 	cfg := config.Default()
-	cfg.Targets = []string{"claude-code", "cursor"}
+	cfg.Agents = []string{"claude-code", "cursor"}
 	for id, dir := range layers {
 		cfg.Set(config.LayerRef{ID: id, Source: dir})
 	}
@@ -105,7 +105,7 @@ func TestMCPRemovalDeletesOnlyTheFileIlkCreated(t *testing.T) {
 	}
 
 	cfg := config.Default()
-	cfg.Targets = nil
+	cfg.Agents = nil
 	if err := cfg.Save(root); err != nil {
 		t.Fatal(err)
 	}
