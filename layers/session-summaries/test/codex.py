@@ -88,7 +88,7 @@ with tempfile.TemporaryDirectory() as tmp:
     assert published["published"]["harness"] == "codex"
     # Another harness reads the same publication through the project CLI.
     assert len(json.loads(run(binary, "session-summaries", "list"))["summaries"]) == 1
-    run(binary, "agents", "remove", "codex", "-y")
+    run(binary, "agents", "rm", "codex", "-y")
     assert (root / ".codex/config.toml").read_text() == original_config
     assert json.loads((root / ".codex/hooks.json").read_text()) == original_hooks
 print("Codex: real Codex discovers project MCP config and native hooks; native hook fixtures publish under Codex identity; removal passed")
