@@ -4,6 +4,7 @@ summary: Turn a recurring problem into a durable change — a check, a skill or 
 facets:
   arc: operations
   kind: process
+for: [any]
 ilk: ">=0.2.0"
 examples:
   - ilk check --only compound-lessons

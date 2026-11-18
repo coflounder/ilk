@@ -4,6 +4,7 @@ summary: Backlog hygiene as failing checks rather than a meeting — a work-in-p
 facets:
   arc: planning
   kind: gate
+for: [any]
 ilk: ">=0.2.0"
 examples:
   - ilk check --only plan-hygiene

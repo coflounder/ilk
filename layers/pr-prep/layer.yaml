@@ -4,6 +4,7 @@ summary: Pull request descriptions derived from the plan document rather than wr
 facets:
   arc: release
   kind: process
+for: [any]
 ilk: ">=0.2.0"
 examples:
   - ilk pr-prep draft SPEC-checkout-totals > body.md

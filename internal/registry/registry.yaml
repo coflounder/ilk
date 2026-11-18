@@ -34,18 +34,22 @@ layers:
     summary: Verification an agent cannot talk its way past — tests, lint and build wired into `ilk check`, git hooks and CI.
     arc: quality
     kind: gate
+    for: [any]
+    requires: [test.command]
 
   - id: ilk/secrets
     source: builtin
     summary: A credential caught before it is committed, and the part nobody writes down — what to do once one has leaked.
     arc: quality
     kind: gate
+    for: [any]
 
   - id: ilk/compound-lessons
     source: builtin
     summary: Turn a recurring problem into a durable change — a check, a skill or a convention — instead of advice that depends on everyone remembering it.
     arc: operations
     kind: process
+    for: [any]
     requires: [record.docs]
 
   # --------------------------------------------------------------- community
@@ -56,6 +60,7 @@ layers:
     summary: One connected plan rather than a pile of tickets — epics, specs and milestones that must resolve, and acceptance criteria that must exist.
     arc: planning
     kind: process
+    for: [any]
     requires: [record.plans]
 
   - id: ilk/archive
@@ -63,6 +68,7 @@ layers:
     summary: Supersede rather than delete — an archive the record can point back to, that live documents may not point into.
     arc: context
     kind: record
+    for: [any]
     requires: [record.docs]
 
   - id: ilk/ask-human
@@ -70,12 +76,14 @@ layers:
     summary: A written escalation path — an agent records a blocking question where a human will see it, with the options and what each would mean, and the repository refuses to pretend the answer is known.
     arc: operations
     kind: process
+    for: [unattended-agents]
 
   - id: ilk/dev-loops
     source: gh:coflounder/ilk/layers/dev-loops
     summary: Run an agent until a gate passes, not until it says it is finished — a bounded loop whose completion condition lives outside the model.
     arc: execution
     kind: harness
+    for: [unattended-agents]
     requires: [test.command]
 
   - id: ilk/plan-hygiene
@@ -83,6 +91,7 @@ layers:
     summary: Backlog hygiene as failing checks rather than a meeting — a work-in-progress limit, active work that has an owner, and finished work that has evidence.
     arc: planning
     kind: gate
+    for: [any]
     requires: [record.plans]
 
   - id: ilk/visual-qa
@@ -90,6 +99,7 @@ layers:
     summary: An agent that changes the interface has to show you what it looks like — screenshots captured against the acceptance criteria, kept with the work.
     arc: quality
     kind: gate
+    for: [ui]
     requires: [record.plans]
 
   - id: ilk/gh-projects
@@ -97,6 +107,7 @@ layers:
     summary: Keep a GitHub Project in agreement with the record — the plan is the source of truth, the board is a view of it, and a write is either correct or it does not happen.
     arc: planning
     kind: integration
+    for: [any]
     requires: [record.plans]
 
   - id: ilk/maintainer
@@ -104,18 +115,21 @@ layers:
     summary: The receiving end of the flywheel — proposals from repositories using your layers arrive as reviewable documents, and a proposal nobody can judge fails the checks rather than sitting in a queue.
     arc: operations
     kind: process
+    for: [library]
 
   - id: ilk/autoresearch
     source: gh:coflounder/ilk/layers/autoresearch
     summary: Findings about the world outside the repository — sourced, falsifiable and dated — so no session pays to derive them twice.
     arc: context
     kind: record
+    for: [any]
 
   - id: ilk/deprecation
     source: gh:coflounder/ilk/layers/deprecation
     summary: A removal date the code is held to — deprecations that expire, and that tell you when the removal is finished.
     arc: quality
     kind: process
+    for: [library, service]
     requires: [record.docs]
 
   - id: ilk/pr-prep
@@ -123,6 +137,7 @@ layers:
     summary: Pull request descriptions derived from the plan document rather than written from memory — the outcome, the acceptance criteria and the evidence, assembled by a command instead of recalled.
     arc: release
     kind: process
+    for: [any]
     requires: [record.plans]
 
   - id: ilk/html-wireframe
@@ -130,6 +145,7 @@ layers:
     summary: Interface work is agreed as a wireframe before it is built — a plain HTML sketch anybody can open, cheap enough to throw away while disagreeing is still cheap.
     arc: planning
     kind: process
+    for: [ui]
     requires: [record.plans]
 
   - id: ilk/gauntlet
@@ -137,6 +153,7 @@ layers:
     summary: The builder does not grade its own homework — work is not done until somebody who did not do it has compared it against something inspectable and named the largest remaining gap.
     arc: quality
     kind: gate
+    for: [unattended-agents]
     requires: [record.plans]
 
   - id: ilk/routine
@@ -144,18 +161,21 @@ layers:
     summary: Scheduled work as a document rather than a cron line — owned, budgeted, and re-read on a date instead of running unwatched for ever.
     arc: operations
     kind: process
+    for: [unattended-agents]
 
   - id: ilk/infra
     source: gh:coflounder/ilk/layers/infra
     summary: Infrastructure as code with the one discipline that matters when an agent holds the keys — preview is agent work, apply is human work. Pulumi by default; Terraform by changing two settings.
     arc: operations
     kind: gate
+    for: [infra]
 
   - id: ilk/session-summaries
     source: gh:coflounder/ilk/layers/session-summaries
     summary: Shared session summaries across directly invoked harnesses and linked worktrees, with hook-driven publication and MCP retrieval.
     arc: context
     kind: integration
+    for: [multi-agent]
 
 # ----------------------------------------------------------------- bundles
 # A bundle is a named set of layers that are usually adopted together. It adds

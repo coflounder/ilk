@@ -4,6 +4,7 @@ summary: How to operate and extend ilk in this repository — adding layers, con
 facets:
   arc: operations
   kind: process
+for: [any]
 ilk: ">=0.2.0"
 examples:
   - ilk layer new layers/release-notes

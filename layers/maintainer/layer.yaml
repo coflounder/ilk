@@ -4,6 +4,7 @@ summary: The receiving end of the flywheel — proposals from repositories using
 facets:
   arc: operations
   kind: process
+for: [library]
 ilk: ">=0.2.0"
 examples:
   - ilk maintainer queue

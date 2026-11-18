@@ -21,6 +21,14 @@ repository containing files a human wrote, applies twice to prove idempotency, r
 it, and asserts the repository came back. A layer that fails this cannot be safely
 tried, and a layer nobody can safely try is one nobody will add.
 
+## Say who it is for
+
+`for:` names the repositories the layer is meant for, from a closed list: `any`,
+`ui`, `service`, `library`, `infra`, `unattended-agents`, `multi-agent`. `ilk init`
+suggests layers by it and `ilk search --for` filters by it, so a layer for one kind
+of repository should name that trait rather than `any`. `facets: {arc, kind}` are
+closed lists too; `ilk layer validate` names the allowed values when one is wrong.
+
 ## The decision that matters most: ownership mode
 
 Before adding any file, decide who owns it.

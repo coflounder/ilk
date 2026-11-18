@@ -4,6 +4,7 @@ summary: Interface work is agreed as a wireframe before it is built — a plain 
 facets:
   arc: planning
   kind: process
+for: [ui]
 ilk: ">=0.2.0"
 examples:
   - ilk html-wireframe new "Checkout — payment step"

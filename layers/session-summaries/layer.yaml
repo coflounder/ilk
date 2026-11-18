@@ -4,6 +4,7 @@ summary: Publish session summaries for other directly invoked harnesses, shared 
 facets:
   arc: context
   kind: integration
+for: [multi-agent]
 ilk: ">=0.2.0"
 examples:
   - ilk session-summaries list --query checkout

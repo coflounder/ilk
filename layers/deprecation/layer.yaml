@@ -4,6 +4,7 @@ summary: A removal date the code is held to — deprecations that expire, and th
 facets:
   arc: quality
   kind: process
+for: [library, service]
 ilk: ">=0.2.0"
 examples:
   - ilk deprecation list

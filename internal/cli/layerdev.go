@@ -459,7 +459,8 @@ version: 0.1.0
 summary: One line describing what adding this layer gets you.
 facets:
   arc: quality        # context | planning | execution | quality | release | operations
-  kind: process       # record | process | gate | harness | integration | target
+  kind: process       # record | process | gate | harness | integration
+for: [any]            # any | ui | service | library | infra | unattended-agents | multi-agent
 ilk: ">=0.1.0"
 
 # The layer in use, shown by `+"`ilk info`"+` before anyone adds it.

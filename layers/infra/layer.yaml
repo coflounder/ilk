@@ -4,6 +4,7 @@ summary: Infrastructure as code with the one discipline that matters when an age
 facets:
   arc: operations
   kind: gate
+for: [infra]
 ilk: ">=0.2.0"
 examples:
   - ilk config set infra.preview.command "pulumi preview --diff --non-interactive --stack prod"
