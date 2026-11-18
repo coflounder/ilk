@@ -73,8 +73,11 @@ so and let them decide. Consent is not yours to give.
 
 ```
 ilk check     # the layer's checks now run; some may fail immediately
-ilk brief     # confirm the new skills and commands are visible to a session
+ilk brief     # confirm the new commands are visible to a session
 ```
+
+New skills appear in the Skills block of `AGENTS.md`, which every agent reads; the
+brief lists them only while that block is out of date, before the change is applied.
 
 New checks failing straight away is normal and not a reason to panic — the layer is
 telling you what the repository does not yet satisfy. Fix them or, if the layer turns

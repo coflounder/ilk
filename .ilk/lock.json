@@ -279,7 +279,7 @@
       "kind": "layer",
       "version": "0.3.0",
       "source": "builtin",
-      "digest": "sha256:70a91c839a485a7325e2c27d10d530ed50cc8e60daa9cffc0469c5fe1933b1a7",
+      "digest": "sha256:14628cc39f13ee2bf9cdfa08fb045b4e65716ca21d0c727bd0330d8d099c8068",
       "files": [
         {
           "path": ".ilk/bin/ilk-propose.sh",
@@ -299,8 +299,8 @@
         {
           "path": ".agents/skills/add-a-layer/SKILL.md",
           "mode": "managed",
-          "hash": "sha256:90a5ef3525e6bb1455e6439c008f73b8ff56612ae68770ac696c3f6b6c286907",
-          "delivered": "sha256:90a5ef3525e6bb1455e6439c008f73b8ff56612ae68770ac696c3f6b6c286907",
+          "hash": "sha256:66ad45e4170c7269449d31b8342e3e0d293ed27241e7fe06a4f793a08171ad14",
+          "delivered": "sha256:66ad45e4170c7269449d31b8342e3e0d293ed27241e7fe06a4f793a08171ad14",
           "created_file": true,
           "owner": "target:agents-md"
         },

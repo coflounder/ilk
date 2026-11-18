@@ -17,16 +17,21 @@ import (
 
 	"github.com/coflounder/ilk/internal/checks"
 	"github.com/coflounder/ilk/internal/engine"
+	"github.com/coflounder/ilk/internal/fence"
+	"github.com/coflounder/ilk/internal/manifest"
 )
 
 // Brief is the assembled packet.
 type Brief struct {
-	Project      string       `json:"project"`
-	IlkVersion   string       `json:"ilk_version"`
-	Layers       []LayerInfo  `json:"layers"`
-	Contract     []DirInfo    `json:"contract"`
-	Recent       []FileInfo   `json:"recent,omitempty"`
-	Skills       []SkillInfo  `json:"skills,omitempty"`
+	Project    string      `json:"project"`
+	IlkVersion string      `json:"ilk_version"`
+	Layers     []LayerInfo `json:"layers"`
+	Contract   []DirInfo   `json:"contract"`
+	Recent     []FileInfo  `json:"recent,omitempty"`
+	Skills     []SkillInfo `json:"skills,omitempty"`
+	// SkillsIndex names the file that already lists the skills, when one does.
+	// The brief then leaves its own list out: the session has it in context.
+	SkillsIndex  string       `json:"skills_index,omitempty"`
 	Commands     []CommandRef `json:"commands,omitempty"`
 	Capabilities []Capability `json:"capabilities,omitempty"`
 	Checks       *CheckStatus `json:"checks,omitempty"`
@@ -136,12 +141,15 @@ func Build(p *engine.Project, opts Options) (*Brief, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, s := range in.AllSkills() {
-		b.Skills = append(b.Skills, SkillInfo{
-			Name:        s.Name,
-			Description: s.Description,
-			Path:        fmt.Sprintf(".agents/skills/%s/SKILL.md", s.Name),
-		})
+	b.SkillsIndex = skillsIndexIn(p, desired)
+	if b.SkillsIndex == "" {
+		for _, s := range in.AllSkills() {
+			b.Skills = append(b.Skills, SkillInfo{
+				Name:        s.Name,
+				Description: s.Description,
+				Path:        fmt.Sprintf(".agents/skills/%s/SKILL.md", s.Name),
+			})
+		}
 	}
 
 	b.Commands = []CommandRef{
@@ -189,6 +197,38 @@ func Build(p *engine.Project, opts Options) (*Brief, error) {
 
 	return b, nil
 }
+
+// skillsIndexIn returns the file an agent target has written the skills index
+// into, or "" when no such file is up to date on disk.
+//
+// AGENTS.md carries the index in an ilk-owned `skills` region, and every agent
+// reads AGENTS.md or is pointed at it, so the same list in the brief only costs
+// context — about half the brief. But the brief is what a session starts with
+// when that file is behind: before the first apply, after a layer was added and
+// not applied, or with the region edited away. So the index counts only when the
+// region on disk says exactly what ilk would write there now.
+func skillsIndexIn(p *engine.Project, desired []engine.Desired) string {
+	for _, d := range desired {
+		if d.Region != skillsRegion || d.Mode != manifest.ModeRegion || !strings.HasPrefix(d.Owner, engine.TargetOwnerPrefix) {
+			continue
+		}
+		data, err := os.ReadFile(p.Repo.Path(d.Path))
+		if err != nil {
+			continue
+		}
+		body, found, err := fence.Extract(string(data), fence.StyleFor(d.Path), fence.Marker{Layer: d.Owner, Region: d.Region})
+		if err != nil || !found {
+			continue
+		}
+		if strings.TrimRight(body, "\n") == strings.TrimRight(d.Content, "\n") {
+			return d.Path
+		}
+	}
+	return ""
+}
+
+// skillsRegion is the region an agent target writes the skills index into.
+const skillsRegion = "skills"
 
 func countMarkdown(dir string) int {
 	entries, err := os.ReadDir(dir)
