@@ -10,7 +10,9 @@ package engine
 
 import (
 	"fmt"
+	"os"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -476,6 +478,13 @@ func (p *Project) groupDesired() ([]Desired, error) {
 			}
 			fmt.Fprintf(&b, "| [`%s/`](%s/) | %s |\n", m.Name, m.Name, purpose)
 		}
+		// A layer declares the directories it seeds, not every sibling a project
+		// adds beside them: the infra layer seeds one stack, and a repository
+		// with five would get an index naming one. What is on disk is listed
+		// too, after the declared ones, so the index is the whole group.
+		for _, name := range p.undeclaredDirs(g) {
+			fmt.Fprintf(&b, "| [`%s/`](%s/) | — |\n", name, name)
+		}
 		out = append(out, Desired{
 			Path:    path.Join(g.Name, "README.md"),
 			Mode:    manifest.ModeRegion,
@@ -485,6 +494,34 @@ func (p *Project) groupDesired() ([]Desired, error) {
 		})
 	}
 	return out, nil
+}
+
+// undeclaredDirs lists, by name, the directories directly under a group that
+// no layer declared. Hidden directories are tool state (.terraform, .pulumi),
+// not parts of the group, and are left out.
+func (p *Project) undeclaredDirs(g Group) []string {
+	if p.Repo == nil || p.Repo.Root == "" {
+		return nil
+	}
+	entries, err := os.ReadDir(filepath.Join(p.Repo.Root, filepath.FromSlash(g.Name)))
+	if err != nil {
+		return nil
+	}
+	declared := map[string]bool{}
+	for _, m := range g.Members {
+		if path.Dir(m.Path) == g.Name {
+			declared[m.Name] = true
+		}
+	}
+	var out []string
+	for _, e := range entries {
+		if !e.IsDir() || strings.HasPrefix(e.Name(), ".") || declared[e.Name()] {
+			continue
+		}
+		out = append(out, e.Name())
+	}
+	sort.Strings(out)
+	return out
 }
 
 func (p *Project) layerDesired(l *ResolvedLayer) ([]Desired, error) {

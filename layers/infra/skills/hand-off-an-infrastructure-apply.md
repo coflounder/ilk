@@ -12,8 +12,8 @@ it, the thing to produce is this handoff instead.
 ## When
 
 A preview is clean and the change now needs applying. Somebody says deploy, apply,
-roll out, ship it, or push it to prod. Somebody asks you to run `pulumi up` or
-`terraform apply`.
+roll out, ship it, or push it to prod. Somebody asks you to run `pulumi up`,
+`terraform apply` or `tofu apply`.
 
 ## Procedure
 
@@ -33,8 +33,9 @@ roll out, ship it, or push it to prod. Somebody asks you to run `pulumi up` or
 
 3. **Give them the command rather than running it.** The apply command for this
    repository is `infra.up.command`; `ilk config get infra.up.command` prints its
-   value. Present
-   it as text for a person to run.
+   value. Use that value, not the command you would have guessed from the files:
+   the example below is Pulumi, and a Terraform or OpenTofu repository has its own.
+   Present it as text for a person to run.
 
 4. **Say what you will do afterwards** — re-run the preview to confirm it is
    empty, check the record needs updating — and then wait.

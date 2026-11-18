@@ -47,7 +47,8 @@ Editing anything under the infrastructure group, before proposing it. When
 ## When the preview will not run
 
 - **`infra.preview` skipped for want of a credential** (`PULUMI_ACCESS_TOKEN` by
-  default; the layer's `credentials` variable names it). There are no credentials
+  default for Pulumi, none for Terraform or OpenTofu; the layer's `credentials`
+  variable names it). There are no credentials
   here, so the check declined to guess rather than reporting an auth failure as a
   broken repository. A skipped check is not a passing one — say the
   preview did not run, and do not report the change as verified.
@@ -67,7 +68,8 @@ Editing anything under the infrastructure group, before proposing it. When
 - **Do not paste config values into a stack file to make a preview run.** A
   preview that only works because a credential is now in the repository has cost
   more than it found. Secrets go in through the tool's secret store —
-  `pulumi config set --secret`, or Terraform's provider and variables marked
-  `sensitive`.
+  `pulumi config set --secret`, or for Terraform and OpenTofu a `TF_VAR_<name>`
+  in the environment for a variable marked `sensitive`, never a value in a
+  committed `.tfvars` file.
 - **Do not treat a refresh diff as your change.** Drift that was already there is
   worth reporting, and it is somebody else's change.

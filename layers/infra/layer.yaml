@@ -1,5 +1,5 @@
 id: ilk/infra
-version: 0.2.0
+version: 0.3.0
 summary: Infrastructure as code with the one discipline that matters when an agent holds the keys — preview is agent work, apply is human work.
 facets:
   arc: operations
@@ -11,9 +11,9 @@ examples:
   - ilk config set infra.preview.command "terraform plan -input=false"
   - ilk check --only infra
 
-# Named for the rule, not the tool. Everything the layer runs is a capability
-# with Pulumi's command as its default, so Terraform — or anything else with a
-# preview and an apply — is two settings away:
+# Named for the rule, not the tool. The `tool` variable picks the defaults —
+# Pulumi, Terraform or OpenTofu — and everything the layer runs is a capability,
+# so anything else with a preview and an apply is two settings away:
 #
 #   ilk config set infra.preview.command "terraform plan -input=false"
 #   ilk config set infra.up.command "terraform apply"
@@ -33,10 +33,21 @@ examples:
 # not have to redeclare `group: infra` and hope it still matches.
 provides:
   infra.stacks: "{{ .Vars.group }}"
-  infra.preview.command: pulumi preview --diff --non-interactive
-  infra.up.command: pulumi up
+  infra.preview.command: >-
+    {{ if eq .Vars.tool "terraform" }}terraform plan -input=false{{ else if eq .Vars.tool "opentofu" }}tofu plan -input=false{{ else }}pulumi preview --diff --non-interactive{{ end }}
+  infra.up.command: >-
+    {{ if eq .Vars.tool "terraform" }}terraform apply{{ else if eq .Vars.tool "opentofu" }}tofu apply{{ else }}pulumi up{{ end }}
 
 variables:
+  tool:
+    default: pulumi
+    enum: [pulumi, terraform, opentofu]
+    description: >-
+      What the stacks are written in. It sets the default preview and apply
+      commands, and only `pulumi` seeds a `Pulumi.yaml`: a Terraform or OpenTofu
+      stack is its `.tf` files, and a Pulumi project file dropped beside them
+      would make the preview run the wrong tool. `ilk init` picks this from the
+      files it finds.
   group:
     default: infra
     description: >-
@@ -66,8 +77,9 @@ variables:
       unauthenticated run as a broken repository. Pulumi Cloud reads
       PULUMI_ACCESS_TOKEN; a self-managed Pulumi backend reads
       PULUMI_CONFIG_PASSPHRASE; for Terraform name what its provider reads, such
-      as AWS_ACCESS_KEY_ID. Set it to nothing when the preview needs no
-      credential.
+      as AWS_ACCESS_KEY_ID. Set it to nothing (`ilk config set
+      infra.credentials ""`) when the preview needs no credential. The Pulumi
+      default is ignored when `tool` is Terraform or OpenTofu.
   base_ref:
     default: origin/main
     description: >-
@@ -85,6 +97,7 @@ files:
   - src: templates/Pulumi.yaml.tmpl
     dest: "{{ .Vars.group }}/{{ .Vars.stack }}/Pulumi.yaml"
     mode: create-only
+    when: '{{ eq .Vars.tool "pulumi" }}'
   - src: bin/ilk-infra-stacks.sh
     dest: .ilk/bin/ilk-infra-stacks.sh
     mode: managed
@@ -108,7 +121,7 @@ skills:
     description: Work out what an infrastructure change would actually do before anybody applies it. Use when editing anything under the infrastructure directories, when `ilk check` reports `infra.preview`, or when asked whether a change is safe to apply.
     src: skills/preview-an-infrastructure-change.md
   - name: hand-off-an-infrastructure-apply
-    description: Hand a previewed infrastructure change to a person to apply. Use when a preview is clean and the change now needs applying (`pulumi up`, `terraform apply`), or when asked to deploy, apply, roll out or ship infrastructure — none of which are agent work.
+    description: Hand a previewed infrastructure change to a person to apply. Use when a preview is clean and the change now needs applying (`pulumi up`, `terraform apply`, `tofu apply`), or when asked to deploy, apply, roll out or ship infrastructure — none of which are agent work.
     src: skills/hand-off-an-infrastructure-apply.md
 
 checks:
@@ -119,11 +132,11 @@ checks:
   - id: infra.no-plaintext-secrets
     title: No stack config carries an unencrypted secret
     run: .ilk/bin/ilk-infra-secrets.sh
-    fix: "Encrypt it: `pulumi config set --secret <key> <value>` in that stack's directory rewrites the entry as `secure:`, which is safe to commit. Then rotate the value that was in plaintext — it is in the git history whatever you do to the working tree now. If the key is not actually a credential, rename it so it does not read as one."
+    fix: "For Pulumi, encrypt it: `pulumi config set --secret <key> <value>` in that stack's directory rewrites the entry as `secure:`, which is safe to commit. For Terraform or OpenTofu, take the value out of the `.tfvars` file and pass it through the environment (`TF_VAR_<name>`) or keep that file out of git with `.gitignore`, committing a `.tfvars.example` with the key and no value. Either way, rotate the value that was in plaintext if it was ever committed. If the key is not actually a credential, rename it so it does not read as one."
   - id: infra.preview
     title: Preview is clean for the stacks this change touched
     requires: infra.preview.command
-    requires_env: ["{{ .Vars.credentials }}"]
+    requires_env: ['{{ if or (eq .Vars.tool "pulumi") (ne .Vars.credentials "PULUMI_ACCESS_TOKEN") }}{{ .Vars.credentials }}{{ end }}']
     run: '.ilk/bin/ilk-infra-preview.sh {{ index .Caps "infra.preview.command" | quote }}'
     fix: "Read the diff above. If it is what you meant, the change is ready for a person to apply — say what it will do and stop there; do not run the apply command yourself. If it is not what you meant, fix the program until the preview says what you intended. If the preview did not run at all, the fault is the credentials or the stack selection in `infra.preview.command`, not the program."
 

@@ -99,3 +99,29 @@ func TestTraits(t *testing.T) {
 		})
 	}
 }
+
+func TestInfraToolTellsTheStacksApart(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		files map[string]string
+		want  string
+	}{
+		{"no stacks", map[string]string{"README.md": "# x\n"}, ""},
+		{"Pulumi", map[string]string{"infra/dns/Pulumi.yaml": "name: dns\n"}, "pulumi"},
+		{"Terraform", map[string]string{"infra/dns/main.tf": "terraform {}\n"}, "terraform"},
+		{"Terraform with a lock file", map[string]string{
+			"infra/dns/main.tf":             "terraform {}\n",
+			"infra/dns/.terraform.lock.hcl": "provider \"registry.terraform.io/cloudflare/cloudflare\" {}\n",
+		}, "terraform"},
+		{"OpenTofu, known by where its providers come from", map[string]string{
+			"infra/dns/main.tf":             "terraform {}\n",
+			"infra/dns/.terraform.lock.hcl": "provider \"registry.opentofu.org/cloudflare/cloudflare\" {}\n",
+		}, "opentofu"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := InfraTool(tree(t, tc.files)); got != tc.want {
+				t.Errorf("InfraTool = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}

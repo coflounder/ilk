@@ -41,7 +41,16 @@ func suggestFor(root string, have map[string]bool) []suggestion {
 		if len(ids) == 0 {
 			continue
 		}
-		out = append(out, suggestion{Finding: f, Layers: ids, Add: coverWithBundles(ids, names, bundles)})
+		add := coverWithBundles(ids, names, bundles)
+		// The infra layer defaults to Pulumi and seeds a Pulumi.yaml, so on a
+		// Terraform or OpenTofu estate the suggestion carries the tool with it.
+		// --var takes one layer, so it rides along only when infra is alone.
+		if f.Trait == "infra" && len(add) == 1 && add[0] == "infra" {
+			if tool := detect.InfraTool(root); tool == "terraform" || tool == "opentofu" {
+				add = append(add, "--var", "tool="+tool)
+			}
+		}
+		out = append(out, suggestion{Finding: f, Layers: ids, Add: add})
 	}
 	return out
 }

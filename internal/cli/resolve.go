@@ -1,9 +1,6 @@
 package cli
 
 import (
-	"errors"
-	"io/fs"
-	"os"
 	"strings"
 
 	"github.com/coflounder/ilk/internal/layer"
@@ -30,7 +27,7 @@ func resolveLayer(raw, cache string) (*layer.Loaded, error) {
 }
 
 // isBareName is true for "blueprint" and "ilk/blueprint", and false for paths,
-// git references and versions.
+// git references, versions and directories that hold a layer.
 func isBareName(raw string) bool {
 	if raw == "" || strings.ContainsAny(raw, ":@\\") || strings.HasPrefix(raw, ".") || strings.HasPrefix(raw, "/") || strings.HasPrefix(raw, "~") {
 		return false
@@ -38,8 +35,8 @@ func isBareName(raw string) bool {
 	if strings.Count(raw, "/") > 1 {
 		return false
 	}
-	if _, err := os.Stat(raw); err == nil || !errors.Is(err, fs.ErrNotExist) {
-		return false
-	}
-	return true
+	// A directory of that name only shadows the index when it is a layer.
+	// Repositories are full of directories named like layers — infra/, docs/,
+	// plans/ — and none of them is what `ilk info infra` was asking about.
+	return !layer.IsLayerDir(raw)
 }
