@@ -2,8 +2,9 @@
 # Exercise the preview layer's commands against a fake wrangler and a fake curl.
 #
 # What this proves: the contract with ilk (ILK_VAR_*, ILK_FLAG_*, ILK_OUTPUT=json),
-# that the alias is derived the same way every time, that --upload only ever runs
-# `wrangler versions upload` and only in CI, and that `open` keeps the service
+# that the name is derived the same way every time, that --upload only ever runs
+# `wrangler preview --name` (or, with no previews block, `wrangler versions
+# upload`) and only in CI, and that `open` keeps the service
 # token's secret off every command line, refuses hosts that are not this
 # Worker's, and fails plainly when the token is unset. What it cannot prove is
 # that Cloudflare answers the way the fakes do; only a real account can do that,
@@ -100,41 +101,40 @@ fi
 
 : >"$FAKE_LOG"
 out=$(CI=true ILK_FLAG_UPLOAD=1 sh "$bin/ilk-preview-url.sh" feat/x 2>/dev/null)
-same "--upload reports the alias URL wrangler printed" "$out" "https://feat-x-shop.acme.workers.dev"
-same "--upload runs versions upload with the alias, and nothing else" "$(cat "$FAKE_LOG")" "versions upload --preview-alias feat-x"
+same "--upload reports the Preview URL wrangler printed" "$out" "https://feat-x-shop.acme.workers.dev"
+same "--upload builds a Workers Preview with the worked-out name, and nothing else" "$(cat "$FAKE_LOG")" "preview --name feat-x"
+
+out=$(CI=true ILK_FLAG_UPLOAD=1 sh "$bin/ilk-preview-url.sh" feat/x 2>/dev/null)
+same "--upload names the Preview as url without --upload prints it" "$out" "$(sh "$bin/ilk-preview-url.sh" feat/x)"
 
 out=$(CI=true ILK_FLAG_UPLOAD=1 ILK_OUTPUT=json sh "$bin/ilk-preview-url.sh" feat/x 2>/dev/null)
 case $out in *'"uploaded":true'*) pass "--upload --json says it uploaded" ;; *) fail "--upload --json says it uploaded" "$out" ;; esac
 
 if out=$(CI=true ILK_FLAG_UPLOAD=1 FAKE_WRANGLER=nourl sh "$bin/ilk-preview-url.sh" feat/x 2>&1); then
-	fail "an upload with no preview URL fails and points at the checks" "$out"
+	fail "a build with no preview URL fails and points at the checks" "$out"
 else
-	case $out in *"ilk check --only preview"*) pass "an upload with no preview URL fails and points at the checks" ;; *) fail "an upload with no preview URL fails and points at the checks" "$out" ;; esac
+	case $out in *"ilk check --only preview"*) pass "a build with no preview URL fails and points at the checks" ;; *) fail "a build with no preview URL fails and points at the checks" "$out" ;; esac
 fi
 
 if out=$(CI=true ILK_FLAG_UPLOAD=1 FAKE_WRANGLER=fail sh "$bin/ilk-preview-url.sh" feat/x 2>&1); then
-	fail "a failed upload fails" "$out"
+	fail "a failed build fails" "$out"
 else
-	pass "a failed upload fails"
+	pass "a failed build fails"
 fi
 
 : >"$FAKE_LOG"
 CI=true ILK_FLAG_UPLOAD=1 ILK_VAR_WRANGLER_CONFIG=wrangler.jsonc sh "$bin/ilk-preview-url.sh" feat/x >/dev/null 2>&1
-same "an explicit wrangler_config is passed to wrangler" "$(cat "$FAKE_LOG")" "versions upload --preview-alias feat-x --config wrangler.jsonc"
+same "an explicit wrangler_config is passed to wrangler" "$(cat "$FAKE_LOG")" "preview --name feat-x --config wrangler.jsonc"
 
-# Workers Previews are built by `wrangler preview`, not uploaded as versions, so
-# --upload must not upload a version the repository's previews never use.
-cp -R "$here/fixtures/workers-previews/." "$work/wp"
+# With no previews block, --upload falls back to the older route, an uploaded
+# version with a preview alias, and says on stderr that Cloudflare advises
+# against it for pull requests.
+cp -R "$here/fixtures/versions-only/." "$work/vo"
 : >"$FAKE_LOG"
-if out=$(cd "$work/wp" && CI=true ILK_FLAG_UPLOAD=1 sh "$bin/ilk-preview-url.sh" feat/x 2>&1); then
-	fail "--upload refuses for Workers Previews" "$out"
-elif [ -s "$FAKE_LOG" ]; then
-	fail "--upload refuses for Workers Previews, before calling wrangler" "$(cat "$FAKE_LOG")"
-else
-	case $out in *"wrangler preview"*) pass "--upload refuses for Workers Previews, before calling wrangler" ;; *) fail "--upload refuses for Workers Previews and says why" "$out" ;; esac
-fi
-out=$(cd "$work/wp" && sh "$bin/ilk-preview-url.sh" feat/x)
-same "a Workers Preview's URL is worked out the same way" "$out" "https://feat-x-shop.acme.workers.dev"
+out=$(cd "$work/vo" && CI=true ILK_FLAG_UPLOAD=1 sh "$bin/ilk-preview-url.sh" feat/x 2>"$work/vo.err")
+same "--upload without a previews block reports the alias URL" "$out" "https://feat-x-shop.acme.workers.dev"
+same "--upload without a previews block runs versions upload with the alias, and nothing else" "$(cat "$FAKE_LOG")" "versions upload --preview-alias feat-x"
+case $(cat "$work/vo.err") in *warning*"no previews block"*preview.workers-previews*) pass "--upload without a previews block warns and names the check" ;; *) fail "--upload without a previews block warns and names the check" "$(cat "$work/vo.err")" ;; esac
 
 # --- open --------------------------------------------------------------------
 

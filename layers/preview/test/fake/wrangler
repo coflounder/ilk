@@ -1,17 +1,31 @@
 #!/bin/sh
-# A fake wrangler for test/run.sh. It records how it was called and prints what
-# `wrangler versions upload` prints. Anything but `versions upload` is refused
-# loudly: the preview layer must never call another wrangler command.
+# A fake wrangler for test/run.sh. It records how it was called and prints a
+# preview URL the way Wrangler does. Only two commands are allowed, the two the
+# preview layer may run: `preview --name <name>` (a Workers Preview) and
+# `versions upload --preview-alias <alias>` (the older version route). Anything
+# else — deploy, versions deploy, preview delete — is refused loudly.
+#
+# The output's wording is a stand-in: these tests prove what the layer runs and
+# how it reads a URL back, not that Cloudflare prints exactly this.
 echo "$*" >>"${FAKE_LOG:?}"
-if [ "${1:-}" != versions ] || [ "${2:-}" != upload ]; then
-	echo "fake wrangler: refused '$*' — only 'versions upload' is allowed" >&2
+name=
+case "${1:-} ${2:-}" in
+"preview --name")
+	name=${3:-}
+	kind=preview
+	;;
+"versions upload")
+	while [ $# -gt 0 ]; do
+		[ "$1" = --preview-alias ] && name=$2
+		shift
+	done
+	kind=version
+	;;
+*)
+	echo "fake wrangler: refused '$*' — only 'preview --name' and 'versions upload' are allowed" >&2
 	exit 99
-fi
-alias=
-while [ $# -gt 0 ]; do
-	[ "$1" = --preview-alias ] && alias=$2
-	shift
-done
+	;;
+esac
 case ${FAKE_WRANGLER:-ok} in
 fail)
 	echo "✘ [ERROR] A request to the Cloudflare API failed." >&2
@@ -19,12 +33,16 @@ fail)
 	;;
 nourl)
 	echo "Worker Startup Time: 12 ms"
-	echo "Worker Version ID: 0f1e2d3c-0000-4000-8000-000000000000"
 	;;
 *)
 	echo "Worker Startup Time: 12 ms"
-	echo "Worker Version ID: 0f1e2d3c-0000-4000-8000-000000000000"
-	echo "Version Preview URL: https://0f1e2d3c-shop.acme.workers.dev"
-	echo "Version Preview Alias URL: https://$alias-shop.acme.workers.dev"
+	if [ "$kind" = preview ]; then
+		echo "Preview: $name"
+		echo "Preview URL: https://$name-shop.acme.workers.dev"
+	else
+		echo "Worker Version ID: 0f1e2d3c-0000-4000-8000-000000000000"
+		echo "Version Preview URL: https://0f1e2d3c-shop.acme.workers.dev"
+		echo "Version Preview Alias URL: https://$name-shop.acme.workers.dev"
+	fi
 	;;
 esac

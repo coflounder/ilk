@@ -1,10 +1,10 @@
 # Every case states what it defends, so a failure here is actionable.
 #
 # The `compliant` fixture is the shape the layer asks for, modelled on a real
-# Worker: production on a custom domain, previews as versions behind their own
-# Access application, the Worker verifying Access's token, no Durable Object
-# implemented here, no production data bound. Every check must pass on it —
-# a check that rejects the shape it recommends would be turned off within a week.
+# Worker: production on a custom domain, pull requests built as Workers Previews
+# (a `previews` block) behind their own Access application, the Worker verifying
+# Access's token, no production data bound. Every check must pass on it — a
+# check that rejects the shape it recommends would be turned off within a week.
 
 - check: preview.workers-dev-off
   fixture: compliant
@@ -30,7 +30,7 @@
 - check: preview.urls-on
   fixture: compliant
   expect: pass
-  why: preview_urls true is what gives each uploaded version a URL at all.
+  why: preview_urls true is what gives each Preview a workers.dev URL at all; with workers_dev off it would otherwise follow it to off.
 - check: preview.urls-on
   fixture: compliant-toml
   expect: pass
@@ -38,7 +38,7 @@
 - check: preview.urls-on
   fixture: preview-urls-off
   expect: fail
-  why: With preview_urls false a version uploads and nobody can open it, which looks like a working pipeline until somebody tries.
+  why: With preview_urls false a Preview builds and nobody can open it, which looks like a working pipeline until somebody tries.
 
 - check: preview.access-verified
   fixture: compliant
@@ -65,28 +65,57 @@
   fixture: no-preview-audience
   expect: fail
   why: Without the preview application's audience the Worker refuses every token minted for previews, so they answer 401 to everyone.
+- check: preview.preview-audience
+  fixture: previews-no-audience
+  expect: fail
+  why: A Preview reads its vars from the previews block alone, so an audience set only at the top level never reaches one, and every Preview refuses its own tokens.
 
-- check: preview.no-durable-objects
+- check: preview.workers-previews
   fixture: compliant
   expect: pass
-  why: A Worker with no Durable Object of its own gets a preview URL for every version.
-- check: preview.no-durable-objects
-  fixture: durable-object-elsewhere
+  why: A previews block is how a repository says its pull requests build as Workers Previews, the route Cloudflare recommends.
+- check: preview.workers-previews
+  fixture: compliant-toml
   expect: pass
-  why: A Durable Object bound from another Worker with script_name costs this Worker nothing, and failing it would push people away from the fix.
-- check: preview.no-durable-objects
-  fixture: durable-object-here
-  expect: fail
-  why: Cloudflare makes no preview URL for a Worker that implements a Durable Object, so every preview answers error 1042.
-- check: preview.no-durable-objects
+  why: A [previews] table in wrangler.toml is the same block and must read the same way.
+- check: preview.workers-previews
   fixture: workers-previews
   expect: pass
-  why: Workers Previews give each preview its own Durable Object namespace and a URL, so a class implemented here no longer costs the repository its previews.
+  why: Workers Previews give each preview its own Durable Object namespace and a URL, so a class implemented here costs the repository nothing.
+- check: preview.workers-previews
+  fixture: versions-only
+  expect: fail
+  why: Without a previews block the only previews are uploaded versions, which run with production's bindings and which Cloudflare says not to use for pull request testing.
+- check: preview.workers-previews
+  fixture: durable-object-here
+  expect: fail
+  why: A Worker that implements a Durable Object gets no Version URL at all (error 1042), so without Workers Previews it has no previews.
+
+- check: preview.previews-complete
+  fixture: compliant
+  expect: pass
+  why: The previews block repeats the vars and the AI binding production has, so a Preview runs with everything the code reads.
+- check: preview.previews-complete
+  fixture: workers-previews
+  expect: pass
+  why: The Durable Object, the KV binding and every var production has are given again, with the preview's own KV namespace.
+- check: preview.previews-complete
+  fixture: versions-only
+  expect: pass
+  why: With no previews block there is nothing to compare; preview.workers-previews is the check that reports it, once.
+- check: preview.previews-complete
+  fixture: previews-incomplete
+  expect: fail
+  why: A Preview inherits nothing from the top level, so a Durable Object binding left out answers error 1101 and a var left out is undefined, on every Preview.
 
 - check: preview.separate-data
   fixture: compliant
   expect: pass
   why: Workers AI, assets and vars hold no state, so a Worker bound to nothing else shares nothing with production.
+- check: preview.separate-data
+  fixture: versions-only
+  expect: pass
+  why: The older version route shares production's bindings, but a Worker bound to nothing that holds state still shares nothing.
 - check: preview.separate-data
   fixture: shared-production-data
   expect: fail

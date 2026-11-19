@@ -35,20 +35,26 @@ production:
 
 - **Production** on a custom-domain route, behind a Cloudflare Access application.
   `workers_dev: false`, so there is no public workers.dev address beside it.
-- **Previews** as Worker *versions*. A pull request's branch is uploaded with
-  `wrangler versions upload --preview-alias <branch>` by Cloudflare Workers Builds (the
-  non-production branch build command) or by CI — never from a laptop, and never
-  deployed. `preview_urls: true` gives each version a URL, and a *separate* Access
-  application covers those URLs, with a policy for people and a Service Auth policy for
-  agents.
-- **Or previews as Workers Previews**, when the Wrangler configuration has a `previews`
-  block. Workers Builds runs `wrangler preview` for a non-production branch and the
-  preview gets its own URL at the same `<branch>-<worker>` host. A Workers Preview
-  inherits no bindings: only what the `previews` block binds reaches it, and a Durable
-  Object class this Worker implements gets a namespace per preview. That is the way to
-  have previews of a Worker that implements a Durable Object, and the checks read the
-  `previews` block instead of the top level when it is there. `ilk preview url --upload`
-  refuses for it, because the build, not the layer, makes these previews.
+- **Previews** as Workers Previews, which is what Cloudflare recommends for a branch or
+  pull request. The Wrangler configuration has a `previews` block, and Cloudflare
+  Workers Builds runs `npx wrangler preview` for every push to a non-production branch
+  (Settings, Build, Branch control: Enable Preview Builds; Wrangler 4.135 or later in
+  `package.json`). Each Preview gets its own URL at
+  `<name>-<worker>.<subdomain>.workers.dev`, never from a laptop and never deployed.
+  `preview_urls: true` gives the workers.dev URL, and a *separate* Access application
+  covers those URLs, with a policy for people and a Service Auth policy for agents.
+- **A Preview inherits nothing.** Only what the `previews` block binds reaches a
+  Preview: every binding and var production has is repeated there
+  (`preview.previews-complete`), stores that hold data point at preview stores
+  (`preview.separate-data`), and a Durable Object class this Worker implements gets a
+  namespace per Preview, deleted with it. Secrets are set with `wrangler preview
+  base-config secret put` (only Previews made after it get them). Cron Triggers never
+  run on a Preview.
+- **Not uploaded versions.** `wrangler versions upload --preview-alias` still works, but
+  Cloudflare says not to use Version URLs for branch or pull request testing: a version
+  runs with production's bindings, and a Worker that implements a Durable Object gets
+  no URL at all. Layer versions before 0.3.0 asked for this; `preview.workers-previews`
+  now fails without a `previews` block.
 - **The Worker verifies Access itself.** It reads `cf-access-jwt-assertion`, checks the
   signature against the team's keys, the issuer, and that the audience is production's
   or the preview application's AUD tag (both in `vars`; AUD tags are not secrets).
@@ -60,8 +66,8 @@ production:
 
 | Command | Does |
 |---|---|
-| `ilk preview url [branch]` | Prints the branch's preview alias URL, worked out locally from the branch, the Worker's name and `workers_subdomain`. Calls nothing. `--json` gives `{url, alias, provider, worker, branch, uploaded}`. |
-| `ilk preview url --upload` | In CI only (`CI` or `WORKERS_CI` set): runs `wrangler versions upload --preview-alias <alias>` and prints the URL Wrangler reports. The only Wrangler call in the layer; nothing here deploys. |
+| `ilk preview url [branch]` | Prints the branch's preview URL, worked out locally from the branch, the Worker's name and `workers_subdomain`. Calls nothing. `--json` gives `{url, alias, provider, worker, branch, uploaded}`; `alias` is the preview's name. |
+| `ilk preview url --upload` | In CI only (`CI` or `WORKERS_CI` set): runs `wrangler preview --name <name>` and prints the URL Wrangler reports. With no `previews` block it runs `wrangler versions upload --preview-alias <name>` instead, and warns. The only Wrangler call in the layer; nothing here deploys. |
 | `ilk preview open <url>` | One GET through Access with the service token from `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` (the names are settings). Reports the status; `--body` prints the response. Fails plainly when the variables are unset. |
 
 `ilk preview open` keeps the token tight:
@@ -74,22 +80,26 @@ production:
 - redirects are reported, never followed, because a followed redirect would carry the
   token's headers with it.
 
-The alias is the branch lowercased, with everything but letters and digits turned to
+The name is the branch lowercased, with everything but letters and digits turned to
 dashes, prefixed `br-` if it would not start with a letter, and cut so
-`<alias>-<worker>` fits one 63-character DNS label. For `ilk preview url` to name the
-URL CI produced, CI must upload with that alias: run `ilk preview url --upload` as the
-non-production build command, or pass `--preview-alias "$(ilk preview url --json | jq
--r .alias)"` to Wrangler yourself.
+`<name>-<worker>` fits one 63-character DNS label. Workers Builds' default Preview
+command, `npx wrangler preview`, names the Preview after the branch, and Cloudflare
+does not document how it treats a branch name outside that form. A branch already
+named in lowercase letters, digits and dashes gets the same URL either way. For any
+other branch, take the URL from the build's comment on the pull request, or make the
+Preview command `npx ilk preview url --upload` (ilk installed in the build), or pass
+`--name "$(ilk preview url --json | jq -r .alias)"` to `wrangler preview` yourself.
 
 ## Checks
 
 | Check | Holds |
 |---|---|
 | `preview.workers-dev-off` | `workers_dev` is explicitly `false`. Wrangler turns it on when absent. |
-| `preview.urls-on` | `preview_urls` is explicitly `true`, so uploaded versions have URLs. |
+| `preview.urls-on` | `preview_urls` is explicitly `true`, so Previews have workers.dev URLs. Left unset it follows `workers_dev`, which is off. |
+| `preview.workers-previews` | The Wrangler configuration has a `previews` block, so pull requests build as Workers Previews rather than uploaded versions. |
+| `preview.previews-complete` | Every binding and var at the top level is given again in the `previews` block, which is all a Preview gets. |
 | `preview.access-verified` | Non-test Worker source reads `cf-access-jwt-assertion` and verifies it (`jwtVerify`, `crypto.subtle.verify` or the team's `/cdn-cgi/access/certs`). |
-| `preview.preview-audience` | `vars` has the preview Access application's AUD (`ACCESS_AUD_PREVIEW` by default) and the Worker's source reads it. |
-| `preview.no-durable-objects` | The Worker implements no Durable Object. Cloudflare makes no preview URL for one that does; a cross-script binding (`script_name`) is fine. |
+| `preview.preview-audience` | `vars` (and `previews.vars`, when there is a `previews` block) has the preview Access application's AUD (`ACCESS_AUD_PREVIEW` by default) and the Worker's source reads it. |
 | `preview.separate-data` | No KV, D1, R2, Durable Object, queue, Hyperdrive, Vectorize, workflow or service binding is shared with production — or `shared_bindings: read-only` accepts it on purpose. |
 | `preview.no-committed-token` | No tracked file assigns a value to the service token's secret, and Wrangler `vars` do not carry it. |
 
@@ -100,11 +110,11 @@ credential. `preview.workers-dev-off` and `preview.no-committed-token` run on a 
 ilk checks have no warning level, so the two that describe a trade-off rather than a
 mistake are separate checks with their own fix:
 
-- `preview.no-durable-objects` fails for as long as previews cannot exist. That is the
-  truth about the repository, and a red check is more honest than a pipeline that
-  uploads versions nobody can open. It passes once previews are Workers Previews (a
-  `previews` block), which do get URLs. `ilk check --skip preview.no-durable-objects`
-  while the change is being made.
+- `preview.workers-previews` fails while pull requests can only be previewed as uploaded
+  versions. A repository that keeps versions on purpose skips it
+  (`ilk check --skip preview.workers-previews`) and says why. For a Worker that
+  implements a Durable Object it also names the classes, because for that Worker
+  versions get no URL at all. It replaces 0.2.0's `preview.no-durable-objects`.
 - `preview.separate-data` fails until previews get data of their own, or somebody runs
   `ilk config set preview.shared_bindings read-only` having confirmed the Worker refuses
   every write from a service token.
@@ -115,25 +125,26 @@ the variable this layer reads the secret from. It is not a secret scanner. Pair 
 
 ## Teardown
 
-There is nothing to tear down. A version is not deployed, so it serves nothing on
-production's routes; a branch's alias points at its latest version and is reused when
-the branch is pushed again. Wrangler offers no command to delete a version or an alias
-at the time of writing, so the layer offers none rather than a command that pretends.
+Nothing needs tearing down for safety: a Preview is not deployed, so it serves nothing
+on production's routes, and pushing the branch again updates the same Preview.
+Cloudflare keeps 100 Previews per Worker on the Free plan and 500 on paid plans, and
+deletes the one least recently deployed to when a new one would pass the limit,
+together with its Durable Object data. To remove one sooner, a person runs
+`npx wrangler preview delete --name <name>` or uses the Worker's Previews tab. The layer
+offers no delete command: deleting is not something an agent checking a preview needs.
 
 ## What a preview shares with production
 
-Everything bound at the top level. Workers Builds and `wrangler versions upload` upload
-a version of *the same Worker*, with the same bindings, so a write in a preview is a
-write to production's KV, D1, R2 or Durable Objects. KV's `preview_id`, D1's
-`preview_database_id` and R2's `preview_bucket_name` are for `wrangler dev`, not for
-versions, and do not separate them. Separate data means a separate preview Worker with
-bindings of its own.
+What the `previews` block binds, and nothing else. `preview.separate-data` reports a
+binding there that names the same store production binds (a KV id, a database, a
+bucket, a queue), one it cannot identify, and any Durable Object of another Worker. A
+class this Worker implements is per Preview and is not reported.
 
-Workers Previews are the exception: they inherit nothing, so what they share is exactly
-what the `previews` block binds. `preview.separate-data` then reports a binding there
-that names the same store production binds (a KV id, a database, a bucket, a queue),
-one it cannot identify, and any Durable Object of another Worker. A class this Worker
-implements is per preview and is not reported.
+Without a `previews` block, everything bound at the top level. An uploaded version is a
+version of *the same Worker*, with the same bindings, so a write in it is a write to
+production's KV, D1, R2 or Durable Objects. KV's `preview_id`, D1's
+`preview_database_id` and R2's `preview_bucket_name` are for `wrangler dev`, not for
+versions, and do not separate them.
 
 ## Variables
 
@@ -144,7 +155,7 @@ implements is per preview and is not reported.
 | `worker_name` | `auto` | The Worker; `auto` reads `name`. |
 | `worker_src` | `auto` | Where the Worker's source is; `auto` is the directory of `main`. |
 | `workers_subdomain` | *(empty)* | The account's workers.dev subdomain. Needed by `url` without `--upload`, and by `open`. Not a secret. |
-| `wrangler` | `npx wrangler` | How `--upload` runs Wrangler. |
+| `wrangler` | `npx wrangler` | How `--upload` runs Wrangler (4.135 or later for `wrangler preview`). |
 | `client_id_env` | `CF_ACCESS_CLIENT_ID` | The variable holding the service token's id. |
 | `client_secret_env` | `CF_ACCESS_CLIENT_SECRET` | The variable holding its secret. |
 | `token_hosts` | *(empty)* | Extra hosts the token may go to, e.g. the production domain. |
@@ -153,8 +164,9 @@ implements is per preview and is not reported.
 
 ## What it does not do
 
-- Read Workers Builds' settings. Whether the non-production build runs
-  `wrangler versions upload` is configured in the dashboard, where no file shows it.
+- Read Workers Builds' settings. Whether Enable Preview Builds is on, and whether the
+  Preview command runs `wrangler preview`, is configured in the dashboard, where no file
+  shows it.
 - Read `env.<name>` blocks. The checks read the top level of the Wrangler file.
 - Parse every TOML file. Tables, arrays of tables, `key = value` and inline arrays of
   flat inline tables are read; anything subtler is skipped.

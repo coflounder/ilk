@@ -5,12 +5,16 @@
 #
 # Without --upload nothing is built or sent anywhere: the URL is worked out from
 # the branch, the Worker's name and the account's workers.dev subdomain, and is
-# the URL the branch's preview alias has, or will have once CI uploads it.
+# the URL the branch's preview has, or will have once CI builds it.
 #
-# With --upload, and only inside CI, the branch is uploaded as a preview version
-# with `wrangler versions upload --preview-alias <alias>`, and the URL is the one
-# Wrangler reports. A version is not a deployment: production keeps serving what
-# it served. Nothing in this layer ever runs `wrangler deploy`.
+# With --upload, and only inside CI, the branch is built as a preview. With a
+# `previews` block in the Wrangler configuration that is a Workers Preview:
+# `wrangler preview --name <name>`, so the Preview gets the name worked out
+# here. Without one it is the older route, an uploaded version with
+# `wrangler versions upload --preview-alias <name>`, which Cloudflare says not
+# to use for branch or pull request testing and which says so on stderr.
+# Neither is a deployment: production keeps serving what it served. Nothing in
+# this layer ever runs `wrangler deploy`.
 #
 # Flags arrive from ilk as ILK_FLAG_UPLOAD; --json as ILK_OUTPUT=json.
 #
@@ -73,11 +77,14 @@ if [ -z "$worker" ]; then
 		"add \"name\" to $cfg, or set preview.worker_name"
 fi
 
-# A preview alias is lowercase letters, digits and dashes, starts with a letter,
-# and with the Worker's name has to fit one DNS label: <alias>-<worker> is at
-# most 63 characters. Truncating keeps long branch names usable; two branches
-# that agree on their first characters will share an alias, which is why the
-# alias is printed with the URL.
+# A preview's name is lowercase letters, digits and dashes, starts with a
+# letter, and with the Worker's name has to fit one DNS label: <name>-<worker>
+# is at most 63 characters. Truncating keeps long branch names usable; two
+# branches that agree on their first characters will share a name, which is why
+# the name is printed with the URL. Cloudflare documents these rules for version
+# aliases; for a Workers Preview named after the branch by Workers Builds it
+# documents none, so for a branch that is not already in this form the build's
+# own URL is the one to trust, unless the build runs `ilk preview url --upload`.
 alias=$(printf '%s' "$branch" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g; s/--*/-/g; s/^-//; s/-$//')
 case $alias in
 [a-z]*) ;;
@@ -99,26 +106,32 @@ if [ "$upload" = 1 ]; then
 			"let the pull request's build upload it (Cloudflare Workers Builds or the CI pipeline), then run ilk preview url without --upload"
 	fi
 	if [ -n "$(get previews)" ]; then
-		fail workers_previews "$cfg has a previews block, so this Worker's previews are Workers Previews, built by \`wrangler preview\` rather than uploaded as versions" \
-			"let the pull request's build make the preview (Workers Builds runs wrangler preview for a non-production branch), then run ilk preview url without --upload"
+		# Workers Previews: the recommended route. Named explicitly, so the URL
+		# is the one this command prints without --upload.
+		set -- preview --name "$alias"
+		what="wrangler preview"
+	else
+		echo "warning: $cfg has no previews block, so this uploads a version with a preview alias, which Cloudflare says not to use for branch or pull request testing; see ilk check --only preview.workers-previews" >&2
+		set -- versions upload --preview-alias "$alias"
+		what="wrangler versions upload"
 	fi
-	set -- versions upload --preview-alias "$alias"
 	if [ "${ILK_VAR_WRANGLER_CONFIG:-auto}" != auto ]; then
 		set -- "$@" --config "$cfg"
 	fi
 	# shellcheck disable=SC2086 # the wrangler variable is a command line, e.g. `npx wrangler`
 	if ! ${ILK_VAR_WRANGLER:-npx wrangler} "$@" >"$out" 2>&1; then
 		cat "$out" >&2
-		fail upload_failed "wrangler versions upload failed; its output is above" \
-			"read Wrangler's error. A branch that adds, renames or deletes a Durable Object class cannot be uploaded as a version at all"
+		fail upload_failed "$what failed; its output is above" \
+			"read Wrangler's error. Workers Previews need Wrangler 4.135 or later; a branch that adds, renames or deletes a Durable Object class cannot be uploaded as a version at all"
 	fi
 	cat "$out" >&2
-	# Wrangler prints the alias URL and the version URL; the alias is the stable one.
-	url=$(grep -i 'alias url' "$out" | grep -o 'https://[^ ]*' | head -1 || true)
-	[ -n "$url" ] || url=$(grep -i 'preview url' "$out" | grep -o 'https://[^ ]*' | head -1 || true)
+	# Wrangler prints this name's URL, and for a version also the version's own;
+	# the named one is the stable one.
+	url=$(grep -o "https://$alias-$worker\.[A-Za-z0-9.-]*workers\.dev" "$out" | head -1 || true)
+	[ -n "$url" ] || url=$(grep -i 'alias url' "$out" | grep -o 'https://[^ ]*' | head -1 || true)
 	if [ -z "$url" ]; then
-		fail no_preview_url "the version uploaded but Wrangler reported no preview URL" \
-			"run ilk check --only preview: preview_urls must be true, and a Worker that implements a Durable Object gets no preview URL at all"
+		fail no_preview_url "$what finished but Wrangler reported no preview URL for $alias" \
+			"run ilk check --only preview: preview_urls must be true, and a Worker that implements a Durable Object gets no version URL at all"
 	fi
 else
 	subdomain=${ILK_VAR_WORKERS_SUBDOMAIN:-}

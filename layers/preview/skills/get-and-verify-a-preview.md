@@ -12,10 +12,16 @@ token to see a branch running.
 ## What a preview is here
 
 One preview per pull request, built from the branch by CI — Cloudflare Workers Builds
-or the repository's pipeline — as a Worker **version**: uploaded with
-`wrangler versions upload --preview-alias <branch>`, never deployed. Production keeps
+or the repository's pipeline — as a **Workers Preview**: `wrangler preview`, configured
+by the `previews` block in the Wrangler configuration, never deployed. Production keeps
 serving what it served until a person merges. Every preview sits behind a Cloudflare
 Access application of its own, and the Worker verifies Access's token itself.
+
+A Preview gets only what the `previews` block gives it: its own bindings, its own vars,
+and its own empty Durable Object namespace for a class this Worker implements. It runs
+no Cron Triggers. A repository without a `previews` block still previews the older way,
+as uploaded versions, which share production's bindings; `preview.workers-previews`
+says so.
 
 ## Procedure
 
@@ -23,7 +29,8 @@ Access application of its own, and the Worker verifies Access's token itself.
    upload from your machine: a version built from a working tree is a preview of
    something nobody can name afterwards. `ilk preview url --upload` refuses outside CI
    for this reason. Never run `wrangler deploy`, `wrangler versions deploy` or
-   `wrangler rollback` — each one changes production.
+   `wrangler rollback` — each one changes production — and leave `wrangler preview
+   delete` to a person.
 
 2. **Get the URL.**
 
@@ -32,9 +39,11 @@ Access application of its own, and the Worker verifies Access's token itself.
    ilk preview url feat/x --json
    ```
 
-   This works the alias URL out locally and calls nothing. If it says
+   This works the URL out locally and calls nothing. If it says
    `preview.workers_subdomain` is not set, ask for the account's workers.dev
-   subdomain (it is not a secret) rather than guessing it.
+   subdomain (it is not a secret) rather than guessing it. For a branch whose name is
+   not already lowercase letters, digits and dashes, the build's comment on the pull
+   request has the URL Cloudflare actually gave it; use that one.
 
 3. **Open it with the service token, and only that way.**
 
@@ -49,9 +58,10 @@ Access application of its own, and the Worker verifies Access's token itself.
    command sends the token only to this Worker's own preview hosts, only over https,
    and never follows a redirect.
 
-4. **Read, never write.** A preview runs with the Worker's own bindings, which are
-   production's unless previews were given data of their own (`preview.separate-data`
-   says which). A write in a preview is a write to production. `ilk preview open`
+4. **Read, never write.** A Preview's Durable Objects are its own, but a store the
+   `previews` block binds may still be production's, and an uploaded version runs with
+   production's bindings outright (`preview.separate-data` says which). Treat a write
+   in a preview as a write to production. `ilk preview open`
    only GETs; do not work around that with curl, a browser session or a script. If
    the change needs a write to verify, say so and hand it to a person.
 
@@ -65,16 +75,18 @@ Access application of its own, and the Worker verifies Access's token itself.
 |---|---|
 | Redirect to `*.cloudflareaccess.com` | Access did not accept the token: the preview's Access application needs a Service Auth policy including it, or the token expired. A person fixes that in Zero Trust. |
 | 401 or 403 from the Worker | Access let you in, but the Worker refused: its verification does not accept the preview application's audience (`preview.preview-audience`), or the path is write-only. |
-| Error 1042 | No preview exists at that address. A Worker that implements a Durable Object gets no preview URL (`preview.no-durable-objects`). |
-| The build failed | A change that adds, renames or deletes a Durable Object class cannot be uploaded as a version at all; it ships with the production deploy. Say so rather than retrying. |
+| Error 1101 | The Preview ran and threw. Most often a binding production has that the `previews` block leaves out (`preview.previews-complete`); a Preview inherits none. |
+| Error 1042 | No version preview exists at that address. A Worker that implements a Durable Object gets no Version URL; it needs Workers Previews (`preview.workers-previews`). |
+| No URL on the pull request | Workers Builds made no Preview: Enable Preview Builds is off, the Preview command is not `npx wrangler preview`, or Wrangler is older than 4.135. A person fixes the first two in the dashboard. |
+| The build failed | Read its log. For uploaded versions, a change that adds, renames or deletes a Durable Object class cannot be uploaded at all; it ships with the production deploy. Say so rather than retrying. |
 
 Do not turn on `workers_dev`, remove the Access check, or loosen a policy to get a
 preview to answer. Each of those is the thing the checks exist to catch.
 
 ## Teardown
 
-There is nothing to tear down. A version is not deployed, so it serves nothing on
-production's routes; the branch's alias keeps pointing at its last version and is
-reused if the branch is pushed again. Wrangler offers no command to delete a version
-or an alias at the time of writing, and this layer offers none. Closing the pull
-request is the end of the preview's useful life.
+Nothing for you to tear down. A Preview is not deployed, so it serves nothing on
+production's routes; pushing the branch again updates the same Preview, and Cloudflare
+drops the least recently deployed Preview once a Worker has 100 (500 on paid plans).
+Deleting one sooner (`wrangler preview delete`) also deletes its Durable Object data,
+so leave it to a person.

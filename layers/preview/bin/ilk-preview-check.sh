@@ -3,8 +3,8 @@
 #
 #   ilk-preview-check.sh <aspect>
 #
-# Aspects: workers-dev-off, urls-on, access-verified, preview-audience,
-# no-durable-objects, separate-data, no-committed-token.
+# Aspects: workers-dev-off, urls-on, workers-previews, previews-complete,
+# access-verified, preview-audience, separate-data, no-committed-token.
 #
 # Each prints its findings as JSON lines (`findings: jsonl` in layer.yaml) and
 # exits 0 when the repository is right, 1 when it is not, and 2 when the check
@@ -120,8 +120,8 @@ urls-on)
 	v=$(get preview_urls)
 	case $v in
 	true) ;;
-	"") finding "$cfg" "preview_urls is not set, so whether uploaded versions get a preview URL is left to Wrangler's default" ;;
-	*) finding "$cfg" "preview_urls is $v, so an uploaded version gets no preview URL" ;;
+	"") finding "$cfg" "preview_urls is not set, so it follows workers_dev, and a Preview gets no workers.dev URL while workers_dev is off" ;;
+	*) finding "$cfg" "preview_urls is $v, so a Preview gets no workers.dev URL and nobody can open it" ;;
 	esac
 	done_
 	;;
@@ -151,6 +151,11 @@ preview-audience)
 	if [ -z "$v" ]; then
 		finding "$cfg" "vars has no $name, so the Worker has no audience to accept tokens from the Access app on its preview URLs"
 	fi
+	# A Workers Preview reads its vars from the previews block alone, so the
+	# audience has to be there too, or every preview refuses its own tokens.
+	if has_top previews && [ -z "$(get "previews.vars.$name")" ]; then
+		finding "$cfg" "previews.vars has no $name, and a Preview takes its vars from the previews block alone, so every preview refuses tokens from its own Access app"
+	fi
 	worker_sources
 	if ! src_grep "$name" >/dev/null; then
 		finding "$worker_dir" "no source under $worker_dir reads $name, so a token minted for the preview Access app is never accepted"
@@ -158,16 +163,22 @@ preview-audience)
 	done_
 	;;
 
-no-durable-objects)
+workers-previews)
 	need_config
 	# Workers Previews (`wrangler preview`, configured by a `previews` block)
-	# give each preview its own Durable Object namespace and a URL, so a class
-	# implemented here no longer costs the repository its previews.
+	# are how Cloudflare says to preview a branch or a pull request: each gets
+	# its own URL, only the bindings the block gives it, and its own namespace
+	# for a Durable Object class this Worker implements. Without the block, the
+	# only previews left are uploaded versions, which Cloudflare says not to use
+	# for branch or pull request testing: they run with production's bindings,
+	# and a Worker that implements a Durable Object gets no URL at all.
 	if has_top previews; then
 		done_
 	fi
+	finding "$cfg" "there is no previews block, so pull requests can only be previewed as uploaded versions, which run with production's bindings and which Cloudflare says not to use for branch or pull request testing"
 	# A binding without script_name is a class this Worker implements; with one,
-	# it is somebody else's Worker and costs this one nothing.
+	# it is somebody else's Worker. Name the classes, because for this Worker
+	# versions are not a fallback: they get no URL.
 	awk -F '\t' '
 		match($1, /^durable_objects\.bindings\[[0-9]+\]\./) {
 			i = substr($1, 1, RLENGTH - 1)
@@ -177,7 +188,45 @@ no-durable-objects)
 		}
 		END { for (i in cls) if (!(i in ext)) print cls[i] }
 	' "$flat" | sort -u | while read -r cls; do
-		finding "$cfg" "this Worker implements the Durable Object $cls, and Cloudflare makes no preview URL for a Worker that implements one (the URL answers error 1042)"
+		finding "$cfg" "this Worker implements the Durable Object $cls, and Cloudflare makes no Version URL for a Worker that implements one (it answers error 1042), so without Workers Previews it has no previews at all"
+	done
+	done_
+	;;
+
+previews-complete)
+	need_config
+	# Nothing to compare without a previews block; preview.workers-previews
+	# reports that.
+	if ! has_top previews; then
+		done_
+	fi
+	# A Preview inherits no bindings and no vars from the top level. Every one
+	# production has must be given again in the previews block — with its own
+	# store where it holds data (preview.separate-data judges that) — or code
+	# that reads it gets undefined on a Preview, and a missing Durable Object
+	# binding answers error 1101. Routes, crons, migrations, assets and
+	# compatibility settings are production's alone and are not compared.
+	awk -F '\t' '
+		{
+			side = "prod"; p = $1
+			if (index(p, "previews.") == 1) { side = "prev"; p = substr(p, 10) }
+			what = ""
+			if (p ~ /^vars\.[^.[]+$/) what = "var " substr(p, 6)
+			else if (p ~ /^(kv_namespaces|d1_databases|r2_buckets|services|hyperdrive|vectorize|analytics_engine_datasets|workflows)\[[0-9]+\]\.binding$/ ||
+				p ~ /^queues\.producers\[[0-9]+\]\.binding$/ ||
+				p ~ /^durable_objects\.bindings\[[0-9]+\]\.name$/ ||
+				p ~ /^send_email\[[0-9]+\]\.name$/ ||
+				p ~ /^(ai|browser|images|version_metadata)\.binding$/) {
+				kind = p; sub(/[.[].*/, "", kind)
+				what = "binding " $2 " (" kind ")"
+			}
+			if (what == "") next
+			have[side SUBSEP what] = 1
+			if (side == "prod") prod[what] = 1
+		}
+		END { for (w in prod) if (!(("prev" SUBSEP w) in have)) print w }
+	' "$flat" | sort -u | while read -r what; do
+		finding "$cfg" "production has the $what and the previews block does not; a Preview inherits nothing from the top level, so on a Preview it is undefined (a missing Durable Object binding answers error 1101)"
 	done | grep . && exit 1
 	done_
 	;;
@@ -234,7 +283,7 @@ separate-data)
 	# Bindings that hold or reach state. Workers AI, assets and plain vars do not.
 	for b in $state; do
 		if has_top "$b"; then
-			finding "$cfg" "$b is bound at the top level, and every preview version runs with the same $b as production"
+			finding "$cfg" "$b is bound at the top level and there is no previews block, so every preview is an uploaded version that runs with the same $b as production"
 		fi
 	done
 	done_
@@ -278,7 +327,7 @@ no-committed-token)
 	;;
 
 *)
-	echo "usage: ilk-preview-check.sh workers-dev-off|urls-on|access-verified|preview-audience|no-durable-objects|separate-data|no-committed-token" >&2
+	echo "usage: ilk-preview-check.sh workers-dev-off|urls-on|workers-previews|previews-complete|access-verified|preview-audience|separate-data|no-committed-token" >&2
 	exit 2
 	;;
 esac
