@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "shop",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "account_id": "<your-account-id>",
+  "workers_dev": false,
+  "preview_urls": true,
+  "routes": [{ "pattern": "shop.example.com", "custom_domain": true }],
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "<team>.cloudflareaccess.com",
+    "ACCESS_AUD": "<production-access-aud>",
+    "ACCESS_AUD_PREVIEW": "<preview-access-aud>"
+  },
+  // The preview audience is set for production only. A Preview reads its vars
+  // from this block, so every Preview refuses its own Access app's tokens.
+  "previews": {
+    "vars": {
+      "ACCESS_TEAM_DOMAIN": "<team>.cloudflareaccess.com",
+      "ACCESS_AUD": "<production-access-aud>"
+    }
+  }
+}

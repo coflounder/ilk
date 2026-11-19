@@ -1,5 +1,5 @@
 id: ilk/preview
-version: 0.2.0
+version: 0.3.0
 summary: A preview of every pull request, behind sign-in, that an agent can find and open read-only — and checks that the preview is not quietly public, shared with production, or missing.
 facets:
   arc: release
@@ -28,9 +28,10 @@ variables:
     enum: [cloudflare]
     description: >-
       Where previews are built. Cloudflare Workers is the first provider: each
-      pull request's branch is uploaded as a Worker version with a preview alias,
-      behind Cloudflare Access. Others will be values here, held to the same
-      checks and commands, rather than layers of their own.
+      pull request's branch is built as a Workers Preview (`wrangler preview`,
+      configured by the `previews` block), behind Cloudflare Access. Others will
+      be values here, held to the same checks and commands, rather than layers
+      of their own.
   wrangler_config:
     default: auto
     description: >-
@@ -58,7 +59,9 @@ variables:
     default: npx wrangler
     description: >-
       How to run Wrangler, for `ilk preview url --upload`. That is the only
-      Wrangler call in the layer, and it is always `versions upload`.
+      Wrangler call in the layer: `wrangler preview --name <name>` when the
+      configuration has a `previews` block, `wrangler versions upload
+      --preview-alias <name>` when it does not. Never a deploy.
   client_id_env:
     default: CF_ACCESS_CLIENT_ID
     description: >-
@@ -135,15 +138,46 @@ checks:
       outside the Access applications that guard the domain, so anybody with
       the URL reaches the Worker.
   - id: preview.urls-on
-    title: Uploaded versions get a preview URL
+    title: Previews get a workers.dev URL
     run: .ilk/bin/ilk-preview-check.sh urls-on
     findings: jsonl
     fix: >-
       Set `"preview_urls": true` in the Wrangler configuration. Preview URLs
       live on workers.dev but are a separate switch from the `workers_dev`
-      route, so this does not undo `workers_dev: false` — but put the preview
-      URLs behind an Access application of their own before turning them on,
-      or each one is public.
+      route (left unset, they follow it), so this does not undo `workers_dev:
+      false` — but put the preview URLs behind an Access application of their
+      own before turning them on, or each one is public.
+  - id: preview.workers-previews
+    title: Pull requests build as Workers Previews
+    run: .ilk/bin/ilk-preview-check.sh workers-previews
+    findings: jsonl
+    fix: >-
+      Add a `previews` block to the Wrangler configuration and give it the
+      bindings and vars a preview needs (`preview.previews-complete` lists
+      them). Require Wrangler 4.135 or later in package.json. In Workers Builds,
+      turn on Enable Preview Builds with the Preview command `npx wrangler
+      preview`; a Worker connected to Builds before Workers Previews shows a
+      "Set up Worker Previews" banner instead, and that switch cannot be undone.
+      A Preview inherits no bindings, so it stops sharing production's data, and
+      a Durable Object class this Worker implements gets a namespace per
+      Preview. Cloudflare says not to use Version URLs (`wrangler versions
+      upload --preview-alias`) for branch or pull request testing; to keep them
+      on purpose, `ilk check --skip preview.workers-previews` and say why.
+  - id: preview.previews-complete
+    title: The previews block gives a Preview every binding and var production has
+    run: .ilk/bin/ilk-preview-check.sh previews-complete
+    findings: jsonl
+    fix: >-
+      Add each binding and var named above to the `previews` block. A Preview
+      inherits nothing from the top level except assets, compatibility settings,
+      migrations and observability, so code that reads one left out gets
+      undefined, and a Durable Object binding left out answers error 1101. Point
+      a store that holds data at a preview store, not production's
+      (`preview.separate-data` checks that). Secrets are not in the file: set
+      them with `wrangler preview base-config secret put`, which reaches only
+      Previews made after it, or `wrangler preview secret put --name <name>` for
+      one that exists. Routes and Cron Triggers stay production's; a Preview
+      runs no scheduled handler.
   - id: preview.access-verified
     title: The Worker verifies the Cloudflare Access token itself
     run: .ilk/bin/ilk-preview-check.sh access-verified
@@ -167,37 +201,22 @@ checks:
       from production's, with a policy for the people and a Service Auth policy
       for the agents' service token. Put its AUD tag in the Wrangler `vars` as
       `{{ .Vars.preview_audience_var }}` (an AUD tag is not a secret), and add
-      it to the audiences the Worker's token verification accepts. If the var
-      has another name here, set `preview.preview_audience_var` to it.
-  - id: preview.no-durable-objects
-    title: Previews get a URL — no Durable Object implemented here, or built as Workers Previews
-    run: .ilk/bin/ilk-preview-check.sh no-durable-objects
-    findings: jsonl
-    fix: >-
-      Cloudflare makes no preview URL for a Worker that implements a Durable
-      Object: versions upload, and their URLs answer error 1042. Either build
-      previews as Workers Previews instead — Workers Builds runs `wrangler
-      preview` for a non-production branch, configured by a `previews` block in
-      the Wrangler configuration, and each preview gets its own namespace and a
-      URL — or move each class named above into a Worker of its own and bind it
-      here with `script_name`, which costs this Worker nothing. Until then this
-      repository has no previews, and this check says so rather than letting a
-      dead URL look like a preview. A change that adds, renames or deletes a
-      class cannot be uploaded as a version either; that ships with the
-      production deploy.
+      it to the audiences the Worker's token verification accepts. With a
+      `previews` block, put it in `previews.vars` too: a Preview reads its vars
+      from there alone. If the var has another name here, set
+      `preview.preview_audience_var` to it.
   - id: preview.separate-data
     title: Previews do not write to production's data
     run: .ilk/bin/ilk-preview-check.sh separate-data
     findings: jsonl
     fix: >-
-      A preview version runs with the Worker's own bindings, so the bindings
-      named above are production's, and a write made in a preview is a write
-      to production. With a `previews` block (Workers Previews), only what it
-      binds reaches a preview: bind preview stores there, not production's ids,
-      and a Durable Object class this Worker implements is already separate per
-      preview. Otherwise give previews data of their own — a separate preview
-      Worker with its own KV, D1, R2 and Durable Objects — or accept it
-      on purpose: confirm agents open previews only with the Access service
+      With a `previews` block (Workers Previews), only what it binds reaches a
+      Preview: bind preview stores there, not production's ids, and a Durable
+      Object class this Worker implements is already separate per Preview.
+      Without one, a preview is an uploaded version that runs with the
+      Worker's own bindings, so a write made in it is a write to production:
+      move to Workers Previews (`preview.workers-previews`). Or accept it on
+      purpose: confirm agents open previews only with the Access service
       token, that the Worker refuses every write from a service token (a
       service-token request carries `common_name` and no `email`), then run
       `ilk config set preview.shared_bindings read-only`.
@@ -222,11 +241,11 @@ hooks:
 
 commands:
   - name: url
-    summary: Print the preview URL for a branch; with --upload, in CI, upload the branch as a preview version first
+    summary: Print the preview URL for a branch; with --upload, in CI, build the branch's Workers Preview first
     args:
       - {name: branch, usage: "the branch; the current one, or the one CI is building, when omitted"}
     flags:
-      - {name: upload, type: bool, usage: "upload the branch as a preview version first (CI only; never deploys)"}
+      - {name: upload, type: bool, usage: "build the branch's preview first, named as this prints it (CI only; never deploys)"}
     examples:
       - ilk preview url
       - ilk preview url feat/checkout --json

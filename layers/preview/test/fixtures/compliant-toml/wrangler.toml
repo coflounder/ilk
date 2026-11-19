@@ -10,3 +10,9 @@ routes = [ { pattern = "shop.example.com", custom_domain = true } ]
 ACCESS_TEAM_DOMAIN = "<team>.cloudflareaccess.com"
 ACCESS_AUD = "<production-access-aud>"
 ACCESS_AUD_PREVIEW = "<preview-access-aud>"
+
+# A Preview inherits no vars from above: it gets these.
+[previews.vars]
+ACCESS_TEAM_DOMAIN = "<team>.cloudflareaccess.com"
+ACCESS_AUD = "<production-access-aud>"
+ACCESS_AUD_PREVIEW = "<preview-access-aud>"

@@ -1,4 +1,4 @@
-Every pull request gets a preview{{ if eq .Vars.provider "cloudflare" }} — a Cloudflare Worker version behind Access{{ end }}. `ilk preview url` prints where it is; `ilk preview open <url>` fetches it with the Access service token from `{{ .Vars.client_id_env }}` and `{{ .Vars.client_secret_env }}`. Never print, paste or store that secret, and never open a preview another way.
+Every pull request gets a preview{{ if eq .Vars.provider "cloudflare" }} — a Cloudflare Workers Preview behind Access, with only the bindings and vars the `previews` block gives it{{ end }}. `ilk preview url` prints where it is; `ilk preview open <url>` fetches it with the Access service token from `{{ .Vars.client_id_env }}` and `{{ .Vars.client_secret_env }}`. Never print, paste or store that secret, and never open a preview another way.
 
 **Previews are built by CI, never from your machine, and never deployed.** Production changes when a person merges; nothing you run deploys. Treat a preview as production data — read it, don't write to it.
 

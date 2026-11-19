@@ -1,0 +1,28 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "shop",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "account_id": "<your-account-id>",
+  "workers_dev": false,
+  "preview_urls": true,
+  "routes": [{ "pattern": "shop.example.com", "custom_domain": true }],
+  "durable_objects": { "bindings": [{ "name": "CART", "class_name": "Cart" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Cart"] }],
+  "ai": { "binding": "AI" },
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "<team>.cloudflareaccess.com",
+    "ACCESS_AUD": "<production-access-aud>",
+    "ACCESS_AUD_PREVIEW": "<preview-access-aud>",
+    "CHECKOUT": "on"
+  },
+  // Written as if Previews inherited the top level. They inherit nothing:
+  // CART is missing (error 1101 on every Preview), and so are AI and CHECKOUT.
+  "previews": {
+    "vars": {
+      "ACCESS_TEAM_DOMAIN": "<team>.cloudflareaccess.com",
+      "ACCESS_AUD": "<production-access-aud>",
+      "ACCESS_AUD_PREVIEW": "<preview-access-aud>"
+    }
+  }
+}

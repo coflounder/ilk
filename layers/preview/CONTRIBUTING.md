@@ -20,16 +20,21 @@ What this layer wants from a proposal:
     proposal, real or redacted. Write `<preview-access-aud>`.
 
   - **What Cloudflare changed.** The layer encodes things Cloudflare documents and
-    can change: that a Worker implementing a Durable Object gets no preview URL,
-    that versions share the Worker's bindings, the shape of preview hostnames, and
-    the absence of a command to delete a version or an alias. Any of those moving
-    is a reason to change a check, and a link to the change is the proposal.
+    can change: that Workers Previews are the recommended way to preview a branch
+    and Version URLs are not, that a Preview inherits no bindings or vars, that a
+    Worker implementing a Durable Object gets no Version URL, the shape of preview
+    hostnames, and how many Previews Cloudflare keeps. Any of those moving is a
+    reason to change a check, and a link to the change is the proposal. (0.3.0
+    followed Cloudflare's Workers Previews docs of September to November 2026.)
 
   - **The known gaps.** `env.<name>` blocks are not read, so a repository that gives
     previews their own Worker through an environment still fails
     `preview.separate-data`. Workers Builds' own settings are not visible in the
-    repository, so nothing checks that the non-production build uploads versions
-    rather than deploying. TOML is read in its common shapes only. If one of these
+    repository, so nothing checks that Enable Preview Builds is on or that the
+    Preview command runs `wrangler preview` rather than deploying. Cloudflare does
+    not document how it turns a branch name into a Preview name, so `ilk preview
+    url` is right only for branches already named in lowercase letters, digits
+    and dashes, unless the build runs `ilk preview url --upload`. TOML is read in its common shapes only. If one of these
     cost you, say how you worked around it.
 
 ## What is tested, and how
@@ -37,6 +42,7 @@ What this layer wants from a proposal:
 `test/checks.yaml` asserts every check in both directions against the fixtures in
 `test/fixtures/`, through `ilk layer test`. `test/run.sh` exercises the commands
 against a fake `wrangler` and a fake `curl` — that `--upload` only ever calls
-`versions upload` and only in CI, that the secret never reaches a command line,
+`wrangler preview --name` (or `versions upload` without a `previews` block) and
+only in CI, that the secret never reaches a command line,
 and that `open` refuses hosts that are not this Worker's. Neither can prove that
 Cloudflare answers the way the fakes do, and nothing here talks to a real account.

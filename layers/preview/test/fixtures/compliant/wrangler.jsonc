@@ -6,7 +6,7 @@
   "account_id": "<your-account-id>",
   // Production is a custom domain behind Access. No workers.dev.
   "workers_dev": false,
-  /* Pull requests upload as versions with a preview alias. */
+  /* Pull requests build as Workers Previews (`wrangler preview`), at workers.dev Preview URLs behind their own Access app. */
   "preview_urls": true,
   "routes": [{ "pattern": "shop.example.com", "custom_domain": true }],
   "assets": { "directory": "./dist", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
@@ -17,4 +17,13 @@
     "ACCESS_AUD_PREVIEW": "<preview-access-aud>",
   },
   "ai": { "binding": "AI" },
+  // A Preview inherits no bindings or vars from above: it gets these.
+  "previews": {
+    "vars": {
+      "ACCESS_TEAM_DOMAIN": "<team>.cloudflareaccess.com",
+      "ACCESS_AUD": "<production-access-aud>",
+      "ACCESS_AUD_PREVIEW": "<preview-access-aud>",
+    },
+    "ai": { "binding": "AI" },
+  },
 }
